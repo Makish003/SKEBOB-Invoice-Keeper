@@ -277,8 +277,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [x] **B-10** Users CRUD (admin only), запрет на системного админа, soft delete + revoke сессий.
   Тесты: AC-3, AC-4, EC-8, EC-12, уникальность логина → 409.
   ↳ done: B-10 · проверка: `pytest -q` → 155 passed (test_users.py: 401 ×5, user → 403 ×6 без изменений данных, admin PATCH/DELETE системного админа → 403, role=admin → 403, дубль логина → 409, смена пароля отзывает сессии, удаление: сессии отозваны, вход 401, paid_by_label сохранён, повторно 404, логин можно выдать снова)
-- [ ] **B-11** Worker: `python -m app.worker` — APScheduler (tick + быстрый pending-poll), notifiers (`telegram` через aiogram, `console`), конвейер §1.3, ретраи с backoff, graceful shutdown. Бот: `/start`, `/chatid`.
+- [x] **B-11** Worker: `python -m app.worker` — APScheduler (tick + быстрый pending-poll), notifiers (`telegram` через aiogram, `console`), конвейер §1.3, ретраи с backoff, graceful shutdown. Бот: `/start`, `/chatid`.
   Тесты (без сети, notifier-фейк): AC-6 (два тика → одна отправка), AC-7, AC-8, AC-14, EC-6 (ошибка → failed → ретрай → sent, без дублей).
+  ↳ done: B-11 · проверка: `pytest -q` → 173 passed (test_reminder_pipeline 9: AC-6 три тика → одна отправка, AC-7 без тика, AC-8, оплачен после постановки → cancelled, AC-14, EC-6 failed → backoff → sent без дублей, предел попыток, срок прошёл → cancelled, текст FR-18; test_notifiers 9); вживую: POST со сроком завтра 21:14:34 → `REMINDER … AC-7 Проверка, 1 234,50 EUR, срок 25.10.2026 (завтра)` в 21:14:35; `docker compose restart worker` → «Stopping worker / Worker stopped». Реальный Telegram не проверен (нет токена) → Q-03
 - [ ] **B-12** Seed (`app/seed.py`, идемпотентный; запускается при старте если `SEED_DEMO_DATA=true` и нет платежей): пользователь `user`/`user12345`;
   платежи относительно «сегодня»: «Аренда офиса» 85 000 RUB (срок через 2 дня → напоминание при старте), «Сервер Hetzner» 49.90 USD (срок 10 дней назад, не оплачен → просрочка),
   «Подписка Figma» 15.00 EUR (оплачена в прошлом периоде с опозданием, текущий — в будущем), «Домен invoice-keeper.ru» 1 990 RUB yearly; история за 2–3 прошлых периода с оплатами.
@@ -344,9 +345,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | AC-3 Роли | B-07, B-10, F-04 | `test_ac_03_roles.py` | 🟨 |
 | AC-4 Админ .env | B-05, B-10 | `test_ac_04_env_admin.py` | 🟨 |
 | AC-5 Регулярность | B-06, B-07 | `test_schedule.py`, `test_ac_05_periods.py` | 🟨 |
-| AC-6 Напоминание | B-11 | `test_ac_06_reminder_once.py` | ⬜ |
+| AC-6 Напоминание | B-11 | `test_ac_06_reminder_once.py` | 🟨 |
 | AC-7 Сразу | B-07, B-11 | `test_ac_07_immediate.py` | 🟨 |
-| AC-8 Оплачено — без напоминания | B-11 | `test_ac_08_paid_no_reminder.py` | ⬜ |
+| AC-8 Оплачено — без напоминания | B-11 | `test_ac_08_paid_no_reminder.py` | 🟨 |
 | AC-9 Отметка/отмена | B-08, F-05 | `test_ac_09_mark_unmark.py`, e2e | 🟨 |
 | AC-10 Исправление даты | B-08, F-05 | `test_ac_10_fix_date.py`, e2e | 🟨 |
 | AC-11 Просрочка | B-06, B-08 | `test_status.py`, `test_ac_11_overdue.py` | 🟨 |
@@ -390,6 +391,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 00:06 · SOLO · F-09 · lib/format.ts: Intl.NumberFormat ru-RU currency, dd.MM.yyyy, relativeDue (сегодня/завтра/через N дней/N дней назад), Intl.PluralRules ru; lib/money-input.ts — маска суммы · F-09 · визуально на скриншотах · —
 - 2026-10-24 00:08 · SOLO · B-10 · Users CRUD (admin only): список/по id/создание (всегда role=user)/изменение (логин, имя, пароль → revoke сессий)/мягкое удаление (revoke сессий); системный админ неизменяем (403); аудит user.created/updated/deleted · B-10 · 155 passed · —
 - 2026-10-24 00:11 · SOLO · F-07 · Экран «Пользователи» (admin): таблица (имя, логин, роль, создан), системный админ с замком и без действий, диалог создания/изменения (rhf+zod, 409 → ошибка у поля логина, смена пароля с подсказкой о завершении сессий), удаление через ConfirmDialog. Баг: гонка редиректа после входа (user попадал на / вместо /payments) — пойман e2e, исправлен · F-07 · e2e 11 passed · —
+- 2026-10-24 00:16 · SOLO · B-11 · Worker: APScheduler (tick каждые 60 с, опрос очереди каждые 5 с, max_instances=1), конвейер claim FOR UPDATE SKIP LOCKED → перепроверка (оплачен/прекращён/срок прошёл/канал не настроен → cancelled) → send → sent | failed + backoff 30 с·2^n (≤ 1 ч), ≤ REMINDER_MAX_ATTEMPTS; ConsoleNotifier (лог), TelegramNotifier (aiogram, HTML); бот /start и /chatid (long polling, работает и без chat id); graceful shutdown · B-11 · 173 passed · —
 
 ## 10. Эскалации и блокеры
 
