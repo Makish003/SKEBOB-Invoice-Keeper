@@ -68,12 +68,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Список регулярных платежей */
+        /**
+         * Список регулярных платежей
+         * @description Активные платежи (по умолчанию) или вместе с прекращёнными. Доступно всем авторизованным.
+         */
         get: operations["list_recurring_payments_api_v1_recurring_payments_get"];
         put?: never;
         /**
          * Создание регулярного платежа
-         * @description Создаёт платёж и его периоды. Если срок ближайшего периода не дальше чем через REMINDER_DAYS_BEFORE дней, напоминание ставится в очередь сразу (FR-19).
+         * @description Создаёт платёж и его периоды (все периоды с даты ближайшей оплаты, включая прошедшие). Если срок не дальше чем через REMINDER_DAYS_BEFORE дней, напоминание ставится в очередь сразу (FR-19) и уходит в течение нескольких секунд.
          */
         post: operations["create_recurring_payment_api_v1_recurring_payments_post"];
         delete?: never;
@@ -95,7 +98,7 @@ export interface paths {
         post?: never;
         /**
          * Прекращение регулярного платежа
-         * @description Мягкое удаление с сохранением истории: прошлые периоды и оплаты остаются, будущие неоплаченные периоды удаляются, новые периоды и напоминания не создаются. Повторное удаление → 404.
+         * @description Мягкое удаление с сохранением истории: прошлые периоды и все оплаты остаются (видны с `include_deleted=true`), будущие неоплаченные периоды удаляются, открытые напоминания отменяются, новые периоды и напоминания не создаются. Повторное удаление → 404.
          */
         delete: operations["delete_recurring_payment_api_v1_recurring_payments__payment_id__delete"];
         options?: never;
@@ -112,7 +115,7 @@ export interface paths {
         };
         /**
          * Список периодов (платежей)
-         * @description Все периоды, в т.ч. оплаченные и просроченные. Фильтры комбинируются через И.
+         * @description Все периоды, в т.ч. оплаченные и просроченные. Фильтры комбинируются через И. По умолчанию — только периоды активных платежей; история прекращённых — `include_deleted=true`.
          */
         get: operations["list_occurrences_api_v1_payment_occurrences_get"];
         put?: never;
@@ -131,7 +134,7 @@ export interface paths {
             cookie?: never;
         };
         /** Конкретный период */
-        get: operations["get_occurrence_api_v1_payment_occurrences__occurrence_id__get"];
+        get: operations["get_occurrence_by_id_api_v1_payment_occurrences__occurrence_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -982,7 +985,7 @@ export interface operations {
             };
         };
     };
-    get_occurrence_api_v1_payment_occurrences__occurrence_id__get: {
+    get_occurrence_by_id_api_v1_payment_occurrences__occurrence_id__get: {
         parameters: {
             query?: never;
             header?: never;

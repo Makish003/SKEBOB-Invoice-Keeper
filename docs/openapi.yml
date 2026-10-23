@@ -89,6 +89,7 @@ paths:
       tags:
       - Регулярные платежи
       summary: Список регулярных платежей
+      description: Активные платежи (по умолчанию) или вместе с прекращёнными. Доступно всем авторизованным.
       operationId: list_recurring_payments_api_v1_recurring_payments_get
       security:
       - cookieAuth: []
@@ -126,8 +127,8 @@ paths:
       tags:
       - Регулярные платежи
       summary: Создание регулярного платежа
-      description: Создаёт платёж и его периоды. Если срок ближайшего периода не дальше чем через REMINDER_DAYS_BEFORE дней,
-        напоминание ставится в очередь сразу (FR-19).
+      description: Создаёт платёж и его периоды (все периоды с даты ближайшей оплаты, включая прошедшие). Если срок не дальше
+        чем через REMINDER_DAYS_BEFORE дней, напоминание ставится в очередь сразу (FR-19) и уходит в течение нескольких секунд.
       operationId: create_recurring_payment_api_v1_recurring_payments_post
       security:
       - cookieAuth: []
@@ -208,8 +209,9 @@ paths:
       tags:
       - Регулярные платежи
       summary: Прекращение регулярного платежа
-      description: 'Мягкое удаление с сохранением истории: прошлые периоды и оплаты остаются, будущие неоплаченные периоды
-        удаляются, новые периоды и напоминания не создаются. Повторное удаление → 404.'
+      description: 'Мягкое удаление с сохранением истории: прошлые периоды и все оплаты остаются (видны с `include_deleted=true`),
+        будущие неоплаченные периоды удаляются, открытые напоминания отменяются, новые периоды и напоминания не создаются.
+        Повторное удаление → 404.'
       operationId: delete_recurring_payment_api_v1_recurring_payments__payment_id__delete
       security:
       - cookieAuth: []
@@ -253,7 +255,8 @@ paths:
       tags:
       - Периоды оплаты
       summary: Список периодов (платежей)
-      description: Все периоды, в т.ч. оплаченные и просроченные. Фильтры комбинируются через И.
+      description: Все периоды, в т.ч. оплаченные и просроченные. Фильтры комбинируются через И. По умолчанию — только периоды
+        активных платежей; история прекращённых — `include_deleted=true`.
       operationId: list_occurrences_api_v1_payment_occurrences_get
       security:
       - cookieAuth: []
@@ -392,7 +395,7 @@ paths:
       tags:
       - Периоды оплаты
       summary: Конкретный период
-      operationId: get_occurrence_api_v1_payment_occurrences__occurrence_id__get
+      operationId: get_occurrence_by_id_api_v1_payment_occurrences__occurrence_id__get
       security:
       - cookieAuth: []
       - bearerAuth: []

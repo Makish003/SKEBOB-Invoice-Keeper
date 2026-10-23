@@ -265,10 +265,12 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [x] **B-06** Домен `schedule.py`/`status.py` + **unit-тесты сначала** (`tdd-guide`): 31.01→28.02/29.02→31.03, 30.11→30.12…, weekly/quarterly/yearly, високосный год, просрочка на границе (due_date, due_date+1), paid_late, оплата в день срока.
   DoD: ≥ 25 параметризованных кейсов зелёные.
   ↳ done: B-06 · проверка: `pytest tests/unit --cov=app/domain` → 56 passed, покрытие app/domain 100%
-- [ ] **B-07** Recurring payments: `GET` (все авторизованные), `POST`/`DELETE` (admin, soft delete), при создании — `ensure_occurrences` + постановка `pending`-напоминания, аудит.
+- [x] **B-07** Recurring payments: `GET` (все авторизованные), `POST`/`DELETE` (admin, soft delete), при создании — `ensure_occurrences` + постановка `pending`-напоминания, аудит.
   Тесты: AC-3 (user → 403), AC-14 (после DELETE нет новых периодов и напоминаний, история видна).
-- [ ] **B-08** Occurrences: список с фильтрами/сортировкой/пагинацией, `GET by id`, `PATCH` по правилам §1.5, вычисляемые поля, `paid_by_label`, аудит.
+  ↳ done: B-07 · проверка: `pytest tests/api/test_recurring_payments.py` → все зелёные (в составе 122 passed): 401 ×4, user POST/DELETE → 403 без изменений, POST внутри окна → pending-напоминание сразу, soft delete сохраняет историю и не порождает новых периодов при сдвиге часов
+- [x] **B-08** Occurrences: список с фильтрами/сортировкой/пагинацией, `GET by id`, `PATCH` по правилам §1.5, вычисляемые поля, `paid_by_label`, аудит.
   Тесты: AC-9, AC-10, AC-11, EC-4, EC-5; пользователь может PATCH (не 403).
+  ↳ done: B-08 · проверка: `pytest tests/api/test_occurrences.py` → все зелёные (в составе 122 passed); покрытие app 94%
 - [ ] **B-09** Summary по валютам (всегда 3 валюты, Decimal-суммы, фильтр периода, `as_of`).
   Тест: AC-12 на сид-данных.
 - [ ] **B-10** Users CRUD (admin only), запрет на системного админа, soft delete + revoke сессий.
@@ -332,18 +334,18 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 |---|---|---|---|
 | AC-1 Запуск | B-03, B-12, D-01, D-04 | ручная D-04 | ⬜ |
 | AC-2 Доступ | B-05, F-03 | `test_ac_02_auth_required.py` | 🟨 |
-| AC-3 Роли | B-07, B-10, F-04 | `test_ac_03_roles.py` | ⬜ |
+| AC-3 Роли | B-07, B-10, F-04 | `test_ac_03_roles.py` | 🟨 |
 | AC-4 Админ .env | B-05, B-10 | `test_ac_04_env_admin.py` | 🟨 |
 | AC-5 Регулярность | B-06, B-07 | `test_schedule.py`, `test_ac_05_periods.py` | 🟨 |
 | AC-6 Напоминание | B-11 | `test_ac_06_reminder_once.py` | ⬜ |
-| AC-7 Сразу | B-07, B-11 | `test_ac_07_immediate.py` | ⬜ |
+| AC-7 Сразу | B-07, B-11 | `test_ac_07_immediate.py` | 🟨 |
 | AC-8 Оплачено — без напоминания | B-11 | `test_ac_08_paid_no_reminder.py` | ⬜ |
-| AC-9 Отметка/отмена | B-08, F-05 | `test_ac_09_mark_unmark.py`, e2e | ⬜ |
-| AC-10 Исправление даты | B-08, F-05 | `test_ac_10_fix_date.py`, e2e | ⬜ |
+| AC-9 Отметка/отмена | B-08, F-05 | `test_ac_09_mark_unmark.py`, e2e | 🟨 |
+| AC-10 Исправление даты | B-08, F-05 | `test_ac_10_fix_date.py`, e2e | 🟨 |
 | AC-11 Просрочка | B-06, B-08 | `test_status.py`, `test_ac_11_overdue.py` | 🟨 |
 | AC-12 Валюты | B-09, F-08 | `test_ac_12_summary.py` | ⬜ |
 | AC-13 Сохранение | B-03 | ручная Q-05 | ⬜ |
-| AC-14 Удаление | B-07, B-11 | `test_ac_14_delete.py` | ⬜ |
+| AC-14 Удаление | B-07, B-11 | `test_ac_14_delete.py` | 🟨 |
 | AC-15 Передача | B-04, B-13, D-01 | `test_openapi_up_to_date.py`, D-04 | ⬜ |
 | FR-26 Swagger | B-01, B-13 | `GET /api/v1/docs` → 200 | 🟨 |
 | Бонусы B1–B10 | X-01…X-10 | см. задачи | ⬜ |
@@ -372,6 +374,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 23:33 · SOLO · F-03 · Логин (rhf+zod, ошибки по ux-writing, 401/429/сеть), RequireAuth (нет сессии → /login?next=), RequireAdmin (UI-заглушка 403 с переходом к платежам), глобальный 401 → сброс кэша и /login, выход; редирект по роли (admin → Сводка, user → Платежи) · F-03 · e2e 6 passed · —
 - 2026-10-23 23:33 · SOLO · F-04 · Shell: сайдбар (Сводка, Платежи, Регулярные [admin], Пользователи [admin]; Календарь/Журнал появятся с бонусами X-02/X-03), меню пользователя (роль, тема светлая/тёмная/системная, выход), мобильная шапка + выезжающее меню, skip-link · F-04 · e2e 6 passed · страницы разделов заполняются в F-05…F-08
 - 2026-10-23 23:35 · SOLO · B-06 · Домен (TDD, тесты написаны первыми): schedule.due_date_for (anchor_day, без дрейфа, weekly/quarterly/yearly, високосный год), planned_occurrences (горизонт + минимум один будущий, EC-2), status.compute_status (просрочка со следующего дня, paid_late, due_soon/due_today), reminders.reminder_due (окно 3 дня, FR-19/21/22) · B-06 · 56 passed, cov 100% · —
+- 2026-10-23 23:46 · SOLO · B-07 · Регулярные платежи: GET (все), GET/{id}, POST/DELETE (admin), ensure_for_payment (ON CONFLICT DO NOTHING), enqueue_due при создании (FR-19), soft delete: будущие неоплаченные периоды удаляются, открытые напоминания cancelled, повтор → 404 (EC-11), аудит created/deleted, диапазон даты ±10 лет · B-07 · 122 passed · ADR-017
+- 2026-10-23 23:46 · SOLO · B-08 · Периоды: список (status, overdue в SQL, currency, payment, due_from/to, q, include_deleted, sort, limit/offset, total), GET/{id}, PATCH по правилам §1.5 (EC-4, EC-5, due_date неизменяем → 422), paid_by_label, reminder_sent_at, аудит paid/unpaid/paid_at_changed · B-08 · 122 passed · —
 
 ## 10. Эскалации и блокеры
 
