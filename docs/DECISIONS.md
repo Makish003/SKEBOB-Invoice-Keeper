@@ -49,3 +49,9 @@ SPA за nginx с proxy `/api` — один origin, cookie без CORS. Конт
 **ADR-014 · accepted · Уникальность логина — частичный индекс `UNIQUE(login) WHERE deleted_at IS NULL`.**
 Пользователи удаляются мягко (EC-8: их прошлые отметки оплат сохраняются). Полный UNIQUE запретил бы повторно выдать логин
 удалённого сотрудника. Активные логины по-прежнему уникальны (дубль → `409`).
+
+**ADR-015 · accepted · Frontend-инструменты: компоненты в стиле shadcn пишутся вручную на `radix-ui`; TypeScript 5.9; линтер oxlint.**
+`shadcn init` в неинтерактивном режиме зависает на выборе пресета — компоненты (Button, Select, Dialog, Popover…) пишутся
+в `src/components/ui` по тем же паттернам на Radix-примитивах и наших токенах. TypeScript закреплён на 5.9: `openapi-typescript@7`
+требует TS 5 (peer). Линтер — oxlint из шаблона Vite (совместимые с ESLint правила, на порядок быстрее); «eslint чистый» в
+quality bar читается как «oxlint без ошибок».

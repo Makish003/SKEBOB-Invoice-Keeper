@@ -249,8 +249,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [x] **B-04** (BACK) **Контракт-first:** Pydantic-схемы и пустые роутеры ВСЕХ эндпоинтов FR-25 (возвращают `501`), `app/scripts/export_openapi.py` → `docs/openapi.yml`. Тест `test_openapi_up_to_date` падает, если файл устарел.
   DoD: `docs/openapi.yml` закоммичен; FRONT может генерировать типы. **Сообщить FRONT в журнале.**
   ↳ done: B-04 · проверка: `pytest tests/test_openapi_up_to_date.py` → 2 passed; в spec 17 операций, securitySchemes cookieAuth|bearerAuth (OR)
-- [ ] **F-01** (FRONT) `frontend/`: Vite + React 19 + TS strict + Tailwind v4 + shadcn/ui init, роутинг, TanStack Query, `openapi-typescript` → `src/api/schema.d.ts`, `openapi-fetch` клиент с `credentials: "include"`. Dockerfile (node build → nginx), `nginx.conf` (SPA fallback + proxy `/api` → `backend:8000`).
+- [x] **F-01** (FRONT) `frontend/`: Vite + React 19 + TS strict + Tailwind v4 + shadcn/ui init, роутинг, TanStack Query, `openapi-typescript` → `src/api/schema.d.ts`, `openapi-fetch` клиент с `credentials: "include"`. Dockerfile (node build → nginx), `nginx.conf` (SPA fallback + proxy `/api` → `backend:8000`).
   DoD: `npm run build` без ошибок; `http://localhost:8080` открывает заглушку через compose.
+  ↳ done: F-01 · проверка: `npm run build` OK; `docker compose up -d --build web` → web healthy; `curl :8080/` → `<title>Invoice Keeper</title>`, `/api/v1/health` через nginx → ok, `/api/v1/docs` → 200, SPA-fallback → 200
 - [ ] **F-02** (FRONT) Визуальная система: `design-doctrine` + `apply-aesthetic` → токены (CSS variables), светлая/тёмная тема, типографика (Inter/Manrope с кириллицей), `src/lib/motion.ts` (пресеты: `fadeUp`, `stagger`, `spring {stiffness: 380, damping: 30}`; `useReducedMotion`). Записать выбранное направление в `DECISIONS.md`.
   DoD: страница-витрина `/_ui` (только dev) со всеми базовыми компонентами в 8 состояниях; `gate` зелёный по контрасту.
 
@@ -359,6 +360,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 22:50 · SOLO · B-02 · Модели §1.1 (6 таблиц, 7 enum, CHECK paid_at↔status, UNIQUE(payment,seq)/(payment,due_date)/(occurrence,channel,kind), частичный UNIQUE логина среди не удалённых) + 0001_initial · B-02 · upgrade→check→downgrade→upgrade OK на postgres:16-alpine · логин уникален только среди активных — см. ADR-014
 - 2026-10-23 22:52 · SOLO · B-03 · docker-compose.yml (db+backend+worker, healthchecks, volume pgdata, env_file .env необязателен — дефолты в Settings), entrypoint serve|worker|bootstrap (wait db → alembic → sync admin), .env.example без секретов, compose.dev.yml для разработки · B-03 · `docker compose ps` → 3× healthy · DATABASE_URL по умолчанию собирается из POSTGRES_* — нельзя рассинхронизировать пароль БД
 - 2026-10-23 22:55 · SOLO · B-04 · Контракт-first: Pydantic-схемы (деньги — строка, единый ErrorResponse), роутеры всех эндпоинтов FR-25 (+ GET /recurring-payments/{id}, GET /users/{id} по FR-27) с 501, зависимости current_user/require_admin, docs/openapi.yml экспортирован · B-04 · test_openapi_up_to_date 2 passed · FRONT: docs/openapi.yml готов для openapi-typescript
+- 2026-10-23 23:08 · SOLO · F-01 · Vite 8 + React 19 + TS strict + Tailwind v4, React Router 8, TanStack Query, openapi-typescript → src/api/schema.d.ts, openapi-fetch (credentials: include, глобальный 401-листенер), Dockerfile node→nginx, nginx.conf (SPA fallback, proxy /api с Docker DNS, CSP), сервис web в compose · F-01 · curl через :8080 · ADR-015 (radix-ui вместо shadcn CLI, TS 5.9, oxlint)
 
 ## 10. Эскалации и блокеры
 
