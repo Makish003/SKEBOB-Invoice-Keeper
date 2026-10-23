@@ -330,7 +330,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | AC-1 Запуск | B-03, B-12, D-01, D-04 | ручная D-04 | ⬜ |
 | AC-2 Доступ | B-05, F-03 | `test_ac_02_auth_required.py` | 🟨 |
 | AC-3 Роли | B-07, B-10, F-04 | `test_ac_03_roles.py` | ⬜ |
-| AC-4 Админ .env | B-05, B-10 | `test_ac_04_env_admin.py` | ⬜ |
+| AC-4 Админ .env | B-05, B-10 | `test_ac_04_env_admin.py` | 🟨 |
 | AC-5 Регулярность | B-06, B-07 | `test_schedule.py`, `test_ac_05_periods.py` | ⬜ |
 | AC-6 Напоминание | B-11 | `test_ac_06_reminder_once.py` | ⬜ |
 | AC-7 Сразу | B-07, B-11 | `test_ac_07_immediate.py` | ⬜ |
@@ -342,7 +342,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | AC-13 Сохранение | B-03 | ручная Q-05 | ⬜ |
 | AC-14 Удаление | B-07, B-11 | `test_ac_14_delete.py` | ⬜ |
 | AC-15 Передача | B-04, B-13, D-01 | `test_openapi_up_to_date.py`, D-04 | ⬜ |
-| FR-26 Swagger | B-01, B-13 | `GET /api/v1/docs` → 200 | ⬜ |
+| FR-26 Swagger | B-01, B-13 | `GET /api/v1/docs` → 200 | 🟨 |
 | Бонусы B1–B10 | X-01…X-10 | см. задачи | ⬜ |
 
 Легенда: ⬜ нет · 🟨 частично · ✅ зелёный (с доказательством в журнале).
@@ -365,6 +365,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 23:08 · SOLO · F-01 · Vite 8 + React 19 + TS strict + Tailwind v4, React Router 8, TanStack Query, openapi-typescript → src/api/schema.d.ts, openapi-fetch (credentials: include, глобальный 401-листенер), Dockerfile node→nginx, nginx.conf (SPA fallback, proxy /api с Docker DNS, CSP), сервис web в compose · F-01 · curl через :8080 · ADR-015 (radix-ui вместо shadcn CLI, TS 5.9, oxlint)
 - 2026-10-23 23:25 · SOLO · F-02 · Токены linear-app (light/dark), Inter cyrillic, motion.ts (fadeUp/stagger/spring 380/30/useReducedMotion), ThemeProvider, компоненты на radix-ui: Button, Input, Field, Select (listbox), Dialog/ConfirmDialog, Popover, DropdownMenu, Segmented (layoutId), Tooltip, Badge, Card, Skeleton, Table, Calendar (react-day-picker ru), Empty/ErrorState, Toaster; витрина /_ui (dev) · F-02 · гейты XIAS зелёные, скриншоты light/dark/360px просмотрены · ADR-016; хук XIAS ложно падает на кириллице (cp1252) — гейты гоняются вручную с PYTHONUTF8=1
 - 2026-10-23 23:29 · SOLO · B-05 · Auth: argon2, серверные сессии (sha256 токена), cookie ik_session (httpOnly, SameSite=Lax) + Bearer, login/me/logout, rate-limit 5/мин на IP+логин (429), одинаковый 401 для неверного пароля и неизвестного логина, аудит auth.login.success/failed, auth.logout, sync админа из .env · B-05 · 18 passed
+- 2026-10-23 23:29 · SOLO · M1 · **M1 достигнут**: `docker compose up -d --build` → db/backend/worker/web healthy; `/api/v1/docs` → 200 через :8080; логин admin (cookie+bearer) работает. Трассировка: 0/15 AC ✅, 3 🟨 (AC-2, AC-4, FR-26). Дальше: F-03/F-04 (логин, shell), затем B-06 домен · — · pytest 18 passed · —
 
 ## 10. Эскалации и блокеры
 
