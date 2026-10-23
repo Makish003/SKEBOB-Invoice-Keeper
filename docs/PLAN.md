@@ -307,7 +307,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
   ↳ done: F-09 · проверка: используется на всех экранах; скриншоты: «85 000,00 ₽», «49,90 $», «15,00 €», даты dd.MM.yyyy, «через 21 день», «на 41 день», «сегодня/завтра»
 
 ### Проверка M2
-- [ ] **Q-01** (ANY) `tests/acceptance/test_ac_XX_*.py` — по файлу на каждый AC-2…AC-14, на реальной Postgres; `pytest -q` зелёный.
+- [x] **Q-01** (ANY) `tests/acceptance/test_ac_XX_*.py` — по файлу на каждый AC-2…AC-14, на реальной Postgres; `pytest -q` зелёный.
+  ↳ done: Q-01 · проверка: `docker compose -f docker-compose.yml -f compose.dev.yml run --rm --no-deps backend pytest -q --cov=app` → 208 passed, покрытие app 95%, app/domain 100%; tests/acceptance: 34 passed (AC-2…AC-12, AC-14; AC-13 — ручная Q-05)
 - [ ] **Q-02** (FRONT) Playwright `e2e/demo.spec.ts` = сценарий со с.15: войти admin → добавить платёж со сроком через 1 день → (проверить `reminders` через API/лог console-notifier) → войти user → отметить оплату → показать просроченный → исправить дату → просрочка исчезла → показать следующий период с отдельным статусом.
 - [ ] **Q-03** (BACK) Реальный Telegram: создать бота, добавить в группу, `/chatid`, прописать в `.env`, проверить AC-6/AC-7 вживую; скриншот в `docs/screenshots/`.
 - [ ] **Q-04** (ANY) `adversarial-reviewer` + `senior-security` по authz: попытки обойти права через API (IDOR, смена роли, PATCH чужих полей). Найденное → `red-green-proof`.
@@ -343,19 +344,19 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | Req | Задачи | Тест(ы) | Статус |
 |---|---|---|---|
 | AC-1 Запуск | B-03, B-12, D-01, D-04 | ручная D-04 | ⬜ |
-| AC-2 Доступ | B-05, F-03 | `test_ac_02_auth_required.py` | 🟨 |
-| AC-3 Роли | B-07, B-10, F-04 | `test_ac_03_roles.py` | 🟨 |
-| AC-4 Админ .env | B-05, B-10 | `test_ac_04_env_admin.py` | 🟨 |
-| AC-5 Регулярность | B-06, B-07 | `test_schedule.py`, `test_ac_05_periods.py` | 🟨 |
-| AC-6 Напоминание | B-11 | `test_ac_06_reminder_once.py` | 🟨 |
-| AC-7 Сразу | B-07, B-11 | `test_ac_07_immediate.py` | 🟨 |
-| AC-8 Оплачено — без напоминания | B-11 | `test_ac_08_paid_no_reminder.py` | 🟨 |
-| AC-9 Отметка/отмена | B-08, F-05 | `test_ac_09_mark_unmark.py`, e2e | 🟨 |
-| AC-10 Исправление даты | B-08, F-05 | `test_ac_10_fix_date.py`, e2e | 🟨 |
-| AC-11 Просрочка | B-06, B-08 | `test_status.py`, `test_ac_11_overdue.py` | 🟨 |
-| AC-12 Валюты | B-09, F-08 | `test_ac_12_summary.py` | 🟨 |
+| AC-2 Доступ | B-05, F-03 | test_ac_02_auth_required.py (все операции из OpenAPI → 401), e2e auth.spec (редирект /login) | ✅ |
+| AC-3 Роли | B-07, B-10, F-04 | test_ac_03_roles.py, test_users.py, e2e users.spec (нет админ-разделов у user) | ✅ |
+| AC-4 Админ .env | B-05, B-10 | test_ac_04_env_admin.py, test_admin_sync.py | ✅ |
+| AC-5 Регулярность | B-06, B-07 | test_schedule.py (31 кейс), test_ac_05_periods.py | ✅ |
+| AC-6 Напоминание | B-11 | test_ac_06_reminder_once.py, test_reminder_pipeline.py | ✅ |
+| AC-7 Сразу | B-07, B-11 | test_ac_07_immediate.py; вживую console ≈1 с | ✅ |
+| AC-8 Оплачено — без напоминания | B-11 | test_ac_08_paid_no_reminder.py | ✅ |
+| AC-9 Отметка/отмена | B-08, F-05 | test_ac_09_mark_unmark.py, e2e payments.spec | ✅ |
+| AC-10 Исправление даты | B-08, F-05 | test_ac_10_fix_date.py, e2e payments.spec | ✅ |
+| AC-11 Просрочка | B-06, B-08 | test_status.py, test_ac_11_overdue.py | ✅ |
+| AC-12 Валюты | B-09, F-08 | test_ac_12_summary.py, test_summary.py | ✅ |
 | AC-13 Сохранение | B-03 | ручная Q-05 | ⬜ |
-| AC-14 Удаление | B-07, B-11 | `test_ac_14_delete.py` | 🟨 |
+| AC-14 Удаление | B-07, B-11 | test_ac_14_delete.py, test_reminder_pipeline.py | ✅ |
 | AC-15 Передача | B-04, B-13, D-01 | `test_openapi_up_to_date.py`, D-04 | 🟨 |
 | FR-26 Swagger | B-01, B-13 | `GET /api/v1/docs` → 200 | ✅ |
 | Бонусы B1–B10 | X-01…X-10 | см. задачи | ⬜ |
@@ -396,6 +397,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 00:16 · SOLO · B-11 · Worker: APScheduler (tick каждые 60 с, опрос очереди каждые 5 с, max_instances=1), конвейер claim FOR UPDATE SKIP LOCKED → перепроверка (оплачен/прекращён/срок прошёл/канал не настроен → cancelled) → send → sent | failed + backoff 30 с·2^n (≤ 1 ч), ≤ REMINDER_MAX_ATTEMPTS; ConsoleNotifier (лог), TelegramNotifier (aiogram, HTML); бот /start и /chatid (long polling, работает и без chat id); graceful shutdown · B-11 · 173 passed · —
 - 2026-10-24 00:21 · SOLO · B-12 · Seed (идемпотентный, при старте если SEED_DEMO_DATA=true и платежей нет; `python -m app.seed`): пользователи user/user12345 (Иван Петров), anna/anna12345; 6 платежей относительно «сегодня»: Аренда офиса 85 000 RUB (через 2 дня), Сервер Hetzner 49.90 USD (просрочен 10 дней), Подписка Figma 15 EUR (прошлый период оплачен с опозданием), Домен 1 990 RUB yearly, Google Workspace 36 USD (срок сегодня), Бухгалтерия 25 000 RUB; история оплат с именами. Фикс: счётчик постановки через RETURNING · B-12 · 174 passed · —
 - 2026-10-24 00:22 · SOLO · B-13 · OpenAPI финал: описание API (авторизация через cookie/Bearer, роли, форматы дат/денег/ошибок), описания тегов на русском, servers, contact, описания всех операций, коды ошибок у каждой операции (единый ErrorResponse), примеры полей; api-design-reviewer прогнан · B-13 · линтер 90.7, 0 errors · ADR-018 (snake_case контракта, нерелевантные эвристики скоркарда)
+- 2026-10-24 00:26 · SOLO · Q-01 · Приёмочные тесты: по файлу на AC-2…AC-12, AC-14 (Given/When/Then из SPEC), общий RecordingNotifier вместо Telegram; AC-2 перебирает все операции из OpenAPI. Тест AC-5 сначала упал из-за ошибки в самом тесте (дата оплаты в будущем → 422 — верное поведение сервера) · Q-01 · 208 passed · —
 
 ## 10. Эскалации и блокеры
 
