@@ -171,15 +171,17 @@ export function Shell() {
         Перейти к содержимому
       </a>
       <div className="min-h-dvh lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)]">
-        <aside className="hidden border-r border-subtle bg-panel lg:sticky lg:top-0 lg:flex lg:h-dvh lg:flex-col lg:gap-6 lg:p-3">
-          <div className="px-2 pt-2">
-            <Logo />
-          </div>
-          <Navigation />
-          <div className="mt-auto">
-            <UserMenu />
-          </div>
-        </aside>
+        <div className="hidden border-r border-subtle bg-panel lg:block">
+          <aside className="sticky top-0 flex h-dvh flex-col gap-6 p-3">
+            <div className="px-2 pt-2">
+              <Logo />
+            </div>
+            <Navigation />
+            <div className="mt-auto">
+              <UserMenu />
+            </div>
+          </aside>
+        </div>
 
         <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-subtle bg-panel/90 px-2 backdrop-blur lg:hidden">
           <MobileNav />
