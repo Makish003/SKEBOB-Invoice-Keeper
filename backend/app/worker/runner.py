@@ -39,7 +39,7 @@ async def run() -> None:
     bot = Bot(settings.telegram_bot_token) if settings.telegram_bot_token else None
     notifiers: dict[Channel, Notifier] = {Channel.console: ConsoleNotifier()}
     if bot and settings.telegram_chat_id:
-        notifiers[Channel.telegram] = TelegramNotifier(bot, settings.telegram_chat_id)
+        notifiers[Channel.telegram] = TelegramNotifier(bot, settings.telegram_chat_id, settings.secret_key)
         log.info("Reminders → Telegram chat %s", settings.telegram_chat_id)
     elif bot:
         log.warning("TELEGRAM_CHAT_ID пуст: напоминания пишутся в лог. Отправьте боту /chatid в нужном чате")
@@ -73,7 +73,7 @@ async def run() -> None:
     )
 
     polling: asyncio.Task[None] | None = None
-    dispatcher = build_dispatcher()
+    dispatcher = build_dispatcher(sessions, clock, settings)
     if bot:
         polling = asyncio.create_task(dispatcher.start_polling(bot, handle_signals=False))
 

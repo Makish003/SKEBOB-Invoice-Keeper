@@ -321,7 +321,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 
 ## 6. Фаза 3 — Бонусы (→ M3). Порядок = ценность/трудоёмкость. Каждый — отдельный коммит, M2-тесты зелёные.
 
-- [ ] **X-01** (BACK) **Кнопка «Оплачено» в Telegram** (FR-B1): callback `pay:<id>:<hmac>` (HMAC от `SECRET_KEY`, защита от подделки), только из `TELEGRAM_CHAT_ID`; отметка `paid_at=today`, `paid_by_label="Telegram @user"`, сообщение редактируется «✅ Оплачено @user 23.10.2026», повторный клик — ответ «уже оплачено». Аудит.
+- [!] **X-01** (BACK) **Кнопка «Оплачено» в Telegram** (FR-B1): callback `pay:<id>:<hmac>` (HMAC от `SECRET_KEY`, защита от подделки), только из `TELEGRAM_CHAT_ID`; отметка `paid_at=today`, `paid_by_label="Telegram @user"`, сообщение редактируется «✅ Оплачено @user 23.10.2026», повторный клик — ответ «уже оплачено». Аудит.
+  ↳ код готов: services/telegram_actions.py (подпись HMAC-16 от SECRET_KEY, только TELEGRAM_CHAT_ID, FOR UPDATE, аудит source=telegram), кнопка в TelegramNotifier, обработчик в worker/bot.py; проверка: `pytest` → 216 passed (test_telegram_pay_button 7: подпись/чужой чат/подделка → forbidden, отметка сегодня с «Telegram @user», повторный клик → «уже оплачено»; test_notifiers: кнопка в reply_markup). Живой клик — после ESC-1
 - [ ] **X-02** (BACK+FRONT) **Журнал аудита** (FR-B2): `GET /api/v1/audit-log` (admin, фильтры), экран «Журнал» — кто, что, когда, IP; логин/логаут/неудачные входы/создание/удаление/оплата/отмена/смена даты.
 - [ ] **X-03** (FRONT; BACK — `GET /api/v1/calendar?month=YYYY-MM`) **Календарь оплат** (FR-B3): месячная сетка, точки-статусы по валютам, клик по дню → список периодов с действиями; layout-анимация смены месяца.
 - [ ] **X-04** (BACK+FRONT) **Итоги на дату** (FR-B4): `as_of` в summary — «сколько должно было быть оплачено к дате X / оплачено / просрочено», date-picker на сводке.
@@ -407,6 +408,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 00:40 · SOLO · Q-05 · AC-13 и AC-1 подтверждены; README написан (быстрый старт PowerShell/bash, Telegram, роли, правила, API, env, тесты, ограничения) · Q-05 · 12 e2e + smoke на чистом клоне · холодная сборка у жюри — ориентир 2–4 мин
 - 2026-10-24 00:42 · SOLO · ship-gate · CRITICAL 0; HIGH 1 (нет error boundary маршрутов) → исправлено RouteErrorPage; secrets/debug/CORS/console.log/TODO чисто; npm audit 0, pip-audit 0 · — · tsc/oxlint/build OK · бэкапы/rollback/мониторинг — вне рамок
 - 2026-10-24 00:42 · SOLO · M2 · **M2 достигнут**: §8 — AC-1…AC-15 и FR-26 ✅ (16/16). Доказательства: `docker compose run --rm backend pytest -q` → 209 passed (покрытие 95%, домен 100%), Playwright 12 passed на стеке из чистого клона, smoke OK, adversarial-review (High XFF исправлен), ship-gate CLEAR. Открыто: Q-03 [!] (ESC-1, живой Telegram). Дальше: бонусы X-01…X-10 по порядку · — · — · —
+- 2026-10-24 00:45 · SOLO · X-01 · Кнопка «Оплачено» в Telegram: подписанный callback, проверка чата, идемпотентность, редактирование сообщения, аудит · — · 216 passed; воркер стартует без токена · [!] живой клик ждёт ESC-1
 
 ## 10. Эскалации и блокеры
 

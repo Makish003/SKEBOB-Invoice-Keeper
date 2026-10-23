@@ -20,7 +20,10 @@ class FakeBot:
         self.error = error
         self.calls: list[tuple[str, str, str]] = []
 
-    async def send_message(self, chat_id: str, text: str, parse_mode: str, request_timeout: int) -> SimpleNamespace:
+    async def send_message(
+        self, chat_id: str, text: str, parse_mode: str, request_timeout: int, reply_markup: object = None
+    ) -> SimpleNamespace:
+        self.markup = reply_markup
         if self.error:
             raise self.error
         self.calls.append((chat_id, text, parse_mode))
@@ -29,16 +32,18 @@ class FakeBot:
 
 def test_telegram_sends_html_to_configured_chat() -> None:
     bot = FakeBot()
-    external_id = asyncio.run(TelegramNotifier(bot, "-100123").send(MESSAGE))  # type: ignore[arg-type]
+    external_id = asyncio.run(TelegramNotifier(bot, "-100123", "s3cret").send(MESSAGE))  # type: ignore[arg-type]
     assert external_id == "42"
     chat_id, text, mode = bot.calls[0]
     assert (chat_id, mode) == ("-100123", "HTML")
     assert "Сервер Hetzner" in text and "49,90 USD" in text and "26.10.2026 (сегодня)" in text
+    button = bot.markup.inline_keyboard[0][0]
+    assert button.text == "✅ Оплачено" and button.callback_data.startswith("pay:2:")
 
 
 def test_telegram_network_error_becomes_notifier_error() -> None:
     with pytest.raises(NotifierError):
-        asyncio.run(TelegramNotifier(FakeBot(OSError("network down")), "1").send(MESSAGE))  # type: ignore[arg-type]
+        asyncio.run(TelegramNotifier(FakeBot(OSError("network down")), "1", "s3cret").send(MESSAGE))  # type: ignore[arg-type]
 
 
 def test_console_logs_reminder(caplog: pytest.LogCaptureFixture) -> None:
