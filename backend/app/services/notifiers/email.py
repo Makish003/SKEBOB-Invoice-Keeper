@@ -6,7 +6,7 @@ from collections.abc import Callable
 from email.message import EmailMessage
 
 from app.models import Channel
-from app.services.notifiers.base import NotifierError, ReminderMessage, format_amount, when_text
+from app.services.notifiers.base import NotifierError, ReminderMessage, ago_text, format_amount, when_text
 
 TIMEOUT_SECONDS = 10
 
@@ -15,12 +15,17 @@ def build_email(message: ReminderMessage, sender: str, recipients: list[str]) ->
     amount = f"{format_amount(message.amount)} {message.currency}"
     due = f"{message.due_date:%d.%m.%Y}"
     email = EmailMessage()
-    email["Subject"] = f"Напоминание об оплате: {message.payment_name}, {amount} до {due}"
+    overdue = message.kind == "overdue"
+    if overdue:
+        email["Subject"] = f"Просрочена оплата: {message.payment_name}, {amount}, срок был {due}"
+    else:
+        email["Subject"] = f"Напоминание об оплате: {message.payment_name}, {amount} до {due}"
     email["From"] = sender
     email["To"] = ", ".join(recipients)
+    when = ago_text(-message.days_until_due) if overdue else when_text(message.days_until_due)
+    title = "Просрочена оплата" if overdue else "Напоминание об оплате"
     email.set_content(
-        f"Напоминание об оплате\n\n{message.payment_name}\nСумма: {amount}\n"
-        f"Срок оплаты: {due} ({when_text(message.days_until_due)})\n\nInvoice Keeper"
+        f"{title}\n\n{message.payment_name}\nСумма: {amount}\nСрок оплаты: {due} ({when})\n\nInvoice Keeper"
     )
     return email
 

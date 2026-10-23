@@ -196,7 +196,8 @@ class Reminder(Base):
     __tablename__ = "reminders"
     __table_args__ = (
         # Гарантия «без дублей» (FR-20, NFR-6, ADR-007).
-        UniqueConstraint("occurrence_id", "channel", "kind", name="uq_reminders_occurrence_channel_kind"),
+        # remind_on: для upcoming — срок (одно на период), для overdue — день напоминания (не чаще раза в день).
+        UniqueConstraint("occurrence_id", "channel", "kind", "remind_on", name="uq_reminders_occurrence_channel_kind_day"),
         Index("ix_reminders_status_next_attempt", "status", "next_attempt_at"),
     )
 
@@ -208,6 +209,7 @@ class Reminder(Base):
     kind: Mapped[ReminderKind] = mapped_column(
         _enum(ReminderKind, "reminder_kind"), nullable=False, default=ReminderKind.upcoming, server_default="upcoming"
     )
+    remind_on: Mapped[date] = mapped_column(Date, nullable=False)
     status: Mapped[ReminderStatus] = mapped_column(
         _enum(ReminderStatus, "reminder_status"),
         nullable=False,

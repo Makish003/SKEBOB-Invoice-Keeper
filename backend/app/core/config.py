@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     pending_poll_seconds: int = 5
     generation_horizon_days: int = 35
     reminder_max_attempts: int = 5
+    overdue_reminder_max: int = 3  # напоминаний о просрочке на период (раз в день); 0 — выключено
 
     # --- Telegram ---
     telegram_bot_token: str = ""

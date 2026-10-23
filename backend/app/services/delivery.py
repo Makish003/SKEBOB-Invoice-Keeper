@@ -12,7 +12,15 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import Settings
-from app.models import Channel, OccurrenceStatus, PaymentOccurrence, RecurringPayment, Reminder, ReminderStatus
+from app.models import (
+    Channel,
+    OccurrenceStatus,
+    PaymentOccurrence,
+    RecurringPayment,
+    Reminder,
+    ReminderKind,
+    ReminderStatus,
+)
 from app.services.notifiers.base import Notifier, ReminderMessage
 from app.services.occurrences import ensure_all
 from app.services.reminders import enqueue_due
@@ -54,12 +62,12 @@ def _claim(db: Session, now: datetime, max_attempts: int, channels: list[Channel
     )
 
 
-def _cancel_reason(occ: PaymentOccurrence, payment: RecurringPayment, today: date) -> str | None:
+def _cancel_reason(reminder: Reminder, occ: PaymentOccurrence, payment: RecurringPayment, today: date) -> str | None:
     if payment.deleted_at is not None:
         return "платёж прекращён"
     if occ.status != OccurrenceStatus.unpaid:
         return "период уже оплачен"
-    if occ.due_date < today:
+    if reminder.kind == ReminderKind.upcoming and occ.due_date < today:
         return "срок прошёл до отправки"
     return None
 
@@ -82,7 +90,7 @@ async def deliver_pending(
             occ = reminder.occurrence
             payment = db.get(RecurringPayment, occ.recurring_payment_id)
             assert payment is not None
-            reason = _cancel_reason(occ, payment, today)
+            reason = _cancel_reason(reminder, occ, payment, today)
             notifier = notifiers[reminder.channel]
             if reason is not None:
                 reminder.status, reminder.last_error = ReminderStatus.cancelled, reason
@@ -98,6 +106,7 @@ async def deliver_pending(
                 currency=occ.currency.value,
                 due_date=occ.due_date,
                 days_until_due=(occ.due_date - today).days,
+                kind=reminder.kind.value,
             )
             reminder.attempts += 1
             try:

@@ -15,7 +15,8 @@ TIMEOUT_SECONDS = 10
 
 def webhook_body(message: ReminderMessage) -> dict[str, Any]:
     return {
-        "event": "payment.reminder",
+        "event": "payment.overdue" if message.kind == "overdue" else "payment.reminder",
+        "kind": message.kind,
         "reminder_id": message.reminder_id,
         "occurrence_id": message.occurrence_id,
         "payment_name": message.payment_name,

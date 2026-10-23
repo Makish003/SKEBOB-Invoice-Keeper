@@ -339,7 +339,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
   ↳ done: X-08 · проверка: `pytest` → 246 passed (test_receipts 11: ссылка задать/убрать, javascript:/ftp:/мусор/слишком длинная → 422, загрузка PDF и замена PNG, скачивание только с сессией (401 без), удаление, .exe/HTML под видом PDF/пустой файл → 422, > 5 МБ → 413, 404); `alembic check` → без расхождений (миграция 0002); e2e → 17 passed (receipts.spec: ошибка ссылки, ссылка, загрузка PDF, скачивание 200 application/pdf); axe/states на «Платежах» OK в обеих темах
 - [x] **X-09** (BACK+FRONT) **Бюджет** (FR-B9): `budgets(year, month NULL, currency, amount)`, план vs факт по валютам на сводке, прогресс-бар.
   ↳ done: X-09 · проверка: `pytest` → все зелёные (test_budgets 9: 401, user видит/не меняет (403), план/факт месяца и года, upsert и удаление (amount=null), валидация месяца/года/валюты/суммы); миграция 0003, `alembic check` без расхождений; e2e → 18 passed (budget.spec: админ задаёт бюджет RUB, на сводке «из 5 000 000,00 ₽» и остаток); скриншот карточки просмотрен
-- [ ] **X-10** (BACK) **Напоминание о просрочке** (kind=`overdue`, раз в день не более 1 / до оплаты, в пределах `OVERDUE_REMINDER_MAX`) — «другие каналы/поведение» (FR-B10).
+- [x] **X-10** (BACK) **Напоминание о просрочке** (kind=`overdue`, раз в день не более 1 / до оплаты, в пределах `OVERDUE_REMINDER_MAX`) — «другие каналы/поведение» (FR-B10).
+  ↳ done: X-10 · проверка: `pytest` → 261 passed (test_overdue_reminders 4: upcoming одно + overdue на 27/28/29.10 и больше нет при двух проверках в день, после оплаты прекращаются, OVERDUE_REMINDER_MAX=0 выключает, текст «Просрочена оплата … 3 дня назад»); миграции 0001…0004 downgrade base → upgrade head → `alembic check` чисто; вживую воркер: «Queued 18», «REMINDER #489 → Просрочена оплата: Сервер Hetzner, 49,90 USD, срок был 13.10.2026 (11 дней назад)»
 
 ## 7. Фаза 4 — Сдача и защита (→ M4)
 
@@ -425,6 +426,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 01:17 · SOLO · X-07 · Email: SMTP_* + EMAIL_TO (несколько через запятую), отдельный канал в конвейере (smtplib в потоке, STARTTLS+логин при SMTP_USER); mailpit в profiles [extras] (UI :8025); .env.example с подсказкой для демо · X-07 · 231 passed + живые письма · —
 - 2026-10-24 02:21 · SOLO · X-08 · Чек к оплате: receipt_url в PATCH (только http/https), POST/GET/DELETE /payment-occurrences/{id}/receipt (PDF/PNG/JPG ≤ 5 МБ, тип по сигнатуре, имя файла в томе — uuid, inline + nosniff, аудит receipt_uploaded/deleted/link_changed), том uploads в compose; UI — кнопка «Чек» у периода (подсвечена, если прикреплён): ссылка, загрузка/замена/удаление файла · X-08 · 246 passed + e2e · у жюри том создаётся с владельцем app из образа
 - 2026-10-24 02:29 · SOLO · X-09 · Бюджет: таблица budgets (год + месяц|NULL=год + валюта, уникальный индекс с coalesce), GET /budgets/overview (бюджет vs сумма периодов со сроком в месяце/году vs оплачено, по RUB/USD/EUR), PUT /budgets (admin, upsert/удаление, аудит); на сводке карточка «Бюджет» с прогрессом и превышением, диалог правки для админа · X-09 · pytest + e2e · —
+- 2026-10-24 02:37 · SOLO · X-10 · Напоминание о просрочке (kind=overdue): раз в день до оплаты, ≤ OVERDUE_REMINDER_MAX (3, 0 — выкл.), во всех каналах (Telegram с кнопкой «Оплачено», лог, webhook event payment.overdue, email); уникальный ключ расширен remind_on (миграция 0004 с бэкфиллом) · X-10 · 261 passed + живой лог · ADR-019
 
 ## 10. Эскалации и блокеры
 

@@ -22,6 +22,7 @@ class ReminderMessage:
     currency: str
     due_date: date
     days_until_due: int
+    kind: str = "upcoming"
 
 
 class Notifier(Protocol):
@@ -56,6 +57,13 @@ def when_text(days_until_due: int) -> str:
 
 def format_message(message: ReminderMessage) -> str:
     """Текст для Telegram (HTML parse mode)."""
+    if message.kind == "overdue":
+        return (
+            "⚠️ <b>Просрочена оплата</b>\n"
+            f"<b>{html.escape(message.payment_name)}</b>\n"
+            f"Сумма: {format_amount(message.amount)} {message.currency}\n"
+            f"Срок был: {message.due_date:%d.%m.%Y} ({ago_text(-message.days_until_due)})"
+        )
     return (
         "🔔 <b>Напоминание об оплате</b>\n"
         f"<b>{html.escape(message.payment_name)}</b>\n"
@@ -64,8 +72,17 @@ def format_message(message: ReminderMessage) -> str:
     )
 
 
+def ago_text(days: int) -> str:
+    return "вчера" if days == 1 else f"{_plural_days(days)} назад"
+
+
 def format_plain(message: ReminderMessage) -> str:
     """Тот же текст без разметки — для лога и email."""
+    if message.kind == "overdue":
+        return (
+            f"Просрочена оплата: {message.payment_name}, {format_amount(message.amount)} {message.currency}, "
+            f"срок был {message.due_date:%d.%m.%Y} ({ago_text(-message.days_until_due)})"
+        )
     return (
         f"Напоминание об оплате: {message.payment_name}, {format_amount(message.amount)} {message.currency}, "
         f"срок {message.due_date:%d.%m.%Y} ({when_text(message.days_until_due)})"

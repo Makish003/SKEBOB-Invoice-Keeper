@@ -204,7 +204,7 @@ def test_worker_leaves_channels_it_cannot_send(
     """Воркер без webhook-нотифаера не трогает webhook-напоминания (их отправит воркер, у которого он есть)."""
     create(client, admin_headers, "2026-10-24")
     occ_id = db.scalar(select(Reminder.occurrence_id))
-    db.add(Reminder(occurrence_id=occ_id, channel=Channel.webhook))
+    db.add(Reminder(occurrence_id=occ_id, channel=Channel.webhook, remind_on=date(2026, 10, 24)))
     db.commit()
     deliver(clock, FakeNotifier())  # только console
     db.expire_all()
