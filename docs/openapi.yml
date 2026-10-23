@@ -485,8 +485,9 @@ paths:
       tags:
       - Итоги
       summary: Итоговые суммы по валютам
-      description: Суммы по периодам со сроком в интервале [due_from, due_to] (по умолчанию — текущий месяц), отдельно по
-        RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено (по умолчанию сегодня).
+      description: 'Суммы по периодам со сроком в интервале [due_from, due_to] (по умолчанию — текущий месяц), отдельно по
+        RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено (по умолчанию сегодня): оплачено
+        — отметка с датой ≤ as_of, просрочено — срок < as_of и не оплачено к as_of.'
       operationId: payments_summary_api_v1_payments_summary_get
       security:
       - cookieAuth: []
@@ -500,7 +501,9 @@ paths:
           - type: string
             format: date
           - type: 'null'
+          description: Начало интервала сроков (включительно)
           title: Due From
+        description: Начало интервала сроков (включительно)
       - name: due_to
         in: query
         required: false
@@ -509,7 +512,9 @@ paths:
           - type: string
             format: date
           - type: 'null'
+          description: Конец интервала сроков (включительно)
           title: Due To
+        description: Конец интервала сроков (включительно)
       - name: as_of
         in: query
         required: false
@@ -518,7 +523,9 @@ paths:
           - type: string
             format: date
           - type: 'null'
+          description: Дата, на которую считаются итоги
           title: As Of
+        description: Дата, на которую считаются итоги
       - name: include_deleted
         in: query
         required: false

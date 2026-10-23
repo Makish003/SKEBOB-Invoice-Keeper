@@ -271,8 +271,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [x] **B-08** Occurrences: список с фильтрами/сортировкой/пагинацией, `GET by id`, `PATCH` по правилам §1.5, вычисляемые поля, `paid_by_label`, аудит.
   Тесты: AC-9, AC-10, AC-11, EC-4, EC-5; пользователь может PATCH (не 403).
   ↳ done: B-08 · проверка: `pytest tests/api/test_occurrences.py` → все зелёные (в составе 122 passed); покрытие app 94%
-- [ ] **B-09** Summary по валютам (всегда 3 валюты, Decimal-суммы, фильтр периода, `as_of`).
+- [x] **B-09** Summary по валютам (всегда 3 валюты, Decimal-суммы, фильтр периода, `as_of`).
   Тест: AC-12 на сид-данных.
+  ↳ done: B-09 · проверка: `pytest tests/api/test_summary.py` → 6 passed: три валюты нулями на пустой БД, RUB 85000.00+15000.50=100000.50 отдельно от USD/EUR, as_of (оплата в день срока не просрочка), интервал, 422 на from>to, include_deleted
 - [ ] **B-10** Users CRUD (admin only), запрет на системного админа, soft delete + revoke сессий.
   Тесты: AC-3, AC-4, EC-8, EC-12, уникальность логина → 409.
 - [ ] **B-11** Worker: `python -m app.worker` — APScheduler (tick + быстрый pending-poll), notifiers (`telegram` через aiogram, `console`), конвейер §1.3, ретраи с backoff, graceful shutdown. Бот: `/start`, `/chatid`.
@@ -345,7 +346,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | AC-9 Отметка/отмена | B-08, F-05 | `test_ac_09_mark_unmark.py`, e2e | 🟨 |
 | AC-10 Исправление даты | B-08, F-05 | `test_ac_10_fix_date.py`, e2e | 🟨 |
 | AC-11 Просрочка | B-06, B-08 | `test_status.py`, `test_ac_11_overdue.py` | 🟨 |
-| AC-12 Валюты | B-09, F-08 | `test_ac_12_summary.py` | ⬜ |
+| AC-12 Валюты | B-09, F-08 | `test_ac_12_summary.py` | 🟨 |
 | AC-13 Сохранение | B-03 | ручная Q-05 | ⬜ |
 | AC-14 Удаление | B-07, B-11 | `test_ac_14_delete.py` | 🟨 |
 | AC-15 Передача | B-04, B-13, D-01 | `test_openapi_up_to_date.py`, D-04 | ⬜ |
@@ -380,6 +381,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 23:46 · SOLO · B-08 · Периоды: список (status, overdue в SQL, currency, payment, due_from/to, q, include_deleted, sort, limit/offset, total), GET/{id}, PATCH по правилам §1.5 (EC-4, EC-5, due_date неизменяем → 422), paid_by_label, reminder_sent_at, аудит paid/unpaid/paid_at_changed · B-08 · 122 passed · —
 - 2026-10-23 23:56 · SOLO · F-05 · Экран «Платежи»: вкладки К оплате/Просрочено/Оплачено/Все со счётчиками, поиск (горячая клавиша /), валюта, срок (месяц), прекращённые, фильтры в URL, пагинация по 25; таблица (desktop) и карточки (mobile), бейдж статуса = иконка+текст+«на N дней»; поповер даты оплаты (по умолчанию сегодня, будущее заблокировано, подсказка «позже срока»), исправление даты, снятие отметки; оптимистичное обновление + тост с «Отменить»; loading/empty/filtered-empty/error; «сегодня» с сервера (GET /app-info, FR-27) · F-05 · e2e 8 passed · e2e-шаги под пользователем — в Q-02 после B-10
 - 2026-10-24 00:01 · SOLO · F-06 · Экран «Регулярные платежи» (admin): Активные/Прекращённые со счётчиками, таблица/карточки, ближайший срок со статусом, ссылка в «Платежи» с фильтром; форма (rhf+zod): название, сумма с маской ru-RU, валюта (сегменты), дата (календарь), периодичность (listbox), комментарий, живая подсказка о напоминании (за 3 дня / сразу / срок прошёл); прекращение через ConfirmDialog (destructive, «история сохранится»); компонент Select переименован в Listbox (гейт lint_native_select) · F-06 · e2e 2 passed · —
+- 2026-10-24 00:02 · SOLO · B-09 · Итоги по валютам: всегда RUB/USD/EUR, Decimal строкой, интервал (по умолчанию текущий месяц), as_of (оплачено/просрочено на дату — задел под X-04), include_deleted; агрегаты одним SQL с FILTER · B-09 · 6 passed · —
 
 ## 10. Эскалации и блокеры
 

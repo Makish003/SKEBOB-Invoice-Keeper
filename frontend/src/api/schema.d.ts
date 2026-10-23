@@ -156,7 +156,7 @@ export interface paths {
         };
         /**
          * Итоговые суммы по валютам
-         * @description Суммы по периодам со сроком в интервале [due_from, due_to] (по умолчанию — текущий месяц), отдельно по RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено (по умолчанию сегодня).
+         * @description Суммы по периодам со сроком в интервале [due_from, due_to] (по умолчанию — текущий месяц), отдельно по RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено (по умолчанию сегодня): оплачено — отметка с датой ≤ as_of, просрочено — срок < as_of и не оплачено к as_of.
          */
         get: operations["payments_summary_api_v1_payments_summary_get"];
         put?: never;
@@ -1127,8 +1127,11 @@ export interface operations {
     payments_summary_api_v1_payments_summary_get: {
         parameters: {
             query?: {
+                /** @description Начало интервала сроков (включительно) */
                 due_from?: string | null;
+                /** @description Конец интервала сроков (включительно) */
                 due_to?: string | null;
+                /** @description Дата, на которую считаются итоги */
                 as_of?: string | null;
                 /** @description Учитывать периоды прекращённых платежей */
                 include_deleted?: boolean;
