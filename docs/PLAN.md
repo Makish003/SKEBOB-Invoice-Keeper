@@ -281,8 +281,10 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [ ] **B-13** OpenAPI финал: описания, примеры, теги на русском, security schemes (cookie + bearer), коды ошибок у каждой операции; `docs/openapi.yml` обновлён; `api-design-reviewer` прогнан, замечания закрыты.
 
 ### Frontend
-- [ ] **F-03** Логин: форма (rhf+zod), ошибки по `ux-writing`, редирект по роли; guard маршрутов (нет сессии → `/login`), обработка 401 глобально (сброс кэша → `/login`), выход.
-- [ ] **F-04** Shell: сайдбар (Сводка, Платежи, Регулярные [admin], Пользователи [admin], Календарь, Журнал [admin]), шапка с пользователем и ролью, переключатель темы, мобильное меню.
+- [x] **F-03** Логин: форма (rhf+zod), ошибки по `ux-writing`, редирект по роли; guard маршрутов (нет сессии → `/login`), обработка 401 глобально (сброс кэша → `/login`), выход.
+  ↳ done: F-03 · проверка: `E2E_BASE_URL=http://127.0.0.1:5173 npx playwright test e2e/auth.spec.ts` → 6 passed (desktop+mobile): редирект /payments → /login?next=, ошибки полей, «Неверный логин или пароль», вход и возврат по next, выход
+- [x] **F-04** Shell: сайдбар (Сводка, Платежи, Регулярные [admin], Пользователи [admin], Календарь, Журнал [admin]), шапка с пользователем и ролью, переключатель темы, мобильное меню.
+  ↳ done: F-04 · проверка: e2e auth.spec (desktop+mobile) → 6 passed; скриншоты shell light/dark 1280 и 360px просмотрены
 - [ ] **F-05** **Платежи (главный экран, FR-24):** таблица периодов — название, сумма, валюта, срок, статус-бейдж, дата оплаты, просрочка («просрочен на 3 дн.», «оплачен с опозданием на 2 дн.»); фильтры (статус, просрочка, валюта, период), сортировка, пагинация; быстрые вкладки «К оплате / Просрочено / Оплачено / Все».
   Действие «Отметить оплату» → popover с датой (по умолчанию сегодня, будущие даты заблокированы) → оптимистичное обновление; «Отменить оплату»; «Исправить дату». Мобильная версия — карточки.
   DoD: доступно и admin, и user; empty/loading/error состояния; e2e шаги 4–6 демо.
@@ -366,6 +368,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 23:25 · SOLO · F-02 · Токены linear-app (light/dark), Inter cyrillic, motion.ts (fadeUp/stagger/spring 380/30/useReducedMotion), ThemeProvider, компоненты на radix-ui: Button, Input, Field, Select (listbox), Dialog/ConfirmDialog, Popover, DropdownMenu, Segmented (layoutId), Tooltip, Badge, Card, Skeleton, Table, Calendar (react-day-picker ru), Empty/ErrorState, Toaster; витрина /_ui (dev) · F-02 · гейты XIAS зелёные, скриншоты light/dark/360px просмотрены · ADR-016; хук XIAS ложно падает на кириллице (cp1252) — гейты гоняются вручную с PYTHONUTF8=1
 - 2026-10-23 23:29 · SOLO · B-05 · Auth: argon2, серверные сессии (sha256 токена), cookie ik_session (httpOnly, SameSite=Lax) + Bearer, login/me/logout, rate-limit 5/мин на IP+логин (429), одинаковый 401 для неверного пароля и неизвестного логина, аудит auth.login.success/failed, auth.logout, sync админа из .env · B-05 · 18 passed
 - 2026-10-23 23:29 · SOLO · M1 · **M1 достигнут**: `docker compose up -d --build` → db/backend/worker/web healthy; `/api/v1/docs` → 200 через :8080; логин admin (cookie+bearer) работает. Трассировка: 0/15 AC ✅, 3 🟨 (AC-2, AC-4, FR-26). Дальше: F-03/F-04 (логин, shell), затем B-06 домен · — · pytest 18 passed · —
+- 2026-10-23 23:33 · SOLO · F-03 · Логин (rhf+zod, ошибки по ux-writing, 401/429/сеть), RequireAuth (нет сессии → /login?next=), RequireAdmin (UI-заглушка 403 с переходом к платежам), глобальный 401 → сброс кэша и /login, выход; редирект по роли (admin → Сводка, user → Платежи) · F-03 · e2e 6 passed · —
+- 2026-10-23 23:33 · SOLO · F-04 · Shell: сайдбар (Сводка, Платежи, Регулярные [admin], Пользователи [admin]; Календарь/Журнал появятся с бонусами X-02/X-03), меню пользователя (роль, тема светлая/тёмная/системная, выход), мобильная шапка + выезжающее меню, skip-link · F-04 · e2e 6 passed · страницы разделов заполняются в F-05…F-08
 
 ## 10. Эскалации и блокеры
 

@@ -9,6 +9,7 @@ export default defineConfig({
     alias: { '@': path.resolve(__dirname, './src') },
   },
   server: {
-    proxy: { '/api': 'http://localhost:8000' },
+    // Dev: API через nginx из docker compose (порт 8080) или напрямую: VITE_API_PROXY=http://localhost:8000
+    proxy: { '/api': process.env.VITE_API_PROXY ?? 'http://localhost:8080' },
   },
 })
