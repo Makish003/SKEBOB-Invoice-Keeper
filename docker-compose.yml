@@ -30,6 +30,8 @@ services:
   backend:
     <<: *backend
     command: ["serve"]
+    volumes:
+      - uploads:/srv/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -68,3 +70,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:

@@ -4,7 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, StringConstraints, UrlConstraints
 
 from app.domain.status import DisplayStatus
 from app.models import Currency, OccurrenceStatus, Period
@@ -36,6 +36,10 @@ class Occurrence(BaseModel):
     days_until_due: int = Field(description="Дней до срока (отрицательно — срок прошёл)")
     display_status: DisplayStatus
     reminder_sent_at: datetime | None = Field(description="Когда отправлено напоминание")
+    receipt_url: str | None = Field(default=None, description="Ссылка на чек или платёжку")
+    receipt_file_name: str | None = Field(
+        default=None, description="Имя прикреплённого файла чека; скачать: GET /payment-occurrences/{id}/receipt"
+    )
     updated_at: datetime
 
 
@@ -58,6 +62,9 @@ class OccurrencePatch(BaseModel):
     status: OccurrenceStatus | None = None
     paid_at: date | None = None
     note: Annotated[str, StringConstraints(max_length=500)] | None = None
+    receipt_url: Annotated[AnyHttpUrl, UrlConstraints(max_length=1000)] | None = Field(
+        default=None, description="Ссылка на чек (http/https); null — убрать"
+    )
 
 
 class RecurringPayment(BaseModel):

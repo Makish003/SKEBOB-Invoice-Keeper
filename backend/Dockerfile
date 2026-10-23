@@ -13,7 +13,7 @@ COPY --from=build /opt/venv /opt/venv
 WORKDIR /srv/backend
 COPY docs/openapi.yml /srv/docs/openapi.yml
 COPY backend/ ./
-RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh && chown -R app:app /srv
+RUN sed -i 's/\r$//' entrypoint.sh && chmod +x entrypoint.sh && mkdir -p /srv/uploads && chown -R app:app /srv
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \

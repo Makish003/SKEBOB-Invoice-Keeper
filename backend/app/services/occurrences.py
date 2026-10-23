@@ -95,6 +95,8 @@ def to_schema(
         days_until_due=info.days_until_due,
         display_status=info.display_status,
         reminder_sent_at=reminder_sent_at,
+        receipt_url=occ.receipt_url,
+        receipt_file_name=occ.receipt_file_name,
         updated_at=occ.updated_at,
     )
 

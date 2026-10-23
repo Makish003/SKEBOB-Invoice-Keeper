@@ -510,6 +510,132 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/payment-occurrences/{occurrence_id}/receipt:
+    post:
+      tags:
+      - Периоды оплаты
+      summary: Прикрепить файл чека
+      description: PDF, PNG или JPG до 5 МБ (тип проверяется по содержимому). Новый файл заменяет прежний.
+      operationId: upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Occurrence Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Occurrence'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Файл больше 5 МБ
+    get:
+      tags:
+      - Периоды оплаты
+      summary: Скачать файл чека
+      operationId: download_receipt_api_v1_payment_occurrences__occurrence_id__receipt_get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Occurrence Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/pdf: {}
+            image/png: {}
+            image/jpeg: {}
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Периоды оплаты
+      summary: Удалить файл чека
+      operationId: delete_receipt_api_v1_payment_occurrences__occurrence_id__receipt_delete
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Occurrence Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/payments/summary:
     get:
       tags:
@@ -1065,6 +1191,17 @@ components:
       - items
       - total
       title: AuditList
+    Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+          description: Файл чека
+      type: object
+      required:
+      - file
+      title: Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post
     Currency:
       type: string
       enum:
@@ -1295,6 +1432,18 @@ components:
           - type: 'null'
           title: Reminder Sent At
           description: Когда отправлено напоминание
+        receipt_url:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Receipt Url
+          description: Ссылка на чек или платёжку
+        receipt_file_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Receipt File Name
+          description: 'Имя прикреплённого файла чека; скачать: GET /payment-occurrences/{id}/receipt'
         updated_at:
           type: string
           format: date-time
@@ -1352,6 +1501,15 @@ components:
             maxLength: 500
           - type: 'null'
           title: Note
+        receipt_url:
+          anyOf:
+          - type: string
+            maxLength: 1000
+            minLength: 1
+            format: uri
+          - type: 'null'
+          title: Receipt Url
+          description: Ссылка на чек (http/https); null — убрать
       additionalProperties: false
       type: object
       title: OccurrencePatch

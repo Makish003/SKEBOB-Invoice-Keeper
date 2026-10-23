@@ -1,6 +1,7 @@
 """Общие фикстуры: отдельная тестовая БД (<db>_test) на том же Postgres, управляемые часы, клиенты API."""
 
 import os
+import tempfile
 from collections.abc import Iterator
 from datetime import date
 
@@ -20,6 +21,7 @@ os.environ.update(
         "WEBHOOK_URL": "",
         "SMTP_HOST": "",
         "SECRET_KEY": "test-secret",
+        "UPLOADS_DIR": tempfile.mkdtemp(prefix="ik-uploads-"),
     }
 )
 

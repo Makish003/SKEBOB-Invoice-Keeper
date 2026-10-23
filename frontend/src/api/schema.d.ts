@@ -156,6 +156,28 @@ export interface paths {
         patch: operations["patch_occurrence_api_v1_payment_occurrences__occurrence_id__patch"];
         trace?: never;
     };
+    "/api/v1/payment-occurrences/{occurrence_id}/receipt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Скачать файл чека */
+        get: operations["download_receipt_api_v1_payment_occurrences__occurrence_id__receipt_get"];
+        put?: never;
+        /**
+         * Прикрепить файл чека
+         * @description PDF, PNG или JPG до 5 МБ (тип проверяется по содержимому). Новый файл заменяет прежний.
+         */
+        post: operations["upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post"];
+        /** Удалить файл чека */
+        delete: operations["delete_receipt_api_v1_payment_occurrences__occurrence_id__receipt_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/payments/summary": {
         parameters: {
             query?: never;
@@ -347,6 +369,14 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post */
+        Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post: {
+            /**
+             * File
+             * @description Файл чека
+             */
+            file: string;
+        };
         /**
          * Currency
          * @enum {string}
@@ -517,6 +547,16 @@ export interface components {
              */
             reminder_sent_at: string | null;
             /**
+             * Receipt Url
+             * @description Ссылка на чек или платёжку
+             */
+            receipt_url?: string | null;
+            /**
+             * Receipt File Name
+             * @description Имя прикреплённого файла чека; скачать: GET /payment-occurrences/{id}/receipt
+             */
+            receipt_file_name?: string | null;
+            /**
              * Updated At
              * Format: date-time
              */
@@ -544,6 +584,11 @@ export interface components {
             paid_at?: string | null;
             /** Note */
             note?: string | null;
+            /**
+             * Receipt Url
+             * @description Ссылка на чек (http/https); null — убрать
+             */
+            receipt_url?: string | null;
         };
         /**
          * OccurrenceStatus
@@ -1204,6 +1249,164 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    download_receipt_api_v1_payment_occurrences__occurrence_id__receipt_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                occurrence_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/png": unknown;
+                    "image/jpeg": unknown;
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Объект не найден */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                occurrence_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Occurrence"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Объект не найден */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Файл больше 5 МБ */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ошибка валидации входных данных */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    delete_receipt_api_v1_payment_occurrences__occurrence_id__receipt_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                occurrence_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Объект не найден */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

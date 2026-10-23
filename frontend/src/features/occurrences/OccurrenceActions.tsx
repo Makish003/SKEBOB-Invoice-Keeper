@@ -9,6 +9,7 @@ import { Tooltip } from '@/components/ui/tooltip'
 import { useAppInfo } from '@/features/app-info'
 import { formatDate, fromIsoDate, toIsoDate } from '@/lib/format'
 import { type Occurrence, type OccurrencePatch, usePatchOccurrence } from './api'
+import { ReceiptPopover } from './ReceiptPopover'
 
 interface DatePopoverProps {
   occ: Occurrence
@@ -114,23 +115,27 @@ export function OccurrenceActions({ occ, compact = false }: { occ: Occurrence; c
 
   if (occ.status === 'unpaid') {
     return (
-      <PaymentDatePopover
-        occ={occ}
-        title="Отметить оплату"
-        confirmLabel="Отметить оплату"
-        initial={actions.todayIso}
-        onConfirm={(iso) => actions.markPaid(occ, iso)}
-      >
-        <Button variant="secondary" size="sm" className={compact ? 'w-full' : undefined}>
-          <Check aria-hidden />
-          Отметить оплату
-        </Button>
-      </PaymentDatePopover>
+      <div className={compact ? 'flex w-full gap-2' : 'flex items-center justify-end gap-1'}>
+        <PaymentDatePopover
+          occ={occ}
+          title="Отметить оплату"
+          confirmLabel="Отметить оплату"
+          initial={actions.todayIso}
+          onConfirm={(iso) => actions.markPaid(occ, iso)}
+        >
+          <Button variant="secondary" size="sm" className={compact ? 'flex-[2]' : undefined}>
+            <Check aria-hidden />
+            Отметить оплату
+          </Button>
+        </PaymentDatePopover>
+        <ReceiptPopover occ={occ} compact={compact} />
+      </div>
     )
   }
 
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div className={compact ? 'flex w-full flex-wrap gap-2' : 'flex items-center justify-end gap-1'}>
+      <ReceiptPopover occ={occ} compact={compact} />
       <PaymentDatePopover
         occ={occ}
         title="Исправить дату оплаты"

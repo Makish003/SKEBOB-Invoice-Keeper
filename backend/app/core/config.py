@@ -45,6 +45,10 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
 
+    # --- Чеки (FR-B8) ---
+    uploads_dir: str = "/srv/uploads"
+    max_upload_mb: int = 5
+
     # --- Bonus channels ---
     webhook_url: str = ""
     webhook_secret: str = ""

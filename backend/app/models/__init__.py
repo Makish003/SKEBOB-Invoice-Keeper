@@ -182,6 +182,10 @@ class PaymentOccurrence(Base):
     paid_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     paid_by_label: Mapped[str | None] = mapped_column(String(200))
     note: Mapped[str | None] = mapped_column(Text)
+    receipt_url: Mapped[str | None] = mapped_column(String(1000))
+    receipt_file_name: Mapped[str | None] = mapped_column(String(255))  # имя для пользователя
+    receipt_file_key: Mapped[str | None] = mapped_column(String(64))  # имя файла в томе uploads
+    receipt_content_type: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = _created_at()
     updated_at: Mapped[datetime] = _updated_at()
 

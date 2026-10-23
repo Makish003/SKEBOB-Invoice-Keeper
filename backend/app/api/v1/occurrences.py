@@ -1,7 +1,10 @@
+import uuid
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, File, Query, Request, Response, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy import ColumnElement, and_, func, not_, or_, select
 from sqlalchemy.orm import Session
 
@@ -9,7 +12,7 @@ from app.api.deps import client_ip, current_user
 from app.core.clock import Clock, get_clock
 from app.core.config import get_settings
 from app.core.db import get_db
-from app.core.errors import not_found, unprocessable
+from app.core.errors import AppError, not_found, unprocessable
 from app.models import Currency, OccurrenceStatus, PaymentOccurrence, RecurringPayment, User
 from app.schemas.common import errors
 from app.schemas.payments import Occurrence, OccurrenceList, OccurrencePatch
@@ -141,7 +144,7 @@ def patch_occurrence(
 ) -> Occurrence:
     fields = body.model_fields_set
     if not fields:
-        raise unprocessable("Нет изменений: передайте status, paid_at или note")
+        raise unprocessable("Нет изменений: передайте status, paid_at, note или receipt_url")
     if "status" in fields and body.status is None:
         raise unprocessable("Поле status не может быть пустым: paid или unpaid")
 
@@ -175,12 +178,16 @@ def patch_occurrence(
     occ.status = new_status
     if "note" in fields:
         occ.note = (body.note or "").strip() or None
+    if "receipt_url" in fields:
+        occ.receipt_url = str(body.receipt_url) if body.receipt_url else None
 
     after = {"status": occ.status.value, "paid_at": occ.paid_at.isoformat() if occ.paid_at else None}
     if before["status"] != after["status"]:
         action = "occurrence.paid" if new_status == OccurrenceStatus.paid else "occurrence.unpaid"
     elif before["paid_at"] != after["paid_at"]:
         action = "occurrence.paid_at_changed"
+    elif "receipt_url" in fields:
+        action = "occurrence.receipt_link_changed"
     else:
         action = "occurrence.note_changed"
     audit.record(
@@ -196,3 +203,122 @@ def patch_occurrence(
     result = get_occurrence(db, occ.id, today, get_settings())
     assert result is not None
     return result
+
+
+# --- Чек к оплате (FR-B8) ---
+
+_SIGNATURES = {
+    "application/pdf": (b"%PDF-", ".pdf"),
+    "image/png": (bytes.fromhex("89504e470d0a1a0a"), ".png"),
+    "image/jpeg": (bytes.fromhex("ffd8ff"), ".jpg"),
+}
+WRONG_FILE = "Прикрепите файл PDF, PNG или JPG"
+
+
+def _occurrence_or_404(db: Session, occurrence_id: int) -> PaymentOccurrence:
+    occ = db.scalar(select(PaymentOccurrence).where(PaymentOccurrence.id == occurrence_id).with_for_update())
+    if occ is None:
+        raise not_found("Период не найден")
+    return occ
+
+
+def _remove_file(key: str | None) -> None:
+    if key:
+        (Path(get_settings().uploads_dir) / key).unlink(missing_ok=True)
+
+
+@router.post(
+    "/{occurrence_id}/receipt",
+    response_model=Occurrence,
+    summary="Прикрепить файл чека",
+    description="PDF, PNG или JPG до 5 МБ (тип проверяется по содержимому). Новый файл заменяет прежний.",
+    responses={**errors(401, 404, 422), 413: {"description": "Файл больше 5 МБ"}},
+)
+def upload_receipt(
+    occurrence_id: int,
+    request: Request,
+    file: UploadFile = File(description="Файл чека"),
+    db: Session = Depends(get_db),
+    clock: Clock = Depends(get_clock),
+    user: User = Depends(current_user),
+) -> Occurrence:
+    settings = get_settings()
+    occ = _occurrence_or_404(db, occurrence_id)
+    limit = settings.max_upload_mb * 1024 * 1024
+    content = file.file.read(limit + 1)
+    if len(content) > limit:
+        raise AppError(413, f"Файл больше {settings.max_upload_mb} МБ", code="payload_too_large")
+    kind = next((ct for ct, (magic, _) in _SIGNATURES.items() if content.startswith(magic)), None)
+    if kind is None:
+        raise unprocessable(WRONG_FILE)
+
+    uploads = Path(settings.uploads_dir)
+    uploads.mkdir(parents=True, exist_ok=True)
+    key = f"{uuid.uuid4().hex}{_SIGNATURES[kind][1]}"
+    (uploads / key).write_bytes(content)
+    _remove_file(occ.receipt_file_key)
+    occ.receipt_file_key, occ.receipt_content_type = key, kind
+    occ.receipt_file_name = Path(file.filename or f"receipt{_SIGNATURES[kind][1]}").name[:255]
+    audit.record(
+        db,
+        "occurrence.receipt_uploaded",
+        actor=user,
+        entity="payment_occurrence",
+        entity_id=occ.id,
+        payload={"file_name": occ.receipt_file_name, "size": len(content), "content_type": kind},
+        ip=client_ip(request),
+    )
+    db.commit()
+    result = get_occurrence(db, occ.id, clock.today(), settings)
+    assert result is not None
+    return result
+
+
+@router.get(
+    "/{occurrence_id}/receipt",
+    summary="Скачать файл чека",
+    response_class=FileResponse,
+    responses={**errors(401, 404), 200: {"content": {"application/pdf": {}, "image/png": {}, "image/jpeg": {}}}},
+)
+def download_receipt(
+    occurrence_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+) -> FileResponse:
+    occ = db.get(PaymentOccurrence, occurrence_id)
+    path = Path(get_settings().uploads_dir) / occ.receipt_file_key if occ and occ.receipt_file_key else None
+    if occ is None or path is None or not path.is_file():
+        raise not_found("Файл чека не прикреплён")
+    return FileResponse(
+        path,
+        media_type=occ.receipt_content_type or "application/octet-stream",
+        filename=occ.receipt_file_name or path.name,
+        content_disposition_type="inline",
+        headers={"X-Content-Type-Options": "nosniff"},
+    )
+
+
+@router.delete(
+    "/{occurrence_id}/receipt",
+    status_code=204,
+    summary="Удалить файл чека",
+    responses=errors(401, 404),
+)
+def delete_receipt(
+    occurrence_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user),
+) -> Response:
+    occ = _occurrence_or_404(db, occurrence_id)
+    if not occ.receipt_file_key:
+        raise not_found("Файл чека не прикреплён")
+    _remove_file(occ.receipt_file_key)
+    name = occ.receipt_file_name
+    occ.receipt_file_key = occ.receipt_file_name = occ.receipt_content_type = None
+    audit.record(
+        db, "occurrence.receipt_deleted", actor=user, entity="payment_occurrence", entity_id=occ.id,
+        payload={"file_name": name}, ip=client_ip(request),
+    )
+    db.commit()
+    return Response(status_code=204)
