@@ -5,11 +5,11 @@ import { cn } from '@/lib/cn'
 import { fieldControl } from './input'
 
 /** Listbox на Radix (нативный select запрещён доктриной): клавиатура, typeahead, aria-expanded. */
-export const Select = SelectPrimitive.Root
-export const SelectValue = SelectPrimitive.Value
-export const SelectGroup = SelectPrimitive.Group
+export const Listbox = SelectPrimitive.Root
+export const ListboxValue = SelectPrimitive.Value
+export const ListboxGroup = SelectPrimitive.Group
 
-export function SelectTrigger({ className, children, ...props }: ComponentProps<typeof SelectPrimitive.Trigger>) {
+export function ListboxTrigger({ className, children, ...props }: ComponentProps<typeof SelectPrimitive.Trigger>) {
   return (
     <SelectPrimitive.Trigger
       className={cn(
@@ -27,7 +27,7 @@ export function SelectTrigger({ className, children, ...props }: ComponentProps<
   )
 }
 
-export function SelectContent({
+export function ListboxContent({
   className,
   children,
   position = 'popper',
@@ -52,7 +52,7 @@ export function SelectContent({
   )
 }
 
-export function SelectItem({ className, children, ...props }: ComponentProps<typeof SelectPrimitive.Item>) {
+export function ListboxItem({ className, children, ...props }: ComponentProps<typeof SelectPrimitive.Item>) {
   return (
     <SelectPrimitive.Item
       className={cn(

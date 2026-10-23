@@ -15,7 +15,7 @@ import {
 import { Field, fieldAria } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Listbox, ListboxContent, ListboxItem, ListboxTrigger, ListboxValue } from '@/components/ui/listbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Segmented } from '@/components/ui/tabs'
@@ -100,16 +100,16 @@ export function ShowcasePage() {
             <Input {...fieldAria('ui-disabled')} defaultValue="admin" disabled />
           </Field>
           <Field id="ui-currency" label="Валюта" className="w-48">
-            <Select defaultValue="RUB">
-              <SelectTrigger id="ui-currency">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="RUB">RUB, рубль</SelectItem>
-                <SelectItem value="USD">USD, доллар</SelectItem>
-                <SelectItem value="EUR">EUR, евро</SelectItem>
-              </SelectContent>
-            </Select>
+            <Listbox defaultValue="RUB">
+              <ListboxTrigger id="ui-currency">
+                <ListboxValue />
+              </ListboxTrigger>
+              <ListboxContent>
+                <ListboxItem value="RUB">RUB, рубль</ListboxItem>
+                <ListboxItem value="USD">USD, доллар</ListboxItem>
+                <ListboxItem value="EUR">EUR, евро</ListboxItem>
+              </ListboxContent>
+            </Listbox>
           </Field>
         </Section>
 

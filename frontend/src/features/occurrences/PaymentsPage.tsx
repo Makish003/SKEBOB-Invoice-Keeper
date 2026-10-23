@@ -7,7 +7,7 @@ import { Page, PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Listbox, ListboxContent, ListboxItem, ListboxTrigger, ListboxValue } from '@/components/ui/listbox'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Segmented } from '@/components/ui/tabs'
@@ -191,29 +191,29 @@ export function PaymentsPage() {
               }}
             />
           </div>
-          <Select value={currency ?? 'all'} onValueChange={(value) => update({ currency: value === 'all' ? null : value })}>
-            <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-40" aria-label="Валюта">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все валюты</SelectItem>
-              <SelectItem value="RUB">RUB</SelectItem>
-              <SelectItem value="USD">USD</SelectItem>
-              <SelectItem value="EUR">EUR</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={period} onValueChange={(value) => update({ period: value === 'any' ? null : value })}>
-            <SelectTrigger className="w-[calc(50%-0.25rem)] sm:w-44" aria-label="Срок оплаты">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
+          <Listbox value={currency ?? 'all'} onValueChange={(value) => update({ currency: value === 'all' ? null : value })}>
+            <ListboxTrigger className="w-[calc(50%-0.25rem)] sm:w-40" aria-label="Валюта">
+              <ListboxValue />
+            </ListboxTrigger>
+            <ListboxContent>
+              <ListboxItem value="all">Все валюты</ListboxItem>
+              <ListboxItem value="RUB">RUB</ListboxItem>
+              <ListboxItem value="USD">USD</ListboxItem>
+              <ListboxItem value="EUR">EUR</ListboxItem>
+            </ListboxContent>
+          </Listbox>
+          <Listbox value={period} onValueChange={(value) => update({ period: value === 'any' ? null : value })}>
+            <ListboxTrigger className="w-[calc(50%-0.25rem)] sm:w-44" aria-label="Срок оплаты">
+              <ListboxValue />
+            </ListboxTrigger>
+            <ListboxContent>
               {(Object.keys(periodLabels) as PeriodFilter[]).map((key) => (
-                <SelectItem key={key} value={key}>
+                <ListboxItem key={key} value={key}>
                   {periodLabels[key]}
-                </SelectItem>
+                </ListboxItem>
               ))}
-            </SelectContent>
-          </Select>
+            </ListboxContent>
+          </Listbox>
           <Button
             variant={archived ? 'secondary' : 'ghost'}
             size="sm"
