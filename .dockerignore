@@ -1,0 +1,7 @@
+# Контекст backend-образа — корень репозитория; берём только нужное.
+*
+!backend/
+!docs/openapi.yml
+backend/.venv
+**/__pycache__
+**/.pytest_cache

@@ -1,0 +1,10 @@
+# Только для разработки: исходники и docs монтируются в контейнер (тесты, экспорт OpenAPI без пересборки).
+# docker compose -f docker-compose.yml -f compose.dev.yml run --rm backend pytest -q
+services:
+  backend:
+    volumes:
+      - ./backend:/srv/backend
+      - ./docs:/srv/docs
+  worker:
+    volumes:
+      - ./backend:/srv/backend
