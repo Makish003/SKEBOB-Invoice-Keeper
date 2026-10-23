@@ -770,6 +770,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/app-info:
+    get:
+      tags:
+      - Служебное
+      summary: Параметры приложения для интерфейса
+      operationId: app_info_api_v1_app_info_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AppInfo'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
   /api/v1/health:
     get:
       tags:
@@ -785,6 +807,36 @@ paths:
                 $ref: '#/components/schemas/Health'
 components:
   schemas:
+    AppInfo:
+      properties:
+        today:
+          type: string
+          format: date
+          title: Today
+          description: «Сегодня» в часовом поясе приложения (с учётом CLOCK_OVERRIDE в dev)
+        timezone:
+          type: string
+          title: Timezone
+        reminder_days_before:
+          type: integer
+          title: Reminder Days Before
+        reminder_channels:
+          items:
+            type: string
+          type: array
+          title: Reminder Channels
+          description: 'Куда уходят напоминания: telegram или console (лог воркера)'
+        version:
+          type: string
+          title: Version
+      type: object
+      required:
+      - today
+      - timezone
+      - reminder_days_before
+      - reminder_channels
+      - version
+      title: AppInfo
     Currency:
       type: string
       enum:
