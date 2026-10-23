@@ -937,6 +937,97 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/budgets/overview:
+    get:
+      tags:
+      - Бюджет
+      summary: 'Бюджет: план и факт по валютам'
+      description: Бюджет месяца и года по каждой валюте против суммы периодов со сроком в этом месяце/году и оплат.
+      operationId: budget_overview_api_v1_budgets_overview_get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: year
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 2100
+            minimum: 2000
+          - type: 'null'
+          title: Year
+      - name: month
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+            maximum: 12
+            minimum: 1
+          - type: 'null'
+          title: Month
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetOverview'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/budgets:
+    put:
+      tags:
+      - Бюджет
+      summary: Задать или удалить бюджет
+      description: Создаёт или меняет бюджет месяца (month 1–12) или года (month = null) в валюте; amount = null удаляет.
+      operationId: set_budget_api_v1_budgets_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BudgetSet-Input'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetSet-Output'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
   /api/v1/audit-log:
     get:
       tags:
@@ -1202,6 +1293,121 @@ components:
       required:
       - file
       title: Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post
+    BudgetLine:
+      properties:
+        budget:
+          anyOf:
+          - type: string
+            examples:
+            - '85000.00'
+          - type: 'null'
+          title: Budget
+          description: Плановые расходы; null — бюджет не задан
+        planned:
+          type: string
+          title: Planned
+          description: Сумма периодов со сроком в этом месяце/году
+          examples:
+          - '85000.00'
+        paid:
+          type: string
+          title: Paid
+          description: Из них оплачено
+          examples:
+          - '85000.00'
+      type: object
+      required:
+      - budget
+      - planned
+      - paid
+      title: BudgetLine
+    BudgetOverview:
+      properties:
+        year:
+          type: integer
+          title: Year
+        month:
+          type: integer
+          title: Month
+        currencies:
+          items:
+            $ref: '#/components/schemas/CurrencyBudget'
+          type: array
+          title: Currencies
+      type: object
+      required:
+      - year
+      - month
+      - currencies
+      title: BudgetOverview
+    BudgetSet-Input:
+      properties:
+        year:
+          type: integer
+          maximum: 2100.0
+          minimum: 2000.0
+          title: Year
+        month:
+          anyOf:
+          - type: integer
+            maximum: 12.0
+            minimum: 1.0
+          - type: 'null'
+          title: Month
+          description: 1–12 — бюджет месяца, null — бюджет года
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*(?:\d{0,12}|(?=[\d.]{1,15}0*$)\d{0,12}\.\d{0,2}0*$)
+          - type: 'null'
+          title: Amount
+          description: Сумма; null — удалить бюджет
+          examples:
+          - '150000.00'
+      additionalProperties: false
+      type: object
+      required:
+      - year
+      - currency
+      - amount
+      title: BudgetSet
+    BudgetSet-Output:
+      properties:
+        year:
+          type: integer
+          maximum: 2100.0
+          minimum: 2000.0
+          title: Year
+        month:
+          anyOf:
+          - type: integer
+            maximum: 12.0
+            minimum: 1.0
+          - type: 'null'
+          title: Month
+          description: 1–12 — бюджет месяца, null — бюджет года
+        currency:
+          $ref: '#/components/schemas/Currency'
+        amount:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*(?:\d{0,12}|(?=[\d.]{1,15}0*$)\d{0,12}\.\d{0,2}0*$)
+          - type: 'null'
+          title: Amount
+          description: Сумма; null — удалить бюджет
+          examples:
+          - '150000.00'
+      additionalProperties: false
+      type: object
+      required:
+      - year
+      - currency
+      - amount
+      title: BudgetSet
     Currency:
       type: string
       enum:
@@ -1209,6 +1415,20 @@ components:
       - USD
       - EUR
       title: Currency
+    CurrencyBudget:
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        month:
+          $ref: '#/components/schemas/BudgetLine'
+        year:
+          $ref: '#/components/schemas/BudgetLine'
+      type: object
+      required:
+      - currency
+      - month
+      - year
+      title: CurrencyBudget
     CurrencySummary:
       properties:
         currency:
@@ -1887,6 +2107,8 @@ tags:
   description: Суммы по валютам отдельно, без конвертации.
 - name: Пользователи
   description: Управление обычными пользователями — только администратор.
+- name: Бюджет
+  description: 'Бонус: плановые расходы на месяц и год по валютам; изменяет администратор.'
 - name: Журнал
   description: 'Бонус: журнал входов и действий — только администратор.'
 - name: Служебное

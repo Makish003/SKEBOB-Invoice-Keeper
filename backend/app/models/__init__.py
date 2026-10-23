@@ -237,3 +237,21 @@ class AuditLog(Base):
     entity_id: Mapped[int | None] = mapped_column(BigInteger)
     payload: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     ip: Mapped[str | None] = mapped_column(String(64))
+
+
+class Budget(Base):
+    """Плановые расходы на месяц (month 1–12) или год (month NULL) в одной валюте (FR-B9)."""
+
+    __tablename__ = "budgets"
+    __table_args__ = (
+        CheckConstraint("amount > 0", name="amount_positive"),
+        CheckConstraint("month IS NULL OR month BETWEEN 1 AND 12", name="month_range"),
+        Index("uq_budgets_year_month_currency", "year", func.coalesce(text("month"), 0), "currency", unique=True),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    year: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    month: Mapped[int | None] = mapped_column(SmallInteger)
+    currency: Mapped[Currency] = mapped_column(_enum(Currency, "currency"), nullable=False)
+    amount: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
+    updated_at: Mapped[datetime] = _updated_at()

@@ -19,6 +19,7 @@ import { type Currency, currencyNames, formatDate, formatMoney, pluralize, relat
 import { fadeUp, reduced, stagger, useReducedMotion } from '@/lib/motion'
 import { type CurrencySummary, useSummary } from './api'
 import { AsOfCard } from './AsOfCard'
+import { BudgetCard } from './BudgetCard'
 
 const payments = (n: number) => pluralize(n, { one: 'платёж', few: 'платежа', many: 'платежей' })
 
@@ -325,6 +326,7 @@ export function DashboardPage() {
         />
       </div>
 
+      <BudgetCard year={current.getFullYear()} month={current.getMonth() + 1} />
       <AsOfCard />
     </Page>
   )

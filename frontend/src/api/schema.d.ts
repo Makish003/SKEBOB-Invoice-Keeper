@@ -250,6 +250,46 @@ export interface paths {
         patch: operations["update_user_api_v1_users__user_id__patch"];
         trace?: never;
     };
+    "/api/v1/budgets/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Бюджет: план и факт по валютам
+         * @description Бюджет месяца и года по каждой валюте против суммы периодов со сроком в этом месяце/году и оплат.
+         */
+        get: operations["budget_overview_api_v1_budgets_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/budgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Задать или удалить бюджет
+         * @description Создаёт или меняет бюджет месяца (month 1–12) или года (month = null) в валюте; amount = null удаляет.
+         */
+        put: operations["set_budget_api_v1_budgets_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-log": {
         parameters: {
             query?: never;
@@ -377,11 +417,80 @@ export interface components {
              */
             file: string;
         };
+        /** BudgetLine */
+        BudgetLine: {
+            /**
+             * Budget
+             * @description Плановые расходы; null — бюджет не задан
+             */
+            budget: string | null;
+            /**
+             * Planned
+             * @description Сумма периодов со сроком в этом месяце/году
+             * @example 85000.00
+             */
+            planned: string;
+            /**
+             * Paid
+             * @description Из них оплачено
+             * @example 85000.00
+             */
+            paid: string;
+        };
+        /** BudgetOverview */
+        BudgetOverview: {
+            /** Year */
+            year: number;
+            /** Month */
+            month: number;
+            /** Currencies */
+            currencies: components["schemas"]["CurrencyBudget"][];
+        };
+        /** BudgetSet */
+        "BudgetSet-Input": {
+            /** Year */
+            year: number;
+            /**
+             * Month
+             * @description 1–12 — бюджет месяца, null — бюджет года
+             */
+            month?: number | null;
+            currency: components["schemas"]["Currency"];
+            /**
+             * Amount
+             * @description Сумма; null — удалить бюджет
+             * @example 150000.00
+             */
+            amount: number | string | null;
+        };
+        /** BudgetSet */
+        "BudgetSet-Output": {
+            /** Year */
+            year: number;
+            /**
+             * Month
+             * @description 1–12 — бюджет месяца, null — бюджет года
+             */
+            month?: number | null;
+            currency: components["schemas"]["Currency"];
+            /**
+             * Amount
+             * @description Сумма; null — удалить бюджет
+             * @example 150000.00
+             */
+            amount: string | null;
+        };
         /**
          * Currency
          * @enum {string}
          */
         Currency: "RUB" | "USD" | "EUR";
+        /** CurrencyBudget */
+        CurrencyBudget: {
+            currency: components["schemas"]["Currency"];
+            month: components["schemas"]["BudgetLine"];
+            year: components["schemas"]["BudgetLine"];
+        };
         /** CurrencySummary */
         CurrencySummary: {
             currency: components["schemas"]["Currency"];
@@ -1723,6 +1832,98 @@ export interface operations {
             };
             /** @description Конфликт (например, логин занят) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Ошибка валидации входных данных */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    budget_overview_api_v1_budgets_overview_get: {
+        parameters: {
+            query?: {
+                year?: number | null;
+                month?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetOverview"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Ошибка валидации входных данных */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    set_budget_api_v1_budgets_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BudgetSet-Input"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BudgetSet-Output"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Недостаточно прав */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
