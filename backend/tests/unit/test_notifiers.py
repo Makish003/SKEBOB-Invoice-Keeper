@@ -20,7 +20,7 @@ class FakeBot:
         self.error = error
         self.calls: list[tuple[str, str, str]] = []
 
-    async def send_message(self, chat_id: str, text: str, parse_mode: str) -> SimpleNamespace:
+    async def send_message(self, chat_id: str, text: str, parse_mode: str, request_timeout: int) -> SimpleNamespace:
         if self.error:
             raise self.error
         self.calls.append((chat_id, text, parse_mode))

@@ -16,6 +16,10 @@ def main() -> None:
     setup_logging()
     settings = get_settings()
     clock = get_clock()
+    if settings.app_env == "production" and (
+        settings.secret_key.startswith("change-me") or settings.admin_password == "admin12345"
+    ):
+        log.warning("APP_ENV=production, но SECRET_KEY или ADMIN_PASSWORD оставлены по умолчанию из .env.example")
     with get_sessionmaker()() as db:
         sync_system_admin(db, settings, clock)
         db.commit()

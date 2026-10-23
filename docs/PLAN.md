@@ -312,7 +312,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [x] **Q-02** (FRONT) Playwright `e2e/demo.spec.ts` = сценарий со с.15: войти admin → добавить платёж со сроком через 1 день → (проверить `reminders` через API/лог console-notifier) → войти user → отметить оплату → показать просроченный → исправить дату → просрочка исчезла → показать следующий период с отдельным статусом.
   ↳ done: Q-02 · проверка: `cd frontend && npx playwright test` против `docker compose` (:8080) → 12 passed; demo.spec: вход admin → создание платежа со сроком завтра через UI → `reminder_sent_at` выставлен воркером ≤ 30 с (console) → вход user → отметка оплаты → просроченный (−4 дня) → «Оплачен с опозданием» → исправление даты на срок → «Оплачен» → Период 2 того же платежа «Ожидает»
 - [ ] **Q-03** (BACK) Реальный Telegram: создать бота, добавить в группу, `/chatid`, прописать в `.env`, проверить AC-6/AC-7 вживую; скриншот в `docs/screenshots/`.
-- [ ] **Q-04** (ANY) `adversarial-reviewer` + `senior-security` по authz: попытки обойти права через API (IDOR, смена роли, PATCH чужих полей). Найденное → `red-green-proof`.
+- [x] **Q-04** (ANY) `adversarial-reviewer` + `senior-security` по authz: попытки обойти права через API (IDOR, смена роли, PATCH чужих полей). Найденное → `red-green-proof`.
+  ↳ done: Q-04 · проверка: эксперимент на стеке — до фикса 7 входов с подменой X-Forwarded-For → 401×7 и поддельный IP в audit_log; после → 401×5, 429×2, IP реальный; `sh scripts/smoke.sh` → OK; `pytest -q` → 209 passed. Отчёт: docs/reviews/Q-04-adversarial.md
 - [ ] **Q-05** (ANY) AC-13: `docker compose down && docker compose up -d` → данные на месте. AC-1: свежий клон в другую папку, строго по README.
   DoD M2: §8 — все AC зелёные; запись «M2 достигнут» в журнале.
 
@@ -400,6 +401,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 00:22 · SOLO · B-13 · OpenAPI финал: описание API (авторизация через cookie/Bearer, роли, форматы дат/денег/ошибок), описания тегов на русском, servers, contact, описания всех операций, коды ошибок у каждой операции (единый ErrorResponse), примеры полей; api-design-reviewer прогнан · B-13 · линтер 90.7, 0 errors · ADR-018 (snake_case контракта, нерелевантные эвристики скоркарда)
 - 2026-10-24 00:26 · SOLO · Q-01 · Приёмочные тесты: по файлу на AC-2…AC-12, AC-14 (Given/When/Then из SPEC), общий RecordingNotifier вместо Telegram; AC-2 перебирает все операции из OpenAPI. Тест AC-5 сначала упал из-за ошибки в самом тесте (дата оплаты в будущем → 422 — верное поведение сервера) · Q-01 · 208 passed · —
 - 2026-10-24 00:29 · SOLO · Q-02 · E2E демо-сценария со с.15 (e2e/demo.spec.ts), самодостаточный: user создаётся через API, если его нет; факт напоминания проверяется по reminder_sent_at · Q-02 · 12 passed · реальный Telegram — Q-03 (ESC-1)
+- 2026-10-24 00:34 · SOLO · Q-04 · Адверсариальное ревью (3 персоны) прав/сессий/напоминаний. High: подмена X-Forwarded-For обходила rate-limit входа и подделывала IP аудита → nginx перезаписывает заголовок. Medium: таймаут отправки Telegram 15 с. Low: FOR UPDATE при удалении, предупреждение о дефолтных секретах в production. Открытых critical/high нет · Q-04 · smoke OK, 209 passed · —
 
 ## 10. Эскалации и блокеры
 

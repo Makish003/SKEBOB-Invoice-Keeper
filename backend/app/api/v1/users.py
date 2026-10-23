@@ -21,8 +21,8 @@ NO_ADMIN_ROLE = "Роль администратора назначить нел
 LOGIN_TAKEN = "Логин уже занят. Выберите другой"
 
 
-def _active_user(db: Session, user_id: int) -> User:
-    user = db.get(User, user_id)
+def _active_user(db: Session, user_id: int, *, lock: bool = False) -> User:
+    user = db.get(User, user_id, with_for_update=lock)
     if user is None or user.deleted_at is not None:
         raise not_found("Пользователь не найден")
     return user
@@ -163,7 +163,7 @@ def delete_user(
     clock: Clock = Depends(get_clock),
     admin: User = Depends(require_admin),
 ) -> Response:
-    user = _active_user(db, user_id)
+    user = _active_user(db, user_id, lock=True)
     if user.is_system or user.role == Role.admin:
         raise forbidden(ADMIN_IMMUTABLE)
     user.deleted_at = clock.now()

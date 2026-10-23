@@ -49,8 +49,8 @@ def _to_schema(db: Session, payment: PaymentModel, today: date, settings: Settin
     )
 
 
-def _get_or_404(db: Session, payment_id: int) -> PaymentModel:
-    payment = db.get(PaymentModel, payment_id)
+def _get_or_404(db: Session, payment_id: int, *, lock: bool = False) -> PaymentModel:
+    payment = db.get(PaymentModel, payment_id, with_for_update=lock)
     if payment is None:
         raise not_found("Регулярный платёж не найден")
     return payment
@@ -173,7 +173,7 @@ def delete_recurring_payment(
     clock: Clock = Depends(get_clock),
     admin: User = Depends(require_admin),
 ) -> Response:
-    payment = _get_or_404(db, payment_id)
+    payment = _get_or_404(db, payment_id, lock=True)  # параллельный DELETE ждёт и получает 404
     if payment.deleted_at is not None:
         raise not_found("Регулярный платёж уже прекращён")
     today = clock.today()

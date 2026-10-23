@@ -7,6 +7,10 @@ from app.models import Channel
 from app.services.notifiers.base import NotifierError, ReminderMessage, format_message
 
 
+# Отправка идёт под блокировкой строки напоминания: зависший запрос не должен держать очередь дольше этого.
+SEND_TIMEOUT_SECONDS = 15
+
+
 class TelegramNotifier:
     channel = Channel.telegram
 
@@ -16,7 +20,9 @@ class TelegramNotifier:
 
     async def send(self, message: ReminderMessage) -> str | None:
         try:
-            sent = await self.bot.send_message(self.chat_id, format_message(message), parse_mode="HTML")
+            sent = await self.bot.send_message(
+                self.chat_id, format_message(message), parse_mode="HTML", request_timeout=SEND_TIMEOUT_SECONDS
+            )
         except (TelegramAPIError, OSError, TimeoutError) as exc:
             raise NotifierError(f"Telegram: {exc}") from exc
         return str(sent.message_id)
