@@ -28,7 +28,7 @@ export function Calendar({ className, classNames, ...props }: DayPickerProps) {
           'size-9 rounded-md tabular transition-control outline-none hover:bg-secondary-hover',
           'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
         ),
-        selected: '[&>button]:bg-primary [&>button]:text-fg-on-action [&>button:hover]:bg-primary-hover',
+        selected: '[&>button]:bg-primary [&>button]:!text-fg-on-action [&>button:hover]:bg-primary-hover',
         today: '[&>button]:font-semibold [&>button]:text-link',
         outside: 'text-fg-tertiary',
         disabled: 'opacity-40 [&>button]:cursor-not-allowed [&>button:hover]:bg-transparent',

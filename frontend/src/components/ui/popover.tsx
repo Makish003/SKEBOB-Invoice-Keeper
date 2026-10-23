@@ -20,7 +20,7 @@ export function PopoverContent({
         sideOffset={sideOffset}
         collisionPadding={12}
         className={cn(
-          'z-50 w-72 rounded-xl border border-subtle bg-overlay p-4 text-fg shadow-overlay outline-none',
+          'z-50 max-h-[var(--radix-popover-content-available-height)] w-72 overflow-y-auto rounded-xl border border-subtle bg-overlay p-4 text-fg shadow-overlay outline-none',
           'data-[state=open]:animate-[ik-pop_var(--duration-base)_var(--ease-out)]',
           className,
         )}

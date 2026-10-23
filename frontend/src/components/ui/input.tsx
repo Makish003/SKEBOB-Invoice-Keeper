@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react'
+import type { ComponentProps } from 'react'
 import { cn } from '@/lib/cn'
 
 export const fieldControl = cn(
@@ -9,6 +9,6 @@ export const fieldControl = cn(
   'aria-invalid:border-danger aria-invalid:focus-visible:outline-danger',
 )
 
-export function Input({ className, type = 'text', ...props }: InputHTMLAttributes<HTMLInputElement>) {
+export function Input({ className, type = 'text', ...props }: ComponentProps<'input'>) {
   return <input type={type} className={cn(fieldControl, className)} {...props} />
 }

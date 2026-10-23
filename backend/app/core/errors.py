@@ -67,6 +67,8 @@ def install_error_handlers(app: FastAPI) -> None:
         message = exc.detail if isinstance(exc.detail, str) else "Ошибка запроса"
         if exc.status_code == 404 and message == "Not Found":
             message = "Ресурс не найден"
+        if exc.status_code == 400 and message.startswith("There was an error parsing the body"):
+            message = "Не удалось разобрать тело запроса: ожидается JSON в кодировке UTF-8"
         if exc.status_code == 405:
             message = "Метод не поддерживается"
         return JSONResponse(
