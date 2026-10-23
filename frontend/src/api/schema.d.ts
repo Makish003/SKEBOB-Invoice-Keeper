@@ -174,12 +174,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Список пользователей */
+        /**
+         * Список пользователей
+         * @description Активные пользователи; первым — администратор из .env.
+         */
         get: operations["list_users_api_v1_users_get"];
         put?: never;
         /**
          * Создание обычного пользователя
-         * @description Всегда создаёт роль `user`. Администратор задаётся только в .env.
+         * @description Всегда создаёт роль `user`. Попытка передать `role=admin` → 403. Занятый логин → 409.
          */
         post: operations["create_user_api_v1_users_post"];
         delete?: never;
@@ -201,14 +204,14 @@ export interface paths {
         post?: never;
         /**
          * Удаление пользователя
-         * @description Мягкое удаление: сессии завершаются, отметки оплат в истории сохраняются. Администратор → 403.
+         * @description Мягкое удаление: сессии завершаются, вход невозможен, отметки оплат в истории сохраняются (с именем отметившего). Администратор из .env → 403. Повторное удаление → 404.
          */
         delete: operations["delete_user_api_v1_users__user_id__delete"];
         options?: never;
         head?: never;
         /**
          * Изменение пользователя
-         * @description Логин, имя, пароль обычного пользователя. Администратор из .env не изменяется → 403.
+         * @description Логин, имя, пароль обычного пользователя. Смена пароля завершает все сессии пользователя. Администратор из .env не изменяется (403); повысить роль до admin нельзя (403).
          */
         patch: operations["update_user_api_v1_users__user_id__patch"];
         trace?: never;

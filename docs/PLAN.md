@@ -274,8 +274,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [x] **B-09** Summary по валютам (всегда 3 валюты, Decimal-суммы, фильтр периода, `as_of`).
   Тест: AC-12 на сид-данных.
   ↳ done: B-09 · проверка: `pytest tests/api/test_summary.py` → 6 passed: три валюты нулями на пустой БД, RUB 85000.00+15000.50=100000.50 отдельно от USD/EUR, as_of (оплата в день срока не просрочка), интервал, 422 на from>to, include_deleted
-- [ ] **B-10** Users CRUD (admin only), запрет на системного админа, soft delete + revoke сессий.
+- [x] **B-10** Users CRUD (admin only), запрет на системного админа, soft delete + revoke сессий.
   Тесты: AC-3, AC-4, EC-8, EC-12, уникальность логина → 409.
+  ↳ done: B-10 · проверка: `pytest -q` → 155 passed (test_users.py: 401 ×5, user → 403 ×6 без изменений данных, admin PATCH/DELETE системного админа → 403, role=admin → 403, дубль логина → 409, смена пароля отзывает сессии, удаление: сессии отозваны, вход 401, paid_by_label сохранён, повторно 404, логин можно выдать снова)
 - [ ] **B-11** Worker: `python -m app.worker` — APScheduler (tick + быстрый pending-poll), notifiers (`telegram` через aiogram, `console`), конвейер §1.3, ретраи с backoff, graceful shutdown. Бот: `/start`, `/chatid`.
   Тесты (без сети, notifier-фейк): AC-6 (два тика → одна отправка), AC-7, AC-8, AC-14, EC-6 (ошибка → failed → ретрай → sent, без дублей).
 - [ ] **B-12** Seed (`app/seed.py`, идемпотентный; запускается при старте если `SEED_DEMO_DATA=true` и нет платежей): пользователь `user`/`user12345`;
@@ -386,6 +387,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 00:02 · SOLO · B-09 · Итоги по валютам: всегда RUB/USD/EUR, Decimal строкой, интервал (по умолчанию текущий месяц), as_of (оплачено/просрочено на дату — задел под X-04), include_deleted; агрегаты одним SQL с FILTER · B-09 · 6 passed · —
 - 2026-10-24 00:06 · SOLO · F-08 · Сводка: переключатель месяца, ведущий блок «Осталось оплатить N платежей / из них просрочены» с суммами к оплате по валютам и прогрессом, три карточки RUB/USD/EUR (всего/оплачено/к оплате/просрочено, полоса), блоки «Просрочено» и «Ближайшие 7 дней» с быстрой отметкой оплаты; stagger-появление, AnimatedNumber (motion animate, prefers-reduced-motion) · F-08 · визуальная проверка · —
 - 2026-10-24 00:06 · SOLO · F-09 · lib/format.ts: Intl.NumberFormat ru-RU currency, dd.MM.yyyy, relativeDue (сегодня/завтра/через N дней/N дней назад), Intl.PluralRules ru; lib/money-input.ts — маска суммы · F-09 · визуально на скриншотах · —
+- 2026-10-24 00:08 · SOLO · B-10 · Users CRUD (admin only): список/по id/создание (всегда role=user)/изменение (логин, имя, пароль → revoke сессий)/мягкое удаление (revoke сессий); системный админ неизменяем (403); аудит user.created/updated/deleted · B-10 · 155 passed · —
 
 ## 10. Эскалации и блокеры
 
