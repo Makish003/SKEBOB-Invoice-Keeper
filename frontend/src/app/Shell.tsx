@@ -187,7 +187,7 @@ export function Shell() {
           </aside>
         </div>
 
-        <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-subtle bg-panel/90 px-2 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-subtle bg-panel px-2 lg:hidden">
           <MobileNav />
           <Logo />
           {user.role === 'admin' && (

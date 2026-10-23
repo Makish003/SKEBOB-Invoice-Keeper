@@ -4,15 +4,24 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { chromium } from '@playwright/test'
 
+// Для страниц за логином: SNAPSHOT_LOGIN=admin SNAPSHOT_PASSWORD=admin12345
 const [url = 'http://localhost:5173/_ui', out = '../.tmp/ui/showcase.html'] = process.argv.slice(2)
 
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
+if (process.env.SNAPSHOT_LOGIN) {
+  await page.goto(new URL('/login', url).href)
+  await page.getByLabel('Логин').fill(process.env.SNAPSHOT_LOGIN)
+  await page.getByLabel('Пароль').fill(process.env.SNAPSHOT_PASSWORD ?? '')
+  await page.getByRole('button', { name: 'Войти' }).click()
+  await page.waitForURL((u) => !u.pathname.startsWith('/login'))
+}
 page.on('pageerror', (error) => console.error('pageerror:', error.message))
 page.on('console', (msg) => msg.type() === 'error' && console.error('console:', msg.text()))
 await page.goto(url, { waitUntil: 'networkidle' })
 await page.locator('h1').first().waitFor({ timeout: 15000 })
-await page.waitForTimeout(300)
+await page.waitForLoadState('networkidle')
+await page.waitForTimeout(800)
 const html = await page.evaluate(() => {
   const css = Array.from(document.styleSheets)
     .map((sheet) => {

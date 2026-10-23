@@ -127,7 +127,7 @@ export function CalendarPage() {
                   exit={reduce ? { opacity: 0 } : { opacity: 0, x: direction * -24 }}
                   transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
                   className="grid grid-cols-7 gap-1"
-                  role="grid"
+                  role="group"
                   aria-label={format(current, 'LLLL yyyy', { locale: ru })}
                 >
                   {days.map((day) => {
@@ -140,21 +140,19 @@ export function CalendarPage() {
                       <button
                         key={iso}
                         type="button"
-                        role="gridcell"
-                        aria-selected={isActive}
+                        aria-pressed={isActive}
                         aria-label={dayLabel(day, items)}
                         onClick={() => setSelected(day)}
                         className={cn(
                           'flex min-h-14 flex-col items-stretch gap-1 rounded-lg border p-1.5 text-left transition-control outline-none sm:min-h-24',
                           'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
                           isActive ? 'border-primary bg-selected' : 'border-transparent hover:bg-secondary-hover',
-                          !inMonth && 'opacity-50',
                         )}
                       >
                         <span
                           className={cn(
                             'flex size-6 items-center justify-center rounded-full text-xs tabular',
-                            isToday ? 'bg-primary font-semibold text-fg-on-action' : 'text-fg-secondary',
+                            isToday ? 'bg-primary font-semibold text-fg-on-action' : inMonth ? 'text-fg-secondary' : 'text-fg-tertiary',
                           )}
                         >
                           {format(day, 'd')}
