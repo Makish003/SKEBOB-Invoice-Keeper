@@ -62,6 +62,8 @@ def test_create_due_tomorrow_queues_reminder_immediately(client: TestClient, db:
     reminders = db.scalars(select(Reminder)).all()
     assert len(reminders) == 1
     assert reminders[0].status == ReminderStatus.pending and reminders[0].channel == "console"
+    audit_entry = db.scalar(select(AuditLog).where(AuditLog.action == "recurring_payment.created"))
+    assert audit_entry is not None and audit_entry.payload["reminders_queued"] == 1
 
 
 def test_create_far_due_has_no_reminder_yet(client: TestClient, db: Session, admin_headers: dict[str, str]) -> None:

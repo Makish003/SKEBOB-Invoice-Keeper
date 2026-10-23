@@ -53,8 +53,9 @@ def enqueue_due(
             insert(Reminder)
             .from_select(["occurrence_id", "channel", "kind"], source)
             .on_conflict_do_nothing(constraint="uq_reminders_occurrence_channel_kind")
+            .returning(Reminder.id)
         )
-        created += db.execute(stmt).rowcount or 0
+        created += len(db.execute(stmt).all())
     return created
 
 
