@@ -1,0 +1,171 @@
+/*
+ * Единственный источник визуальных значений (ADR-016, направление linear-app).
+ * Примитивы → семантические токены по смыслу. Тёмная тема меняет только семантику.
+ * Контраст пар проверен scripts/contrast.py (журнал PLAN, F-02).
+ */
+:root {
+  /* --- primitives --- */
+  --p-gray-0: #ffffff;
+  --p-gray-25: #f6f7f8;
+  --p-gray-50: #f1f2f4;
+  --p-gray-75: #eef0f2;
+  --p-gray-100: #e3e5e8;
+  --p-gray-300: #c4c8ce;
+  --p-gray-400: #858b95;
+  --p-gray-500: #5f6570;
+  --p-gray-600: #4a4f57;
+  --p-gray-900: #16171a;
+
+  --p-ink-0: #0b0c0d;
+  --p-ink-50: #0f1011;
+  --p-ink-100: #17181a;
+  --p-ink-150: #1c1d20;
+  --p-ink-200: #1f2023;
+  --p-ink-250: #25272b;
+  --p-ink-300: #2c2e33;
+  --p-ink-500: #6b707a;
+  --p-ink-600: #969ba5;
+  --p-ink-800: #c9ced8;
+  --p-ink-900: #f7f8f8;
+
+  --p-indigo-50: #eceefc;
+  --p-indigo-400: #7c86ff;
+  --p-indigo-300: #8f97ff;
+  --p-indigo-500: #5e6ad2;
+  --p-indigo-600: #4f5bc4;
+  --p-indigo-650: #4b55c0;
+  --p-indigo-700: #4450b5;
+  --p-indigo-950: #1c1e36;
+
+  --p-red-50: #fdecea;
+  --p-red-300: #ff8a80;
+  --p-red-600: #c62828;
+  --p-red-650: #c93030;
+  --p-red-700: #b42318;
+  --p-red-750: #a61f1f;
+  --p-red-950: #2d1414;
+
+  --p-green-50: #e8f5ec;
+  --p-green-300: #5ccf7a;
+  --p-green-700: #17723a;
+  --p-green-950: #112319;
+
+  --p-amber-50: #fff3dc;
+  --p-amber-300: #f2b544;
+  --p-amber-700: #8a4f00;
+  --p-amber-950: #2a2110;
+
+  /* --- semantic: light --- */
+  --surface-page: var(--p-gray-25);
+  --surface-panel: var(--p-gray-50);
+  --surface-raised: var(--p-gray-0);
+  --surface-sunken: var(--p-gray-75);
+  --surface-overlay: var(--p-gray-0);
+  --surface-scrim: rgb(15 16 17 / 0.45);
+
+  --text-primary: var(--p-gray-900);
+  --text-secondary: var(--p-gray-600);
+  --text-tertiary: var(--p-gray-500);
+  --text-on-action: var(--p-gray-0);
+  --text-link: var(--p-indigo-650);
+
+  --border-subtle: var(--p-gray-100);
+  --border-default: var(--p-gray-300);
+  --border-strong: var(--p-gray-400);
+
+  --action-primary: var(--p-indigo-500);
+  --action-primary-hover: var(--p-indigo-600);
+  --action-primary-active: var(--p-indigo-700);
+  --action-secondary-hover: var(--p-gray-75);
+  --action-secondary-active: var(--p-gray-100);
+  --action-destructive: var(--p-red-600);
+  --action-destructive-hover: var(--p-red-750);
+  --action-selected: var(--p-indigo-50);
+
+  --focus-ring: var(--p-indigo-500);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  --feedback-success: var(--p-green-700);
+  --feedback-success-bg: var(--p-green-50);
+  --feedback-warning: var(--p-amber-700);
+  --feedback-warning-bg: var(--p-amber-50);
+  --feedback-danger: var(--p-red-700);
+  --feedback-danger-bg: var(--p-red-50);
+  --feedback-info: var(--p-indigo-650);
+  --feedback-info-bg: var(--p-indigo-50);
+  --feedback-neutral: var(--p-gray-600);
+  --feedback-neutral-bg: var(--p-gray-75);
+
+  /* --- type, space, shape, motion --- */
+  --font-sans: 'Inter Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
+  --font-features: 'cv01', 'ss03', 'tnum';
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  --shadow-overlay: 0 0.5rem 1.5rem rgb(15 16 17 / 0.12), 0 0 0 1px rgb(15 16 17 / 0.06);
+  --shadow-raised: 0 1px 2px rgb(15 16 17 / 0.05);
+
+  --duration-instant: 0.01ms;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --control-height-sm: 2rem;
+  --control-height-md: 2.5rem;
+  --sidebar-width: 15rem;
+
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --surface-page: var(--p-ink-50);
+  --surface-panel: var(--p-ink-0);
+  --surface-raised: var(--p-ink-100);
+  --surface-sunken: var(--p-ink-200);
+  --surface-overlay: var(--p-ink-150);
+  --surface-scrim: rgb(0 0 0 / 0.7);
+
+  --text-primary: var(--p-ink-900);
+  --text-secondary: var(--p-ink-800);
+  --text-tertiary: var(--p-ink-600);
+  --text-on-action: var(--p-gray-0);
+  --text-link: var(--p-indigo-300);
+
+  --border-subtle: var(--p-ink-250);
+  --border-default: var(--p-ink-300);
+  --border-strong: var(--p-ink-500);
+
+  --action-primary: var(--p-indigo-500);
+  --action-primary-hover: var(--p-indigo-600);
+  --action-primary-active: var(--p-indigo-700);
+  --action-secondary-hover: var(--p-ink-200);
+  --action-secondary-active: var(--p-ink-250);
+  --action-destructive: var(--p-red-650);
+  --action-destructive-hover: var(--p-red-600);
+  --action-selected: var(--p-indigo-950);
+
+  --focus-ring: var(--p-indigo-400);
+
+  --feedback-success: var(--p-green-300);
+  --feedback-success-bg: var(--p-green-950);
+  --feedback-warning: var(--p-amber-300);
+  --feedback-warning-bg: var(--p-amber-950);
+  --feedback-danger: var(--p-red-300);
+  --feedback-danger-bg: var(--p-red-950);
+  --feedback-info: var(--p-indigo-300);
+  --feedback-info-bg: var(--p-indigo-950);
+  --feedback-neutral: var(--p-ink-800);
+  --feedback-neutral-bg: var(--p-ink-250);
+
+  --shadow-overlay: 0 0.5rem 1.5rem rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.02);
+
+  color-scheme: dark;
+}

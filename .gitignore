@@ -27,3 +27,6 @@ Thumbs.db
 .vscode/
 # claude local
 .claude/settings.local.json
+
+# local artifacts
+.tmp/

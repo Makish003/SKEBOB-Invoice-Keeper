@@ -1,4 +1,9 @@
-import { createBrowserRouter } from 'react-router'
+import { lazy } from 'react'
+import { createBrowserRouter, type RouteObject } from 'react-router'
+
+const ShowcasePage = lazy(() =>
+  import('@/features/showcase/ShowcasePage').then((m) => ({ default: m.ShowcasePage })),
+)
 
 function Placeholder() {
   return (
@@ -9,4 +14,6 @@ function Placeholder() {
   )
 }
 
-export const router = createBrowserRouter([{ path: '*', element: <Placeholder /> }])
+const devRoutes: RouteObject[] = import.meta.env.DEV ? [{ path: '/_ui', element: <ShowcasePage /> }] : []
+
+export const router = createBrowserRouter([...devRoutes, { path: '*', element: <Placeholder /> }])

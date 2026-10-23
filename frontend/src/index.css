@@ -1,1 +1,126 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import './styles/tokens.css';
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/* Tailwind-утилиты указывают на семантические токены: bg-raised, text-fg-secondary, border-subtle… */
+@theme inline {
+  --color-page: var(--surface-page);
+  --color-panel: var(--surface-panel);
+  --color-raised: var(--surface-raised);
+  --color-sunken: var(--surface-sunken);
+  --color-overlay: var(--surface-overlay);
+  --color-scrim: var(--surface-scrim);
+
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-tertiary: var(--text-tertiary);
+  --color-fg-on-action: var(--text-on-action);
+  --color-link: var(--text-link);
+
+  --color-subtle: var(--border-subtle);
+  --color-default: var(--border-default);
+  --color-strong: var(--border-strong);
+
+  --color-primary: var(--action-primary);
+  --color-primary-hover: var(--action-primary-hover);
+  --color-primary-active: var(--action-primary-active);
+  --color-secondary-hover: var(--action-secondary-hover);
+  --color-secondary-active: var(--action-secondary-active);
+  --color-destructive: var(--action-destructive);
+  --color-destructive-hover: var(--action-destructive-hover);
+  --color-selected: var(--action-selected);
+  --color-ring: var(--focus-ring);
+
+  --color-success: var(--feedback-success);
+  --color-success-bg: var(--feedback-success-bg);
+  --color-warning: var(--feedback-warning);
+  --color-warning-bg: var(--feedback-warning-bg);
+  --color-danger: var(--feedback-danger);
+  --color-danger-bg: var(--feedback-danger-bg);
+  --color-info: var(--feedback-info);
+  --color-info-bg: var(--feedback-info-bg);
+  --color-neutral: var(--feedback-neutral);
+  --color-neutral-bg: var(--feedback-neutral-bg);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+
+  --shadow-overlay: var(--shadow-overlay);
+  --shadow-raised: var(--shadow-raised);
+
+  --ease-out: var(--ease-out);
+  --ease-in-out: var(--ease-in-out);
+}
+
+@layer base {
+  html {
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-feature-settings: var(--font-features);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    min-height: 100dvh;
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  :focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  ::selection {
+    background: var(--action-selected);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: var(--duration-instant) !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: var(--duration-instant) !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@keyframes ik-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ik-pop {
+  from {
+    opacity: 0;
+    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97);
+  }
+}
+
+@keyframes ik-shimmer {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility transition-control {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out);
+}

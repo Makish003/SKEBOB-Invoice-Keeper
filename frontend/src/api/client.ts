@@ -41,7 +41,7 @@ api.use(unauthorizedMiddleware)
 
 type Result<T> = { data?: T; error?: unknown; response: Response }
 
-/** Возвращает data или бросает ApiError — для TanStack Query. */
+/** Возвращает data или бросает ApiError: для TanStack Query. */
 export async function unwrap<T>(promise: Promise<Result<T>>): Promise<T> {
   let result: Result<T>
   try {
