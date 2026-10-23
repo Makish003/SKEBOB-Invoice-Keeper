@@ -18,6 +18,7 @@ import { cn } from '@/lib/cn'
 import { type Currency, currencyNames, formatDate, formatMoney, pluralize, relativeDue, toIsoDate } from '@/lib/format'
 import { fadeUp, reduced, stagger, useReducedMotion } from '@/lib/motion'
 import { type CurrencySummary, useSummary } from './api'
+import { AsOfCard } from './AsOfCard'
 
 const payments = (n: number) => pluralize(n, { one: 'платёж', few: 'платежа', many: 'платежей' })
 
@@ -323,6 +324,8 @@ export function DashboardPage() {
           link="/payments"
         />
       </div>
+
+      <AsOfCard />
     </Page>
   )
 }

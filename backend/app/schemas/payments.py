@@ -107,9 +107,11 @@ class CurrencySummary(BaseModel):
     paid: Money = Field(description="Оплачено на дату as_of")
     unpaid: Money = Field(description="Не оплачено на дату as_of")
     overdue: Money = Field(description="Просрочено на дату as_of (срок прошёл, не оплачено)")
+    due: Money = Field(description="Должно быть оплачено к дате as_of (срок ≤ as_of)")
     count_total: int
     count_paid: int
     count_overdue: int
+    count_due: int
 
 
 class Summary(BaseModel):

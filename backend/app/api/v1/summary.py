@@ -33,7 +33,7 @@ def _month_bounds(today: date) -> tuple[date, date]:
     description=(
         "Суммы по периодам со сроком в интервале [due_from, due_to] (по умолчанию — текущий месяц), отдельно "
         "по RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено "
-        "(по умолчанию сегодня): оплачено — отметка с датой ≤ as_of, просрочено — срок < as_of и не оплачено к as_of."
+        "(по умолчанию сегодня): должно быть оплачено — срок ≤ as_of, оплачено — отметка с датой ≤ as_of, просрочено — срок < as_of и не оплачено к as_of."
     ),
     responses=errors(401, 422),
 )
@@ -57,6 +57,7 @@ def payments_summary(
 
     paid_by = and_(PaymentOccurrence.status == OccurrenceStatus.paid, PaymentOccurrence.paid_at <= as_of_date)
     overdue_by = and_(PaymentOccurrence.due_date < as_of_date, not_(paid_by))
+    due_by = PaymentOccurrence.due_date <= as_of_date
     amount = PaymentOccurrence.amount
     query = (
         select(
@@ -67,6 +68,8 @@ def payments_summary(
             func.count(),
             func.count().filter(paid_by),
             func.count().filter(overdue_by),
+            func.coalesce(func.sum(case((due_by, amount), else_=0)), 0),
+            func.count().filter(due_by),
         )
         .join(RecurringPayment, RecurringPayment.id == PaymentOccurrence.recurring_payment_id)
         .where(PaymentOccurrence.due_date >= date_from, PaymentOccurrence.due_date <= date_to)
@@ -78,8 +81,8 @@ def payments_summary(
 
     currencies = []
     for currency in Currency:
-        _, total, paid, overdue, count_total, count_paid, count_overdue = rows.get(
-            currency, (currency, ZERO, ZERO, ZERO, 0, 0, 0)
+        _, total, paid, overdue, count_total, count_paid, count_overdue, due, count_due = rows.get(
+            currency, (currency, ZERO, ZERO, ZERO, 0, 0, 0, ZERO, 0)
         )
         currencies.append(
             CurrencySummary(
@@ -91,6 +94,8 @@ def payments_summary(
                 count_total=count_total,
                 count_paid=count_paid,
                 count_overdue=count_overdue,
+                due=Decimal(due),
+                count_due=count_due,
             )
         )
     return Summary(period=SummaryPeriod(**{"from": date_from, "to": date_to}), as_of=as_of_date, currencies=currencies)

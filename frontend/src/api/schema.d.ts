@@ -165,7 +165,7 @@ export interface paths {
         };
         /**
          * Итоговые суммы по валютам
-         * @description Суммы по периодам со сроком в интервале [due_from, due_to] (по умолчанию — текущий месяц), отдельно по RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено (по умолчанию сегодня): оплачено — отметка с датой ≤ as_of, просрочено — срок < as_of и не оплачено к as_of.
+         * @description Суммы по периодам со сроком в интервале [due_from, due_to] (по умолчанию — текущий месяц), отдельно по RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено (по умолчанию сегодня): должно быть оплачено — срок ≤ as_of, оплачено — отметка с датой ≤ as_of, просрочено — срок < as_of и не оплачено к as_of.
          */
         get: operations["payments_summary_api_v1_payments_summary_get"];
         put?: never;
@@ -379,12 +379,20 @@ export interface components {
              * @example 85000.00
              */
             overdue: string;
+            /**
+             * Due
+             * @description Должно быть оплачено к дате as_of (срок ≤ as_of)
+             * @example 85000.00
+             */
+            due: string;
             /** Count Total */
             count_total: number;
             /** Count Paid */
             count_paid: number;
             /** Count Overdue */
             count_overdue: number;
+            /** Count Due */
+            count_due: number;
         };
         /**
          * DisplayStatus

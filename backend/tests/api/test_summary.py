@@ -59,6 +59,8 @@ def test_totals_are_separate_per_currency(
         "count_total": 2,
         "count_paid": 0,
         "count_overdue": 0,
+        "due": "0.00",
+        "count_due": 0,
     }
     assert (rows["USD"]["total"], rows["USD"]["overdue"], rows["USD"]["count_overdue"]) == ("49.90", "49.90", 1)
     assert (rows["EUR"]["total"], rows["EUR"]["paid"], rows["EUR"]["unpaid"], rows["EUR"]["count_paid"]) == (
@@ -98,3 +100,21 @@ def test_deleted_payment_excluded_by_default(client: TestClient, admin_headers: 
     assert by_currency(client.get(URL, headers=admin_headers).json())["USD"]["total"] == "0.00"
     with_history = client.get(URL, params={"include_deleted": True}, headers=admin_headers).json()
     assert by_currency(with_history)["USD"]["total"] == "49.90"
+
+
+def test_as_of_reports_due_paid_overdue(client: TestClient, admin_headers: dict[str, str]) -> None:
+    """X-04: на дату X — сколько должно было быть оплачено, оплачено, просрочено (по валютам)."""
+    rent = make(client, admin_headers, "Аренда", "100.00", "RUB", "2026-10-05")  # 05.10, 05.11
+    make(client, admin_headers, "Склад", "50.00", "RUB", "2026-10-20")
+    client.patch(
+        f"/api/v1/payment-occurrences/{first_occurrence(client, admin_headers, rent)}",
+        json={"status": "paid", "paid_at": "2026-10-04"},
+        headers=admin_headers,
+    )
+    params = {"due_from": "2026-01-01", "due_to": "2026-10-15", "as_of": "2026-10-15"}
+    rub = by_currency(client.get(URL, params=params, headers=admin_headers).json())["RUB"]
+    assert (rub["due"], rub["paid"], rub["overdue"], rub["count_due"]) == ("100.00", "100.00", "0.00", 1)
+
+    params = {"due_from": "2026-01-01", "due_to": "2026-10-22", "as_of": "2026-10-22"}
+    rub = by_currency(client.get(URL, params=params, headers=admin_headers).json())["RUB"]
+    assert (rub["due"], rub["paid"], rub["overdue"], rub["count_due"], rub["count_overdue"]) == ("150.00", "100.00", "50.00", 2, 1)

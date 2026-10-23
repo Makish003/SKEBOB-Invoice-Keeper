@@ -516,8 +516,8 @@ paths:
       - Итоги
       summary: Итоговые суммы по валютам
       description: 'Суммы по периодам со сроком в интервале [due_from, due_to] (по умолчанию — текущий месяц), отдельно по
-        RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено (по умолчанию сегодня): оплачено
-        — отметка с датой ≤ as_of, просрочено — срок < as_of и не оплачено к as_of.'
+        RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено (по умолчанию сегодня): должно
+        быть оплачено — срок ≤ as_of, оплачено — отметка с датой ≤ as_of, просрочено — срок < as_of и не оплачено к as_of.'
       operationId: payments_summary_api_v1_payments_summary_get
       security:
       - cookieAuth: []
@@ -1100,6 +1100,12 @@ components:
           description: Просрочено на дату as_of (срок прошёл, не оплачено)
           examples:
           - '85000.00'
+        due:
+          type: string
+          title: Due
+          description: Должно быть оплачено к дате as_of (срок ≤ as_of)
+          examples:
+          - '85000.00'
         count_total:
           type: integer
           title: Count Total
@@ -1109,6 +1115,9 @@ components:
         count_overdue:
           type: integer
           title: Count Overdue
+        count_due:
+          type: integer
+          title: Count Due
       type: object
       required:
       - currency
@@ -1116,9 +1125,11 @@ components:
       - paid
       - unpaid
       - overdue
+      - due
       - count_total
       - count_paid
       - count_overdue
+      - count_due
       title: CurrencySummary
     DisplayStatus:
       type: string
