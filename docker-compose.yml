@@ -58,5 +58,13 @@ services:
       backend:
         condition: service_healthy
 
+  # Бонус: SMTP-ловушка для email-напоминаний. docker compose --profile extras up -d → http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.21
+    profiles: [extras]
+    restart: unless-stopped
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+
 volumes:
   pgdata:

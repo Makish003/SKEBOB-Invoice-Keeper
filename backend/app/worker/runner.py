@@ -18,6 +18,7 @@ from app.models import Channel
 from app.services.delivery import deliver_pending, tick
 from app.services.notifiers.base import Notifier
 from app.services.notifiers.console import ConsoleNotifier
+from app.services.notifiers.email import EmailNotifier, recipients_from
 from app.services.notifiers.telegram import TelegramNotifier
 from app.services.notifiers.webhook import WebhookNotifier
 from app.worker.bot import build_dispatcher
@@ -49,6 +50,16 @@ async def run() -> None:
     if settings.webhook_url:
         notifiers[Channel.webhook] = WebhookNotifier(settings.webhook_url, settings.webhook_secret)
         log.info("Reminders → webhook %s", settings.webhook_url)
+    if settings.smtp_host and settings.email_to:
+        notifiers[Channel.email] = EmailNotifier(
+            settings.smtp_host,
+            settings.smtp_port,
+            settings.smtp_from,
+            recipients_from(settings.email_to),
+            settings.smtp_user,
+            settings.smtp_password,
+        )
+        log.info("Reminders → email via %s:%s", settings.smtp_host, settings.smtp_port)
 
     def run_tick() -> None:
         with sessions() as db:

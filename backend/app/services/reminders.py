@@ -19,10 +19,12 @@ from app.models import (
 
 
 def active_channels(settings: Settings) -> list[Channel]:
-    """Основной канал — Telegram, без токена — лог воркера (NFR-9); webhook — дополнительно, если задан URL."""
+    """Основной канал — Telegram, без токена — лог воркера (NFR-9); webhook и email — дополнительно, если настроены."""
     channels = [Channel.telegram if settings.telegram_enabled else Channel.console]
     if settings.webhook_url:
         channels.append(Channel.webhook)
+    if settings.smtp_host and settings.email_to:
+        channels.append(Channel.email)
     return channels
 
 
