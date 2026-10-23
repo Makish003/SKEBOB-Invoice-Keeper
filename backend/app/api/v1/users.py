@@ -50,7 +50,13 @@ def list_users(db: Session = Depends(get_db), admin: User = Depends(require_admi
     return UserList(items=[UserOut.model_validate(u) for u in users], total=len(users))
 
 
-@router.get("/{user_id}", response_model=UserOut, summary="Пользователь по id", responses=errors(401, 403, 404))
+@router.get(
+    "/{user_id}",
+    response_model=UserOut,
+    summary="Пользователь по id",
+    description="Активный пользователь; удалённые — 404.",
+    responses=errors(401, 403, 404),
+)
 def get_user(user_id: int, db: Session = Depends(get_db), admin: User = Depends(require_admin)) -> UserOut:
     return UserOut.model_validate(_active_user(db, user_id))
 

@@ -83,6 +83,7 @@ def list_recurring_payments(
     "/{payment_id}",
     response_model=RecurringPayment,
     summary="Регулярный платёж по id",
+    description="Платёж (в т.ч. прекращённый) и его ближайший период.",
     responses=errors(401, 404),
 )
 def get_recurring_payment(

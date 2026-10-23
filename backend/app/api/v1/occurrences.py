@@ -105,6 +105,7 @@ def list_occurrences(
     "/{occurrence_id}",
     response_model=Occurrence,
     summary="Конкретный период",
+    description="Период с вычисленными полями: просрочка, дней до срока, отображаемый статус.",
     responses=errors(401, 404),
 )
 def get_occurrence_by_id(

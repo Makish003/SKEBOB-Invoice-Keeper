@@ -31,7 +31,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Текущий пользователь */
+        /**
+         * Текущий пользователь
+         * @description Пользователь текущей сессии (cookie или Bearer) и его роль.
+         */
         get: operations["me_api_v1_auth_me_get"];
         put?: never;
         post?: never;
@@ -92,7 +95,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Регулярный платёж по id */
+        /**
+         * Регулярный платёж по id
+         * @description Платёж (в т.ч. прекращённый) и его ближайший период.
+         */
         get: operations["get_recurring_payment_api_v1_recurring_payments__payment_id__get"];
         put?: never;
         post?: never;
@@ -133,7 +139,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Конкретный период */
+        /**
+         * Конкретный период
+         * @description Период с вычисленными полями: просрочка, дней до срока, отображаемый статус.
+         */
         get: operations["get_occurrence_by_id_api_v1_payment_occurrences__occurrence_id__get"];
         put?: never;
         post?: never;
@@ -198,7 +207,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Пользователь по id */
+        /**
+         * Пользователь по id
+         * @description Активный пользователь; удалённые — 404.
+         */
         get: operations["get_user_api_v1_users__user_id__get"];
         put?: never;
         post?: never;
@@ -223,7 +235,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Параметры приложения для интерфейса */
+        /**
+         * Параметры приложения для интерфейса
+         * @description «Сегодня» в часовом поясе приложения и настройки напоминаний — чтобы интерфейс не зависел от часов браузера.
+         */
         get: operations["app_info_api_v1_app_info_get"];
         put?: never;
         post?: never;
@@ -240,7 +255,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Проверка работоспособности */
+        /**
+         * Проверка работоспособности
+         * @description Без авторизации; используется healthcheck контейнера.
+         */
         get: operations["health_api_v1_health_get"];
         put?: never;
         post?: never;

@@ -69,7 +69,13 @@ def login(
     return LoginOut(access_token=token, expires_at=expires_at, user=UserOut.model_validate(user))
 
 
-@router.get("/me", response_model=UserOut, summary="Текущий пользователь", responses=errors(401))
+@router.get(
+    "/me",
+    response_model=UserOut,
+    summary="Текущий пользователь",
+    description="Пользователь текущей сессии (cookie или Bearer) и его роль.",
+    responses=errors(401),
+)
 def me(user: User = Depends(current_user)) -> UserOut:
     return UserOut.model_validate(user)
 

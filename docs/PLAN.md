@@ -285,7 +285,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
   «Подписка Figma» 15.00 EUR (оплачена в прошлом периоде с опозданием, текущий — в будущем), «Домен invoice-keeper.ru» 1 990 RUB yearly; история за 2–3 прошлых периода с оплатами.
   DoD: после `docker compose up` в панели видны все статусы: оплачено, оплачено с опозданием, скоро, просрочено.
   ↳ done: B-12 · проверка: `pytest -q` → 174 passed (test_seed: все 6 display_status, три валюты, напоминание по аренде, идемпотентность); чистый запуск `WEB_PORT=8081 docker compose -p ik-fresh up -d --build` → 4× healthy, «Demo data created: 6 payments», воркер сразу отправил напоминания (Google Workspace — сегодня, Аренда офиса — через 2 дня); статусы: paid 9, paid_late 2, overdue 1, due_today 1, due_soon 1, upcoming 6
-- [ ] **B-13** OpenAPI финал: описания, примеры, теги на русском, security schemes (cookie + bearer), коды ошибок у каждой операции; `docs/openapi.yml` обновлён; `api-design-reviewer` прогнан, замечания закрыты.
+- [x] **B-13** OpenAPI финал: описания, примеры, теги на русском, security schemes (cookie + bearer), коды ошибок у каждой операции; `docs/openapi.yml` обновлён; `api-design-reviewer` прогнан, замечания закрыты.
+  ↳ done: B-13 · проверка: `export_openapi` + `pytest tests/test_openapi_up_to_date.py` → 2 passed; `api_linter.py docs/openapi.yml` → 90.7/100, 0 errors (было 90.0); фронтенд-типы перегенерированы, tsc OK
 
 ### Frontend
 - [x] **F-03** Логин: форма (rhf+zod), ошибки по `ux-writing`, редирект по роли; guard маршрутов (нет сессии → `/login`), обработка 401 глобально (сброс кэша → `/login`), выход.
@@ -355,8 +356,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | AC-12 Валюты | B-09, F-08 | `test_ac_12_summary.py` | 🟨 |
 | AC-13 Сохранение | B-03 | ручная Q-05 | ⬜ |
 | AC-14 Удаление | B-07, B-11 | `test_ac_14_delete.py` | 🟨 |
-| AC-15 Передача | B-04, B-13, D-01 | `test_openapi_up_to_date.py`, D-04 | ⬜ |
-| FR-26 Swagger | B-01, B-13 | `GET /api/v1/docs` → 200 | 🟨 |
+| AC-15 Передача | B-04, B-13, D-01 | `test_openapi_up_to_date.py`, D-04 | 🟨 |
+| FR-26 Swagger | B-01, B-13 | `GET /api/v1/docs` → 200 | ✅ |
 | Бонусы B1–B10 | X-01…X-10 | см. задачи | ⬜ |
 
 Легенда: ⬜ нет · 🟨 частично · ✅ зелёный (с доказательством в журнале).
@@ -394,6 +395,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 00:11 · SOLO · F-07 · Экран «Пользователи» (admin): таблица (имя, логин, роль, создан), системный админ с замком и без действий, диалог создания/изменения (rhf+zod, 409 → ошибка у поля логина, смена пароля с подсказкой о завершении сессий), удаление через ConfirmDialog. Баг: гонка редиректа после входа (user попадал на / вместо /payments) — пойман e2e, исправлен · F-07 · e2e 11 passed · —
 - 2026-10-24 00:16 · SOLO · B-11 · Worker: APScheduler (tick каждые 60 с, опрос очереди каждые 5 с, max_instances=1), конвейер claim FOR UPDATE SKIP LOCKED → перепроверка (оплачен/прекращён/срок прошёл/канал не настроен → cancelled) → send → sent | failed + backoff 30 с·2^n (≤ 1 ч), ≤ REMINDER_MAX_ATTEMPTS; ConsoleNotifier (лог), TelegramNotifier (aiogram, HTML); бот /start и /chatid (long polling, работает и без chat id); graceful shutdown · B-11 · 173 passed · —
 - 2026-10-24 00:21 · SOLO · B-12 · Seed (идемпотентный, при старте если SEED_DEMO_DATA=true и платежей нет; `python -m app.seed`): пользователи user/user12345 (Иван Петров), anna/anna12345; 6 платежей относительно «сегодня»: Аренда офиса 85 000 RUB (через 2 дня), Сервер Hetzner 49.90 USD (просрочен 10 дней), Подписка Figma 15 EUR (прошлый период оплачен с опозданием), Домен 1 990 RUB yearly, Google Workspace 36 USD (срок сегодня), Бухгалтерия 25 000 RUB; история оплат с именами. Фикс: счётчик постановки через RETURNING · B-12 · 174 passed · —
+- 2026-10-24 00:22 · SOLO · B-13 · OpenAPI финал: описание API (авторизация через cookie/Bearer, роли, форматы дат/денег/ошибок), описания тегов на русском, servers, contact, описания всех операций, коды ошибок у каждой операции (единый ErrorResponse), примеры полей; api-design-reviewer прогнан · B-13 · линтер 90.7, 0 errors · ADR-018 (snake_case контракта, нерелевантные эвристики скоркарда)
 
 ## 10. Эскалации и блокеры
 

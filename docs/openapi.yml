@@ -1,8 +1,35 @@
 openapi: 3.1.0
 info:
   title: Invoice Keeper API
-  description: 'Напоминания о регулярных платежах: регулярные платежи, периоды, оплаты, итоги, пользователи.'
+  description: '
+
+    Напоминания о регулярных платежах: регулярные платежи, их периоды и отметки оплаты, итоги по валютам, пользователи.
+
+
+    **Авторизация.** `POST /api/v1/auth/login` ставит httpOnly-cookie `ik_session` (её использует веб-панель и этот Swagger
+
+    после входа через «Try it out») и возвращает `access_token`: его можно вставить в **Authorize → bearerAuth**.
+
+    Без сессии все эндпоинты, кроме входа и документации, отвечают `401`.
+
+
+    **Роли.** Администратор (задаётся в `.env`) управляет регулярными платежами и пользователями; пользователь видит все
+
+    платежи и отмечает оплату. Права проверяются на сервере: действия администратора от пользователя — `403`.
+
+
+    **Форматы.** Даты — `YYYY-MM-DD`, «сегодня» — в часовом поясе `APP_TIMEZONE`. Деньги — строки с двумя знаками
+
+    (`"85000.00"`), валюты RUB, USD, EUR без конвертации. Ошибки — `{"error": {"code", "message", "details"}}`.
+
+    '
+  contact:
+    name: Команда SKEBOB
+    url: https://github.com/Makish003/SKEBOB-Invoice-Keeper
   version: 1.0.0
+servers:
+- url: /
+  description: Текущий хост (веб-панель на :8080 проксирует /api)
 paths:
   /api/v1/auth/login:
     post:
@@ -48,6 +75,7 @@ paths:
       tags:
       - Авторизация
       summary: Текущий пользователь
+      description: Пользователь текущей сессии (cookie или Bearer) и его роль.
       operationId: me_api_v1_auth_me_get
       responses:
         '200':
@@ -169,6 +197,7 @@ paths:
       tags:
       - Регулярные платежи
       summary: Регулярный платёж по id
+      description: Платёж (в т.ч. прекращённый) и его ближайший период.
       operationId: get_recurring_payment_api_v1_recurring_payments__payment_id__get
       security:
       - cookieAuth: []
@@ -395,6 +424,7 @@ paths:
       tags:
       - Периоды оплаты
       summary: Конкретный период
+      description: 'Период с вычисленными полями: просрочка, дней до срока, отображаемый статус.'
       operationId: get_occurrence_by_id_api_v1_payment_occurrences__occurrence_id__get
       security:
       - cookieAuth: []
@@ -634,6 +664,7 @@ paths:
       tags:
       - Пользователи
       summary: Пользователь по id
+      description: Активный пользователь; удалённые — 404.
       operationId: get_user_api_v1_users__user_id__get
       security:
       - cookieAuth: []
@@ -785,6 +816,7 @@ paths:
       tags:
       - Служебное
       summary: Параметры приложения для интерфейса
+      description: «Сегодня» в часовом поясе приложения и настройки напоминаний — чтобы интерфейс не зависел от часов браузера.
       operationId: app_info_api_v1_app_info_get
       responses:
         '200':
@@ -807,6 +839,7 @@ paths:
       tags:
       - Служебное
       summary: Проверка работоспособности
+      description: Без авторизации; используется healthcheck контейнера.
       operationId: health_api_v1_health_get
       responses:
         '200':
@@ -1489,3 +1522,16 @@ components:
       type: http
       description: '`access_token` из ответа `POST /auth/login`'
       scheme: bearer
+tags:
+- name: Авторизация
+  description: Вход, текущий пользователь, выход (завершение текущей сессии).
+- name: Регулярные платежи
+  description: Шаблоны повторяющихся расходов. Создание и прекращение — администратор.
+- name: Периоды оплаты
+  description: Конкретные периоды со своим сроком и отметкой оплаты. Отмечать могут все.
+- name: Итоги
+  description: Суммы по валютам отдельно, без конвертации.
+- name: Пользователи
+  description: Управление обычными пользователями — только администратор.
+- name: Служебное
+  description: Проверка работоспособности и параметры для интерфейса.

@@ -25,6 +25,7 @@ class AppInfo(BaseModel):
     "/app-info",
     response_model=AppInfo,
     summary="Параметры приложения для интерфейса",
+    description="«Сегодня» в часовом поясе приложения и настройки напоминаний — чтобы интерфейс не зависел от часов браузера.",
     responses=errors(401),
 )
 def app_info(clock: Clock = Depends(get_clock), user: User = Depends(current_user)) -> AppInfo:
