@@ -373,7 +373,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | AC-14 Удаление | B-07, B-11 | test_ac_14_delete.py, test_reminder_pipeline.py | ✅ |
 | AC-15 Передача | B-04, B-13, D-01 | код, README, .env.example без секретов, seed, docs/openapi.yml + test_openapi_up_to_date.py | ✅ |
 | FR-26 Swagger | B-01, B-13 | `GET /api/v1/docs` → 200 | ✅ |
-| Бонусы B1–B10 | X-01…X-10 | см. задачи | ⬜ |
+| Бонусы B1–B10 | X-01…X-10 | B2–B10 ✅ (тесты + живые проверки: webhook-приёмник, письма в mailpit, лог просрочки); B1 — код и тесты есть, живой клик ждёт ESC-1 | 🟨 |
 
 Легенда: ⬜ нет · 🟨 частично · ✅ зелёный (с доказательством в журнале).
 
@@ -427,6 +427,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 02:21 · SOLO · X-08 · Чек к оплате: receipt_url в PATCH (только http/https), POST/GET/DELETE /payment-occurrences/{id}/receipt (PDF/PNG/JPG ≤ 5 МБ, тип по сигнатуре, имя файла в томе — uuid, inline + nosniff, аудит receipt_uploaded/deleted/link_changed), том uploads в compose; UI — кнопка «Чек» у периода (подсвечена, если прикреплён): ссылка, загрузка/замена/удаление файла · X-08 · 246 passed + e2e · у жюри том создаётся с владельцем app из образа
 - 2026-10-24 02:29 · SOLO · X-09 · Бюджет: таблица budgets (год + месяц|NULL=год + валюта, уникальный индекс с coalesce), GET /budgets/overview (бюджет vs сумма периодов со сроком в месяце/году vs оплачено, по RUB/USD/EUR), PUT /budgets (admin, upsert/удаление, аудит); на сводке карточка «Бюджет» с прогрессом и превышением, диалог правки для админа · X-09 · pytest + e2e · —
 - 2026-10-24 02:37 · SOLO · X-10 · Напоминание о просрочке (kind=overdue): раз в день до оплаты, ≤ OVERDUE_REMINDER_MAX (3, 0 — выкл.), во всех каналах (Telegram с кнопкой «Оплачено», лог, webhook event payment.overdue, email); уникальный ключ расширен remind_on (миграция 0004 с бэкфиллом) · X-10 · 261 passed + живой лог · ADR-019
+- 2026-10-24 02:37 · SOLO · M3 · **M3 достигнут (с оговоркой)**: бонусы X-02…X-10 готовы и проверены, X-01 — код и тесты, живой клик ждёт ESC-1. M2 не сломан: `pytest` → 261 passed, Playwright → 18 passed, smoke OK, AC-1…AC-15 по-прежнему ✅. Дальше: D-01…D-06 (README бонусов, DEMO.md, финальные ревью, чистый прогон) · — · — · —
 
 ## 10. Эскалации и блокеры
 
