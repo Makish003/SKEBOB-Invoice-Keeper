@@ -3,6 +3,7 @@ import { createBrowserRouter, type RouteObject } from 'react-router'
 import { AuditPage } from '@/features/audit/AuditPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAdmin, RequireAuth } from '@/features/auth/guards'
+import { CalendarPage } from '@/features/calendar/CalendarPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { PaymentsPage } from '@/features/occurrences/PaymentsPage'
 import { RecurringPage } from '@/features/recurring/RecurringPage'
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'payments', element: <PaymentsPage /> },
+          { path: 'calendar', element: <CalendarPage /> },
           {
             element: <RequireAdmin />,
             children: [
