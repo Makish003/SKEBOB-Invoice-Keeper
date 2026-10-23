@@ -246,8 +246,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [x] **B-03** (BACK) `docker-compose.yml`: `db` (postgres:16-alpine, healthcheck, volume `pgdata`), `backend` (entrypoint: wait db → `alembic upgrade head` → sync admin → seed если `SEED_DEMO_DATA=true` и БД пуста → uvicorn), `worker`, `web`; `mailpit` в `profiles: [extras]`. `.env.example` (см. §11).
   DoD: `docker compose up -d --build` → все сервисы `healthy`.
   ↳ done: B-03 · проверка: `docker compose up -d --build` → db/backend/worker `(healthy)`; в `users` создан admin (argon2id, is_system=t). Сервис `web` добавляется в F-01 (нужен frontend/), `mailpit` — в X-07
-- [ ] **B-04** (BACK) **Контракт-first:** Pydantic-схемы и пустые роутеры ВСЕХ эндпоинтов FR-25 (возвращают `501`), `app/scripts/export_openapi.py` → `docs/openapi.yml`. Тест `test_openapi_up_to_date` падает, если файл устарел.
+- [x] **B-04** (BACK) **Контракт-first:** Pydantic-схемы и пустые роутеры ВСЕХ эндпоинтов FR-25 (возвращают `501`), `app/scripts/export_openapi.py` → `docs/openapi.yml`. Тест `test_openapi_up_to_date` падает, если файл устарел.
   DoD: `docs/openapi.yml` закоммичен; FRONT может генерировать типы. **Сообщить FRONT в журнале.**
+  ↳ done: B-04 · проверка: `pytest tests/test_openapi_up_to_date.py` → 2 passed; в spec 17 операций, securitySchemes cookieAuth|bearerAuth (OR)
 - [ ] **F-01** (FRONT) `frontend/`: Vite + React 19 + TS strict + Tailwind v4 + shadcn/ui init, роутинг, TanStack Query, `openapi-typescript` → `src/api/schema.d.ts`, `openapi-fetch` клиент с `credentials: "include"`. Dockerfile (node build → nginx), `nginx.conf` (SPA fallback + proxy `/api` → `backend:8000`).
   DoD: `npm run build` без ошибок; `http://localhost:8080` открывает заглушку через compose.
 - [ ] **F-02** (FRONT) Визуальная система: `design-doctrine` + `apply-aesthetic` → токены (CSS variables), светлая/тёмная тема, типографика (Inter/Manrope с кириллицей), `src/lib/motion.ts` (пресеты: `fadeUp`, `stagger`, `spring {stiffness: 380, damping: 30}`; `useReducedMotion`). Записать выбранное направление в `DECISIONS.md`.
@@ -357,6 +358,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 22:48 · SOLO · B-01 · FastAPI-скелет: config (pydantic-settings), Clock, единый формат ошибок, health, Swagger /api/v1/docs, export_openapi · B-01 · curl health → {"status":"ok"}, docs 200, 404 → {"error":{"code":"not_found",…}} · uv.lock сгенерирован в контейнере (uv локально нет)
 - 2026-10-23 22:50 · SOLO · B-02 · Модели §1.1 (6 таблиц, 7 enum, CHECK paid_at↔status, UNIQUE(payment,seq)/(payment,due_date)/(occurrence,channel,kind), частичный UNIQUE логина среди не удалённых) + 0001_initial · B-02 · upgrade→check→downgrade→upgrade OK на postgres:16-alpine · логин уникален только среди активных — см. ADR-014
 - 2026-10-23 22:52 · SOLO · B-03 · docker-compose.yml (db+backend+worker, healthchecks, volume pgdata, env_file .env необязателен — дефолты в Settings), entrypoint serve|worker|bootstrap (wait db → alembic → sync admin), .env.example без секретов, compose.dev.yml для разработки · B-03 · `docker compose ps` → 3× healthy · DATABASE_URL по умолчанию собирается из POSTGRES_* — нельзя рассинхронизировать пароль БД
+- 2026-10-23 22:55 · SOLO · B-04 · Контракт-first: Pydantic-схемы (деньги — строка, единый ErrorResponse), роутеры всех эндпоинтов FR-25 (+ GET /recurring-payments/{id}, GET /users/{id} по FR-27) с 501, зависимости current_user/require_admin, docs/openapi.yml экспортирован · B-04 · test_openapi_up_to_date 2 passed · FRONT: docs/openapi.yml готов для openapi-typescript
 
 ## 10. Эскалации и блокеры
 

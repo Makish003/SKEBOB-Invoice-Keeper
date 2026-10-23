@@ -4,6 +4,768 @@ info:
   description: 'Напоминания о регулярных платежах: регулярные платежи, периоды, оплаты, итоги, пользователи.'
   version: 1.0.0
 paths:
+  /api/v1/auth/login:
+    post:
+      tags:
+      - Авторизация
+      summary: Вход по логину и паролю
+      description: 'Создаёт сессию: ставит httpOnly-cookie `ik_session` и возвращает `access_token` для Bearer.'
+      operationId: login_api_v1_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginIn'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginOut'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Слишком много попыток входа
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/me:
+    get:
+      tags:
+      - Авторизация
+      summary: Текущий пользователь
+      operationId: me_api_v1_auth_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+  /api/v1/auth/logout:
+    post:
+      tags:
+      - Авторизация
+      summary: Завершение текущей сессии
+      description: 'Отзывает текущую сессию: её токен и cookie больше не действуют.'
+      operationId: logout_api_v1_auth_logout_post
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+  /api/v1/recurring-payments:
+    get:
+      tags:
+      - Регулярные платежи
+      summary: Список регулярных платежей
+      operationId: list_recurring_payments_api_v1_recurring_payments_get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Включить прекращённые (удалённые) платежи
+          default: false
+          title: Include Deleted
+        description: Включить прекращённые (удалённые) платежи
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringPaymentList'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+      - Регулярные платежи
+      summary: Создание регулярного платежа
+      description: Создаёт платёж и его периоды. Если срок ближайшего периода не дальше чем через REMINDER_DAYS_BEFORE дней,
+        напоминание ставится в очередь сразу (FR-19).
+      operationId: create_recurring_payment_api_v1_recurring_payments_post
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringPaymentCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringPayment'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/recurring-payments/{payment_id}:
+    get:
+      tags:
+      - Регулярные платежи
+      summary: Регулярный платёж по id
+      operationId: get_recurring_payment_api_v1_recurring_payments__payment_id__get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Payment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringPayment'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Регулярные платежи
+      summary: Прекращение регулярного платежа
+      description: 'Мягкое удаление с сохранением истории: прошлые периоды и оплаты остаются, будущие неоплаченные периоды
+        удаляются, новые периоды и напоминания не создаются. Повторное удаление → 404.'
+      operationId: delete_recurring_payment_api_v1_recurring_payments__payment_id__delete
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Payment Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/payment-occurrences:
+    get:
+      tags:
+      - Периоды оплаты
+      summary: Список периодов (платежей)
+      description: Все периоды, в т.ч. оплаченные и просроченные. Фильтры комбинируются через И.
+      operationId: list_occurrences_api_v1_payment_occurrences_get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/OccurrenceStatus'
+          - type: 'null'
+          description: Статус оплаты
+          title: Status
+        description: Статус оплаты
+      - name: overdue
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          description: true — только просроченные, false — без просрочки
+          title: Overdue
+        description: true — только просроченные, false — без просрочки
+      - name: currency
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/Currency'
+          - type: 'null'
+          title: Currency
+      - name: recurring_payment_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Recurring Payment Id
+      - name: due_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          description: Срок не раньше (включительно)
+          title: Due From
+        description: Срок не раньше (включительно)
+      - name: due_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          description: Срок не позже (включительно)
+          title: Due To
+        description: Срок не позже (включительно)
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          description: Поиск по названию
+          title: Q
+        description: Поиск по названию
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Включить периоды прекращённых платежей (история)
+          default: false
+          title: Include Deleted
+        description: Включить периоды прекращённых платежей (история)
+      - name: sort
+        in: query
+        required: false
+        schema:
+          enum:
+          - due_date
+          - -due_date
+          - amount
+          - -amount
+          - name
+          - -name
+          type: string
+          default: due_date
+          title: Sort
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OccurrenceList'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/payment-occurrences/{occurrence_id}:
+    get:
+      tags:
+      - Периоды оплаты
+      summary: Конкретный период
+      operationId: get_occurrence_api_v1_payment_occurrences__occurrence_id__get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Occurrence Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Occurrence'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Периоды оплаты
+      summary: Подтверждение/отмена оплаты, исправление фактической даты
+      description: Доступно всем авторизованным (FR-14). `status=paid` без `paid_at` → сегодня; `status=unpaid` очищает `paid_at`;
+        `paid_at` без `status` — исправление даты оплаченного периода; дата в будущем → 422. Срок периода (`due_date`) не
+        меняется, просрочка пересчитывается.
+      operationId: patch_occurrence_api_v1_payment_occurrences__occurrence_id__patch
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: occurrence_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Occurrence Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OccurrencePatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Occurrence'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/payments/summary:
+    get:
+      tags:
+      - Итоги
+      summary: Итоговые суммы по валютам
+      description: Суммы по периодам со сроком в интервале [due_from, due_to] (по умолчанию — текущий месяц), отдельно по
+        RUB, USD, EUR, без конвертации. `as_of` — дата, на которую считаются оплачено/просрочено (по умолчанию сегодня).
+      operationId: payments_summary_api_v1_payments_summary_get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: due_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Due From
+      - name: due_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Due To
+      - name: as_of
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: As Of
+      - name: include_deleted
+        in: query
+        required: false
+        schema:
+          type: boolean
+          description: Учитывать периоды прекращённых платежей
+          default: false
+          title: Include Deleted
+        description: Учитывать периоды прекращённых платежей
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Summary'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/users:
+    get:
+      tags:
+      - Пользователи
+      summary: Список пользователей
+      operationId: list_users_api_v1_users_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserList'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+    post:
+      tags:
+      - Пользователи
+      summary: Создание обычного пользователя
+      description: Всегда создаёт роль `user`. Администратор задаётся только в .env.
+      operationId: create_user_api_v1_users_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Конфликт (например, логин занят)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+  /api/v1/users/{user_id}:
+    get:
+      tags:
+      - Пользователи
+      summary: Пользователь по id
+      operationId: get_user_api_v1_users__user_id__get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Пользователи
+      summary: Изменение пользователя
+      description: Логин, имя, пароль обычного пользователя. Администратор из .env не изменяется → 403.
+      operationId: update_user_api_v1_users__user_id__patch
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserOut'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Конфликт (например, логин занят)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+      - Пользователи
+      summary: Удаление пользователя
+      description: 'Мягкое удаление: сессии завершаются, отметки оплат в истории сохраняются. Администратор → 403.'
+      operationId: delete_user_api_v1_users__user_id__delete
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: User Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/health:
     get:
       tags:
@@ -19,6 +781,111 @@ paths:
                 $ref: '#/components/schemas/Health'
 components:
   schemas:
+    Currency:
+      type: string
+      enum:
+      - RUB
+      - USD
+      - EUR
+      title: Currency
+    CurrencySummary:
+      properties:
+        currency:
+          $ref: '#/components/schemas/Currency'
+        total:
+          type: string
+          title: Total
+          description: Сумма всех периодов со сроком в выбранном интервале
+          examples:
+          - '85000.00'
+        paid:
+          type: string
+          title: Paid
+          description: Оплачено на дату as_of
+          examples:
+          - '85000.00'
+        unpaid:
+          type: string
+          title: Unpaid
+          description: Не оплачено на дату as_of
+          examples:
+          - '85000.00'
+        overdue:
+          type: string
+          title: Overdue
+          description: Просрочено на дату as_of (срок прошёл, не оплачено)
+          examples:
+          - '85000.00'
+        count_total:
+          type: integer
+          title: Count Total
+        count_paid:
+          type: integer
+          title: Count Paid
+        count_overdue:
+          type: integer
+          title: Count Overdue
+      type: object
+      required:
+      - currency
+      - total
+      - paid
+      - unpaid
+      - overdue
+      - count_total
+      - count_paid
+      - count_overdue
+      title: CurrencySummary
+    DisplayStatus:
+      type: string
+      enum:
+      - paid
+      - paid_late
+      - upcoming
+      - due_soon
+      - due_today
+      - overdue
+      title: DisplayStatus
+      description: Статус для отображения (вычисляется от «сегодня», ADR-006).
+    ErrorBody:
+      properties:
+        code:
+          type: string
+          title: Code
+          examples:
+          - forbidden
+        message:
+          type: string
+          title: Message
+          examples:
+          - Недостаточно прав для этого действия
+        details:
+          anyOf:
+          - {}
+          - type: 'null'
+          title: Details
+      type: object
+      required:
+      - code
+      - message
+      title: ErrorBody
+    ErrorResponse:
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+      type: object
+      required:
+      - error
+      title: ErrorResponse
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
     Health:
       properties:
         status:
@@ -28,3 +895,532 @@ components:
       required:
       - status
       title: Health
+    LoginIn:
+      properties:
+        login:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Login
+          examples:
+          - admin
+        password:
+          type: string
+          maxLength: 128
+          minLength: 1
+          title: Password
+          examples:
+          - admin12345
+      type: object
+      required:
+      - login
+      - password
+      title: LoginIn
+    LoginOut:
+      properties:
+        access_token:
+          type: string
+          title: Access Token
+          description: 'Токен сессии: заголовок `Authorization: Bearer <token>` (Swagger → Authorize)'
+        token_type:
+          type: string
+          const: bearer
+          title: Token Type
+          default: bearer
+        expires_at:
+          type: string
+          format: date-time
+          title: Expires At
+        user:
+          $ref: '#/components/schemas/UserOut'
+      type: object
+      required:
+      - access_token
+      - expires_at
+      - user
+      title: LoginOut
+    Occurrence:
+      properties:
+        id:
+          type: integer
+          title: Id
+        recurring_payment:
+          $ref: '#/components/schemas/RecurringPaymentRef'
+        seq:
+          type: integer
+          title: Seq
+          description: 'Номер периода: 0 — первый'
+        due_date:
+          type: string
+          format: date
+          title: Due Date
+        amount:
+          type: string
+          title: Amount
+          examples:
+          - '85000.00'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        status:
+          $ref: '#/components/schemas/OccurrenceStatus'
+        paid_at:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Paid At
+        paid_by_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Paid By Label
+          description: Кто отметил оплату (снимок имени)
+        note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Note
+        is_overdue:
+          type: boolean
+          title: Is Overdue
+          description: Не оплачен и сегодня > срока, либо оплачен позже срока
+        overdue_days:
+          type: integer
+          title: Overdue Days
+          description: Дней просрочки (0, если нет)
+        days_until_due:
+          type: integer
+          title: Days Until Due
+          description: Дней до срока (отрицательно — срок прошёл)
+        display_status:
+          $ref: '#/components/schemas/DisplayStatus'
+        reminder_sent_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reminder Sent At
+          description: Когда отправлено напоминание
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - recurring_payment
+      - seq
+      - due_date
+      - amount
+      - currency
+      - status
+      - paid_at
+      - paid_by_label
+      - note
+      - is_overdue
+      - overdue_days
+      - days_until_due
+      - display_status
+      - reminder_sent_at
+      - updated_at
+      title: Occurrence
+      description: 'Период регулярного платежа: собственный срок и собственная отметка оплаты (FR-5).'
+    OccurrenceList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Occurrence'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: OccurrenceList
+    OccurrencePatch:
+      properties:
+        status:
+          anyOf:
+          - $ref: '#/components/schemas/OccurrenceStatus'
+          - type: 'null'
+        paid_at:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Paid At
+        note:
+          anyOf:
+          - type: string
+            maxLength: 500
+          - type: 'null'
+          title: Note
+      additionalProperties: false
+      type: object
+      title: OccurrencePatch
+      description: 'Подтверждение/отмена оплаты, исправление фактической даты.
+
+
+        - `status=paid` без `paid_at` → `paid_at` = сегодня;
+
+        - `status=unpaid` → `paid_at` очищается (передавать `paid_at` нельзя);
+
+        - `paid_at` без `status` — только для оплаченного периода (исправление даты);
+
+        - `paid_at` в будущем → 422.'
+    OccurrenceStatus:
+      type: string
+      enum:
+      - unpaid
+      - paid
+      title: OccurrenceStatus
+    Period:
+      type: string
+      enum:
+      - monthly
+      - weekly
+      - quarterly
+      - yearly
+      title: Period
+    RecurringPayment:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        amount:
+          type: string
+          title: Amount
+          examples:
+          - '85000.00'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        period:
+          $ref: '#/components/schemas/Period'
+        first_due_date:
+          type: string
+          format: date
+          title: First Due Date
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        is_active:
+          type: boolean
+          title: Is Active
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        deleted_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Deleted At
+        next_occurrence:
+          anyOf:
+          - $ref: '#/components/schemas/Occurrence'
+          - type: 'null'
+          description: Ближайший период со сроком сегодня или позже
+      type: object
+      required:
+      - id
+      - name
+      - amount
+      - currency
+      - period
+      - first_due_date
+      - description
+      - is_active
+      - created_at
+      - deleted_at
+      - next_occurrence
+      title: RecurringPayment
+    RecurringPaymentCreate:
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          minLength: 1
+          title: Name
+          examples:
+          - Аренда офиса
+        amount:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*(?:\d{0,12}|(?=[\d.]{1,15}0*$)\d{0,12}\.\d{0,2}0*$)
+          title: Amount
+          description: Строка или число, не более 2 знаков после запятой
+          examples:
+          - '85000.00'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        first_due_date:
+          type: string
+          format: date
+          title: First Due Date
+          description: Дата ближайшей оплаты (YYYY-MM-DD)
+          examples:
+          - '2026-10-26'
+        period:
+          $ref: '#/components/schemas/Period'
+          default: monthly
+        description:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Description
+      additionalProperties: false
+      type: object
+      required:
+      - name
+      - amount
+      - currency
+      - first_due_date
+      title: RecurringPaymentCreate
+    RecurringPaymentList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/RecurringPayment'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: RecurringPaymentList
+    RecurringPaymentRef:
+      properties:
+        id:
+          type: integer
+          title: Id
+        name:
+          type: string
+          title: Name
+        period:
+          $ref: '#/components/schemas/Period'
+        is_active:
+          type: boolean
+          title: Is Active
+      type: object
+      required:
+      - id
+      - name
+      - period
+      - is_active
+      title: RecurringPaymentRef
+    Role:
+      type: string
+      enum:
+      - admin
+      - user
+      title: Role
+    Summary:
+      properties:
+        period:
+          $ref: '#/components/schemas/SummaryPeriod'
+        as_of:
+          type: string
+          format: date
+          title: As Of
+        currencies:
+          items:
+            $ref: '#/components/schemas/CurrencySummary'
+          type: array
+          title: Currencies
+          description: 'Всегда три валюты: RUB, USD, EUR — без конвертации'
+      type: object
+      required:
+      - period
+      - as_of
+      - currencies
+      title: Summary
+    SummaryPeriod:
+      properties:
+        from:
+          type: string
+          format: date
+          title: From
+        to:
+          type: string
+          format: date
+          title: To
+      type: object
+      required:
+      - from
+      - to
+      title: SummaryPeriod
+    UserCreate:
+      properties:
+        login:
+          type: string
+          maxLength: 64
+          minLength: 3
+          pattern: ^[A-Za-z0-9._-]+$
+          title: Login
+          description: Латиница, цифры, точка, дефис, подчёркивание; 3–64 символа
+          examples:
+          - ivan
+        password:
+          type: string
+          maxLength: 128
+          minLength: 8
+          title: Password
+          examples:
+          - secret-pass
+        display_name:
+          anyOf:
+          - type: string
+            maxLength: 120
+            minLength: 1
+            examples:
+            - Иван Петров
+          - type: 'null'
+          title: Display Name
+          description: По умолчанию равно логину
+        role:
+          anyOf:
+          - $ref: '#/components/schemas/Role'
+          - type: 'null'
+          description: Только `user`. Администратор задаётся в .env, `admin` → 403
+      additionalProperties: false
+      type: object
+      required:
+      - login
+      - password
+      title: UserCreate
+    UserList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/UserOut'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: UserList
+    UserOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        login:
+          type: string
+          title: Login
+        display_name:
+          type: string
+          title: Display Name
+        role:
+          $ref: '#/components/schemas/Role'
+        is_system:
+          type: boolean
+          title: Is System
+          description: 'Администратор из .env: не изменяется и не удаляется через API'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - login
+      - display_name
+      - role
+      - is_system
+      - created_at
+      title: UserOut
+    UserUpdate:
+      properties:
+        login:
+          anyOf:
+          - type: string
+            maxLength: 64
+            minLength: 3
+            pattern: ^[A-Za-z0-9._-]+$
+            description: Латиница, цифры, точка, дефис, подчёркивание; 3–64 символа
+            examples:
+            - ivan
+          - type: 'null'
+          title: Login
+        password:
+          anyOf:
+          - type: string
+            maxLength: 128
+            minLength: 8
+            examples:
+            - secret-pass
+          - type: 'null'
+          title: Password
+          description: Новый пароль; сессии пользователя завершаются
+        display_name:
+          anyOf:
+          - type: string
+            maxLength: 120
+            minLength: 1
+            examples:
+            - Иван Петров
+          - type: 'null'
+          title: Display Name
+        role:
+          anyOf:
+          - $ref: '#/components/schemas/Role'
+          - type: 'null'
+          description: Повысить до `admin` нельзя → 403
+      additionalProperties: false
+      type: object
+      title: UserUpdate
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      description: httpOnly-cookie сессии, ставится `POST /auth/login` (используется веб-панелью)
+      in: cookie
+      name: ik_session
+    bearerAuth:
+      type: http
+      description: '`access_token` из ответа `POST /auth/login`'
+      scheme: bearer
