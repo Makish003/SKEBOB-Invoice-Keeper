@@ -19,8 +19,11 @@ from app.models import (
 
 
 def active_channels(settings: Settings) -> list[Channel]:
-    """Без Telegram-токена напоминания уходят в лог воркера (NFR-9)."""
-    return [Channel.telegram if settings.telegram_enabled else Channel.console]
+    """Основной канал — Telegram, без токена — лог воркера (NFR-9); webhook — дополнительно, если задан URL."""
+    channels = [Channel.telegram if settings.telegram_enabled else Channel.console]
+    if settings.webhook_url:
+        channels.append(Channel.webhook)
+    return channels
 
 
 def enqueue_due(

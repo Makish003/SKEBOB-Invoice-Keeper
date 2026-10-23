@@ -38,10 +38,12 @@ def tick(db: Session, today: date, settings: Settings) -> int:
     return queued
 
 
-def _claim(db: Session, now: datetime, max_attempts: int) -> Reminder | None:
+def _claim(db: Session, now: datetime, max_attempts: int, channels: list[Channel]) -> Reminder | None:
+    """Забирает только каналы, которые этот воркер умеет отправлять: чужие остаются в очереди."""
     return db.scalar(
         select(Reminder)
         .where(
+            Reminder.channel.in_(channels),
             or_(Reminder.status == ReminderStatus.pending, Reminder.status == ReminderStatus.failed),
             Reminder.next_attempt_at <= now,
             Reminder.attempts < max_attempts,
@@ -74,23 +76,20 @@ async def deliver_pending(
     sent = 0
     for _ in range(MAX_PER_RUN):
         with session_factory() as db:
-            reminder = _claim(db, now, settings.reminder_max_attempts)
+            reminder = _claim(db, now, settings.reminder_max_attempts, list(notifiers))
             if reminder is None:
                 return sent
             occ = reminder.occurrence
             payment = db.get(RecurringPayment, occ.recurring_payment_id)
             assert payment is not None
             reason = _cancel_reason(occ, payment, today)
-            notifier = notifiers.get(reminder.channel)
-            if reason is None and notifier is None:
-                reason = f"канал {reminder.channel.value} не настроен"
+            notifier = notifiers[reminder.channel]
             if reason is not None:
                 reminder.status, reminder.last_error = ReminderStatus.cancelled, reason
                 db.commit()
                 log.info("Reminder #%s cancelled: %s", reminder.id, reason)
                 continue
 
-            assert notifier is not None
             message = ReminderMessage(
                 reminder_id=reminder.id,
                 occurrence_id=occ.id,

@@ -196,3 +196,17 @@ def test_message_text_contains_required_fields() -> None:
     assert "Аренда &lt;офиса&gt;" in text  # HTML экранирован
     assert "85 000,00 RUB" in text
     assert "26.10.2026" in text and "через 3 дня" in text
+
+
+def test_worker_leaves_channels_it_cannot_send(
+    client: TestClient, db: Session, clock: FrozenClock, admin_headers: dict[str, str]
+) -> None:
+    """Воркер без webhook-нотифаера не трогает webhook-напоминания (их отправит воркер, у которого он есть)."""
+    create(client, admin_headers, "2026-10-24")
+    occ_id = db.scalar(select(Reminder.occurrence_id))
+    db.add(Reminder(occurrence_id=occ_id, channel=Channel.webhook))
+    db.commit()
+    deliver(clock, FakeNotifier())  # только console
+    db.expire_all()
+    rows = {r.channel.value: r.status.value for r in db.scalars(select(Reminder))}
+    assert rows == {"console": "sent", "webhook": "pending"}

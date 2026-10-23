@@ -19,6 +19,7 @@ from app.services.delivery import deliver_pending, tick
 from app.services.notifiers.base import Notifier
 from app.services.notifiers.console import ConsoleNotifier
 from app.services.notifiers.telegram import TelegramNotifier
+from app.services.notifiers.webhook import WebhookNotifier
 from app.worker.bot import build_dispatcher
 
 log = logging.getLogger("app.worker")
@@ -45,6 +46,9 @@ async def run() -> None:
         log.warning("TELEGRAM_CHAT_ID пуст: напоминания пишутся в лог. Отправьте боту /chatid в нужном чате")
     else:
         log.info("TELEGRAM_BOT_TOKEN не задан: напоминания пишутся в лог воркера (console)")
+    if settings.webhook_url:
+        notifiers[Channel.webhook] = WebhookNotifier(settings.webhook_url, settings.webhook_secret)
+        log.info("Reminders → webhook %s", settings.webhook_url)
 
     def run_tick() -> None:
         with sessions() as db:
