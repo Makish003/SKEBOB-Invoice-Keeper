@@ -311,11 +311,13 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
   ↳ done: Q-01 · проверка: `docker compose -f docker-compose.yml -f compose.dev.yml run --rm --no-deps backend pytest -q --cov=app` → 208 passed, покрытие app 95%, app/domain 100%; tests/acceptance: 34 passed (AC-2…AC-12, AC-14; AC-13 — ручная Q-05)
 - [x] **Q-02** (FRONT) Playwright `e2e/demo.spec.ts` = сценарий со с.15: войти admin → добавить платёж со сроком через 1 день → (проверить `reminders` через API/лог console-notifier) → войти user → отметить оплату → показать просроченный → исправить дату → просрочка исчезла → показать следующий период с отдельным статусом.
   ↳ done: Q-02 · проверка: `cd frontend && npx playwright test` против `docker compose` (:8080) → 12 passed; demo.spec: вход admin → создание платежа со сроком завтра через UI → `reminder_sent_at` выставлен воркером ≤ 30 с (console) → вход user → отметка оплаты → просроченный (−4 дня) → «Оплачен с опозданием» → исправление даты на срок → «Оплачен» → Период 2 того же платежа «Ожидает»
-- [ ] **Q-03** (BACK) Реальный Telegram: создать бота, добавить в группу, `/chatid`, прописать в `.env`, проверить AC-6/AC-7 вживую; скриншот в `docs/screenshots/`.
+- [!] **Q-03** (BACK) Реальный Telegram: создать бота, добавить в группу, `/chatid`, прописать в `.env`, проверить AC-6/AC-7 вживую; скриншот в `docs/screenshots/`.
+  ↳ blocked: ESC-1 (нужны токен бота и chat id). Без них проверено: конвейер — тестами с фейковым нотифаером, console-канал — вживую (AC-7 ≈1 с), TelegramNotifier — юнит-тестом с фейковым Bot
 - [x] **Q-04** (ANY) `adversarial-reviewer` + `senior-security` по authz: попытки обойти права через API (IDOR, смена роли, PATCH чужих полей). Найденное → `red-green-proof`.
   ↳ done: Q-04 · проверка: эксперимент на стеке — до фикса 7 входов с подменой X-Forwarded-For → 401×7 и поддельный IP в audit_log; после → 401×5, 429×2, IP реальный; `sh scripts/smoke.sh` → OK; `pytest -q` → 209 passed. Отчёт: docs/reviews/Q-04-adversarial.md
-- [ ] **Q-05** (ANY) AC-13: `docker compose down && docker compose up -d` → данные на месте. AC-1: свежий клон в другую папку, строго по README.
+- [x] **Q-05** (ANY) AC-13: `docker compose down && docker compose up -d` → данные на месте. AC-1: свежий клон в другую папку, строго по README.
   DoD M2: §8 — все AC зелёные; запись «M2 достигнут» в журнале.
+  ↳ done: Q-05 · проверка: AC-13 — счётчики до/после `docker compose down && up -d`: 30|45|7|5|6|208 = 30|45|7|5|6|208, smoke OK. AC-1 — `git clone` в новую папку → `cp .env.example .env` → `docker compose -p ik-clean up -d --build` (-p только чтобы не задеть рабочий том) → 4× healthy за 46 с (прогретый кеш), `sh scripts/smoke.sh` OK, `npx playwright test` на этом стеке → 12 passed; `docker compose run --rm backend pytest -q` → 209 passed
 
 ## 6. Фаза 3 — Бонусы (→ M3). Порядок = ценность/трудоёмкость. Каждый — отдельный коммит, M2-тесты зелёные.
 
@@ -345,7 +347,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 
 | Req | Задачи | Тест(ы) | Статус |
 |---|---|---|---|
-| AC-1 Запуск | B-03, B-12, D-01, D-04 | ручная D-04 | ⬜ |
+| AC-1 Запуск | B-03, B-12, D-01, D-04 | чистый клон → README → 4× healthy, smoke, 12 e2e (Q-05) | ✅ |
 | AC-2 Доступ | B-05, F-03 | test_ac_02_auth_required.py (все операции из OpenAPI → 401), e2e auth.spec (редирект /login) | ✅ |
 | AC-3 Роли | B-07, B-10, F-04 | test_ac_03_roles.py, test_users.py, e2e users.spec (нет админ-разделов у user) | ✅ |
 | AC-4 Админ .env | B-05, B-10 | test_ac_04_env_admin.py, test_admin_sync.py | ✅ |
@@ -357,9 +359,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | AC-10 Исправление даты | B-08, F-05 | test_ac_10_fix_date.py, e2e payments.spec | ✅ |
 | AC-11 Просрочка | B-06, B-08 | test_status.py, test_ac_11_overdue.py | ✅ |
 | AC-12 Валюты | B-09, F-08 | test_ac_12_summary.py, test_summary.py | ✅ |
-| AC-13 Сохранение | B-03 | ручная Q-05 | ⬜ |
+| AC-13 Сохранение | B-03 | down/up: все счётчики совпали (Q-05) | ✅ |
 | AC-14 Удаление | B-07, B-11 | test_ac_14_delete.py, test_reminder_pipeline.py | ✅ |
-| AC-15 Передача | B-04, B-13, D-01 | `test_openapi_up_to_date.py`, D-04 | 🟨 |
+| AC-15 Передача | B-04, B-13, D-01 | код, README, .env.example без секретов, seed, docs/openapi.yml + test_openapi_up_to_date.py | ✅ |
 | FR-26 Swagger | B-01, B-13 | `GET /api/v1/docs` → 200 | ✅ |
 | Бонусы B1–B10 | X-01…X-10 | см. задачи | ⬜ |
 
@@ -402,6 +404,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 00:26 · SOLO · Q-01 · Приёмочные тесты: по файлу на AC-2…AC-12, AC-14 (Given/When/Then из SPEC), общий RecordingNotifier вместо Telegram; AC-2 перебирает все операции из OpenAPI. Тест AC-5 сначала упал из-за ошибки в самом тесте (дата оплаты в будущем → 422 — верное поведение сервера) · Q-01 · 208 passed · —
 - 2026-10-24 00:29 · SOLO · Q-02 · E2E демо-сценария со с.15 (e2e/demo.spec.ts), самодостаточный: user создаётся через API, если его нет; факт напоминания проверяется по reminder_sent_at · Q-02 · 12 passed · реальный Telegram — Q-03 (ESC-1)
 - 2026-10-24 00:34 · SOLO · Q-04 · Адверсариальное ревью (3 персоны) прав/сессий/напоминаний. High: подмена X-Forwarded-For обходила rate-limit входа и подделывала IP аудита → nginx перезаписывает заголовок. Medium: таймаут отправки Telegram 15 с. Low: FOR UPDATE при удалении, предупреждение о дефолтных секретах в production. Открытых critical/high нет · Q-04 · smoke OK, 209 passed · —
+- 2026-10-24 00:40 · SOLO · Q-05 · AC-13 и AC-1 подтверждены; README написан (быстрый старт PowerShell/bash, Telegram, роли, правила, API, env, тесты, ограничения) · Q-05 · 12 e2e + smoke на чистом клоне · холодная сборка у жюри — ориентир 2–4 мин
+- 2026-10-24 00:42 · SOLO · ship-gate · CRITICAL 0; HIGH 1 (нет error boundary маршрутов) → исправлено RouteErrorPage; secrets/debug/CORS/console.log/TODO чисто; npm audit 0, pip-audit 0 · — · tsc/oxlint/build OK · бэкапы/rollback/мониторинг — вне рамок
+- 2026-10-24 00:42 · SOLO · M2 · **M2 достигнут**: §8 — AC-1…AC-15 и FR-26 ✅ (16/16). Доказательства: `docker compose run --rm backend pytest -q` → 209 passed (покрытие 95%, домен 100%), Playwright 12 passed на стеке из чистого клона, smoke OK, adversarial-review (High XFF исправлен), ship-gate CLEAR. Открыто: Q-03 [!] (ESC-1, живой Telegram). Дальше: бонусы X-01…X-10 по порядку · — · — · —
 
 ## 10. Эскалации и блокеры
 

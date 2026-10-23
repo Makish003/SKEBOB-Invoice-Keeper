@@ -7,6 +7,7 @@ import { PaymentsPage } from '@/features/occurrences/PaymentsPage'
 import { RecurringPage } from '@/features/recurring/RecurringPage'
 import { UsersPage } from '@/features/users/UsersPage'
 import { NotFoundPage } from './NotFoundPage'
+import { RouteErrorPage } from './RouteErrorPage'
 import { Shell } from './Shell'
 
 const ShowcasePage = lazy(() =>
@@ -17,9 +18,10 @@ const devRoutes: RouteObject[] = import.meta.env.DEV ? [{ path: '/_ui', element:
 
 export const router = createBrowserRouter([
   ...devRoutes,
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login', element: <LoginPage />, errorElement: <RouteErrorPage /> },
   {
     element: <RequireAuth />,
+    errorElement: <RouteErrorPage />,
     children: [
       {
         element: <Shell />,
