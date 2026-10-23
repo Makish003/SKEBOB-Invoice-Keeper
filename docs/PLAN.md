@@ -240,8 +240,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [x] **B-01** (BACK) `backend/` на uv: FastAPI-приложение, `core/config.py` (pydantic-settings, все переменные из `.env.example`), `/api/v1/health`, Swagger на `/api/v1/docs`, OpenAPI на `/api/v1/openapi.json`, единый обработчик ошибок.
   DoD: `curl localhost:8000/api/v1/health` → `{"status":"ok"}`.
   ↳ done: B-01 · проверка: `curl localhost:18000/api/v1/health` → `{"status":"ok"}`; `/api/v1/docs` → 200
-- [ ] **B-02** (BACK) Модели §1.1 + Alembic-миграция `0001_initial`. Enum-ы, CHECK, UNIQUE как в схеме.
+- [x] **B-02** (BACK) Модели §1.1 + Alembic-миграция `0001_initial`. Enum-ы, CHECK, UNIQUE как в схеме.
   DoD: `alembic upgrade head` на чистой БД, `alembic downgrade base` без ошибок.
+  ↳ done: B-02 · проверка: `alembic upgrade head && alembic check && alembic downgrade base && alembic upgrade head` → MIGRATIONS-OK, «No new upgrade operations detected»
 - [ ] **B-03** (BACK) `docker-compose.yml`: `db` (postgres:16-alpine, healthcheck, volume `pgdata`), `backend` (entrypoint: wait db → `alembic upgrade head` → sync admin → seed если `SEED_DEMO_DATA=true` и БД пуста → uvicorn), `worker`, `web`; `mailpit` в `profiles: [extras]`. `.env.example` (см. §11).
   DoD: `docker compose up -d --build` → все сервисы `healthy`.
 - [ ] **B-04** (BACK) **Контракт-first:** Pydantic-схемы и пустые роутеры ВСЕХ эндпоинтов FR-25 (возвращают `501`), `app/scripts/export_openapi.py` → `docs/openapi.yml`. Тест `test_openapi_up_to_date` падает, если файл устарел.
@@ -353,6 +354,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 22:40 · SOLO · P0-3 · Docker 29.9.2 (linux engine, 12 CPU, 8 ГБ), Compose v5.6.1, git 2.53, node 24.14, npm 11.9, python 3.11 (локально), uv — нет · P0 · `--version` · бэкенд только в контейнерах
 - 2026-10-23 22:40 · SOLO · P0-4 · Плагины есть: karpathy-coder, engineering(-advanced)-skills, zero-hallucination-coder, docker-development, a11y-audit, pw, handoff-engineering, demo-video, ux-ui-agent-skills, example-skills. Нет: MCP motion в этой сессии; Playwright-браузер для гейтов XIAS не установлен (ставится в F-02) · P0 · — · —
 - 2026-10-23 22:48 · SOLO · B-01 · FastAPI-скелет: config (pydantic-settings), Clock, единый формат ошибок, health, Swagger /api/v1/docs, export_openapi · B-01 · curl health → {"status":"ok"}, docs 200, 404 → {"error":{"code":"not_found",…}} · uv.lock сгенерирован в контейнере (uv локально нет)
+- 2026-10-23 22:50 · SOLO · B-02 · Модели §1.1 (6 таблиц, 7 enum, CHECK paid_at↔status, UNIQUE(payment,seq)/(payment,due_date)/(occurrence,channel,kind), частичный UNIQUE логина среди не удалённых) + 0001_initial · B-02 · upgrade→check→downgrade→upgrade OK на postgres:16-alpine · логин уникален только среди активных — см. ADR-014
 
 ## 10. Эскалации и блокеры
 
