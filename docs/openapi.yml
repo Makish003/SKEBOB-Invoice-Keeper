@@ -9,7 +9,8 @@ paths:
       tags:
       - Авторизация
       summary: Вход по логину и паролю
-      description: 'Создаёт сессию: ставит httpOnly-cookie `ik_session` и возвращает `access_token` для Bearer.'
+      description: 'Создаёт сессию: ставит httpOnly-cookie `ik_session` и возвращает `access_token` для Bearer. После 5 неудачных
+        попыток за минуту с одного IP для логина — 429.'
       operationId: login_api_v1_auth_login_post
       requestBody:
         content:
@@ -69,7 +70,7 @@ paths:
       tags:
       - Авторизация
       summary: Завершение текущей сессии
-      description: 'Отзывает текущую сессию: её токен и cookie больше не действуют.'
+      description: 'Отзывает текущую сессию: её токен и cookie больше не действуют. Другие сессии пользователя остаются.'
       operationId: logout_api_v1_auth_logout_post
       responses:
         '204':

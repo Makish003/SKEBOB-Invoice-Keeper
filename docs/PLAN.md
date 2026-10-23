@@ -259,8 +259,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 ## 5. Фаза 2 — Обязательная функциональность (→ M2)
 
 ### Backend
-- [ ] **B-05** Auth: argon2, sessions, cookie+bearer, `login/me/logout`, `current_user`, `require_admin`, sync админа из `.env`, rate-limit логина, аудит `auth.login.success/failed`, `auth.logout`.
+- [x] **B-05** Auth: argon2, sessions, cookie+bearer, `login/me/logout`, `current_user`, `require_admin`, sync админа из `.env`, rate-limit логина, аудит `auth.login.success/failed`, `auth.logout`.
   Тесты: AC-2, AC-4 (часть), неверный пароль → 401, logout → старый токен 401.
+  ↳ done: B-05 · проверка: `pytest -q` → 18 passed (tests/api/test_auth.py 13, test_admin_sync.py 3); curl :8080 login → token+cookie, /auth/me по cookie → admin
 - [ ] **B-06** Домен `schedule.py`/`status.py` + **unit-тесты сначала** (`tdd-guide`): 31.01→28.02/29.02→31.03, 30.11→30.12…, weekly/quarterly/yearly, високосный год, просрочка на границе (due_date, due_date+1), paid_late, оплата в день срока.
   DoD: ≥ 25 параметризованных кейсов зелёные.
 - [ ] **B-07** Recurring payments: `GET` (все авторизованные), `POST`/`DELETE` (admin, soft delete), при создании — `ensure_occurrences` + постановка `pending`-напоминания, аудит.
@@ -327,7 +328,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | Req | Задачи | Тест(ы) | Статус |
 |---|---|---|---|
 | AC-1 Запуск | B-03, B-12, D-01, D-04 | ручная D-04 | ⬜ |
-| AC-2 Доступ | B-05, F-03 | `test_ac_02_auth_required.py` | ⬜ |
+| AC-2 Доступ | B-05, F-03 | `test_ac_02_auth_required.py` | 🟨 |
 | AC-3 Роли | B-07, B-10, F-04 | `test_ac_03_roles.py` | ⬜ |
 | AC-4 Админ .env | B-05, B-10 | `test_ac_04_env_admin.py` | ⬜ |
 | AC-5 Регулярность | B-06, B-07 | `test_schedule.py`, `test_ac_05_periods.py` | ⬜ |
@@ -363,6 +364,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 22:55 · SOLO · B-04 · Контракт-first: Pydantic-схемы (деньги — строка, единый ErrorResponse), роутеры всех эндпоинтов FR-25 (+ GET /recurring-payments/{id}, GET /users/{id} по FR-27) с 501, зависимости current_user/require_admin, docs/openapi.yml экспортирован · B-04 · test_openapi_up_to_date 2 passed · FRONT: docs/openapi.yml готов для openapi-typescript
 - 2026-10-23 23:08 · SOLO · F-01 · Vite 8 + React 19 + TS strict + Tailwind v4, React Router 8, TanStack Query, openapi-typescript → src/api/schema.d.ts, openapi-fetch (credentials: include, глобальный 401-листенер), Dockerfile node→nginx, nginx.conf (SPA fallback, proxy /api с Docker DNS, CSP), сервис web в compose · F-01 · curl через :8080 · ADR-015 (radix-ui вместо shadcn CLI, TS 5.9, oxlint)
 - 2026-10-23 23:25 · SOLO · F-02 · Токены linear-app (light/dark), Inter cyrillic, motion.ts (fadeUp/stagger/spring 380/30/useReducedMotion), ThemeProvider, компоненты на radix-ui: Button, Input, Field, Select (listbox), Dialog/ConfirmDialog, Popover, DropdownMenu, Segmented (layoutId), Tooltip, Badge, Card, Skeleton, Table, Calendar (react-day-picker ru), Empty/ErrorState, Toaster; витрина /_ui (dev) · F-02 · гейты XIAS зелёные, скриншоты light/dark/360px просмотрены · ADR-016; хук XIAS ложно падает на кириллице (cp1252) — гейты гоняются вручную с PYTHONUTF8=1
+- 2026-10-23 23:29 · SOLO · B-05 · Auth: argon2, серверные сессии (sha256 токена), cookie ik_session (httpOnly, SameSite=Lax) + Bearer, login/me/logout, rate-limit 5/мин на IP+логин (429), одинаковый 401 для неверного пароля и неизвестного логина, аудит auth.login.success/failed, auth.logout, sync админа из .env · B-05 · 18 passed
 
 ## 10. Эскалации и блокеры
 
