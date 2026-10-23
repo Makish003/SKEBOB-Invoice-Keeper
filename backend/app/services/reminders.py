@@ -93,7 +93,12 @@ def enqueue_due(db: Session, today: date, settings: Settings, *, payment_id: int
                 channel,
                 ReminderKind.overdue,
                 literal(today, Reminder.__table__.c.remind_on.type),
-                [PaymentOccurrence.due_date < today, already < settings.overdue_reminder_max, *scope],
+                [
+                    PaymentOccurrence.due_date < today,
+                    PaymentOccurrence.due_date >= today - timedelta(days=settings.overdue_reminder_window_days),
+                    already < settings.overdue_reminder_max,
+                    *scope,
+                ],
             )
     return created
 

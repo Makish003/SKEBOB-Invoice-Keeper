@@ -164,7 +164,7 @@ TanStack Query, Motion. Решения и их причины — [`docs/DECISIO
 | `POSTGRES_DB/USER/PASSWORD` | `invoice_keeper` | БД; строка подключения собирается из них |
 | `SESSION_TTL_HOURS`, `COOKIE_SECURE` | `168`, `false` | Срок сессии; `true`, если панель за HTTPS |
 | `REMINDER_CHECK_INTERVAL_SECONDS`, `PENDING_POLL_SECONDS`, `REMINDER_MAX_ATTEMPTS` | `60`, `5`, `5` | Расписание воркера и ретраи |
-| `OVERDUE_REMINDER_MAX` | `3` | Напоминаний о просрочке на период (раз в день); `0` — выключить |
+| `OVERDUE_REMINDER_MAX`, `OVERDUE_REMINDER_WINDOW_DAYS` | `3`, `30` | Напоминаний о просрочке на период (раз в день; `0` — выключить); о просрочках старше окна не напоминаем |
 | `WEBHOOK_URL`, `WEBHOOK_SECRET` | пусто | Бонус: webhook с подписью |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`, `EMAIL_TO` | пусто, `1025` | Бонус: email-напоминания (получатели через запятую) |
 

@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     generation_horizon_days: int = 35
     reminder_max_attempts: int = 5
     overdue_reminder_max: int = 3  # напоминаний о просрочке на период (раз в день); 0 — выключено
+    overdue_reminder_window_days: int = 30  # о более старых просрочках не напоминаем (защита от лавины сообщений)
 
     # --- Telegram ---
     telegram_bot_token: str = ""

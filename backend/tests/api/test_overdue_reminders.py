@@ -81,3 +81,16 @@ def test_overdue_message_text() -> None:
     message = ReminderMessage(1, 2, "Сервер Hetzner", __import__("decimal").Decimal("49.90"), "USD", date(2026, 10, 20), -3, "overdue")
     text = format_message(message)
     assert "Просрочена оплата" in text and "20.10.2026" in text and "3 дня назад" in text
+
+
+def test_old_backlog_does_not_flood_the_chat(
+    client: TestClient, db: Session, clock: FrozenClock, admin_headers: dict[str, str]
+) -> None:
+    """Платёж с датой два года назад (еженедельно): напоминаем только о свежих просрочках, а не о сотне старых периодов."""
+    client.post(
+        "/api/v1/recurring-payments",
+        json={"name": "Уборка", "amount": "10.00", "currency": "RUB", "first_due_date": "2024-10-23", "period": "weekly"},
+        headers=admin_headers,
+    )
+    overdue = db.scalars(select(Reminder).where(Reminder.kind == ReminderKind.overdue)).all()
+    assert 0 < len(overdue) <= 5
