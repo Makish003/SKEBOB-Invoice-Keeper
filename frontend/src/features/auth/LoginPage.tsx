@@ -46,12 +46,11 @@ export function LoginPage() {
   const next = params.get('next')
   const target = next && next.startsWith('/') && !next.startsWith('//') ? next : null
 
-  if (me.data) return <Navigate to={target ?? '/'} replace />
+  const home = (role: string) => target ?? (role === 'admin' ? '/' : '/payments')
+  if (me.data) return <Navigate to={home(me.data.role)} replace />
 
   const onSubmit = handleSubmit((values) =>
-    login.mutate(values, {
-      onSuccess: ({ user }) => navigate(target ?? (user.role === 'admin' ? '/' : '/payments'), { replace: true }),
-    }),
+    login.mutate(values, { onSuccess: ({ user }) => navigate(home(user.role), { replace: true }) }),
   )
 
   return (
