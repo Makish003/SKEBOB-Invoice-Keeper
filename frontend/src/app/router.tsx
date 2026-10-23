@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import { createBrowserRouter, type RouteObject } from 'react-router'
+import { AuditPage } from '@/features/audit/AuditPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RequireAdmin, RequireAuth } from '@/features/auth/guards'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
             children: [
               { path: 'recurring', element: <RecurringPage /> },
               { path: 'users', element: <UsersPage /> },
+              { path: 'audit', element: <AuditPage /> },
             ],
           },
           { path: '*', element: <NotFoundPage /> },

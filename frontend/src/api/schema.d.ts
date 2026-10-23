@@ -228,6 +228,26 @@ export interface paths {
         patch: operations["update_user_api_v1_users__user_id__patch"];
         trace?: never;
     };
+    "/api/v1/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Журнал действий
+         * @description Входы и выходы (в т.ч. неудачные), создание и прекращение платежей, отметки и отмены оплат, исправления дат, изменения пользователей. Новые записи первыми.
+         */
+        get: operations["list_audit_log_api_v1_audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/app-info": {
         parameters: {
             query?: never;
@@ -291,6 +311,41 @@ export interface components {
             reminder_channels: string[];
             /** Version */
             version: string;
+        };
+        /** AuditEntry */
+        AuditEntry: {
+            /** Id */
+            id: number;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Actor User Id */
+            actor_user_id: number | null;
+            /** Actor Label */
+            actor_label: string | null;
+            /** Action */
+            action: string;
+            /** Entity */
+            entity: string | null;
+            /** Entity Id */
+            entity_id: number | null;
+            /** Entity Label */
+            entity_label: string | null;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            } | null;
+            /** Ip */
+            ip: string | null;
+        };
+        /** AuditList */
+        AuditList: {
+            /** Items */
+            items: components["schemas"]["AuditEntry"][];
+            /** Total */
+            total: number;
         };
         /**
          * Currency
@@ -1457,6 +1512,64 @@ export interface operations {
             };
             /** @description Конфликт (например, логин занят) */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Ошибка валидации входных данных */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    list_audit_log_api_v1_audit_log_get: {
+        parameters: {
+            query?: {
+                /** @description auth | payments | occurrences | users */
+                category?: ("auth" | "payments" | "occurrences" | "users") | null;
+                /** @description Точное действие, например auth.login.failed */
+                action?: string | null;
+                /** @description Поиск по автору */
+                q?: string | null;
+                date_from?: string | null;
+                date_to?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditList"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Недостаточно прав */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

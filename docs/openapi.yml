@@ -811,6 +811,115 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/audit-log:
+    get:
+      tags:
+      - Журнал
+      summary: Журнал действий
+      description: Входы и выходы (в т.ч. неудачные), создание и прекращение платежей, отметки и отмены оплат, исправления
+        дат, изменения пользователей. Новые записи первыми.
+      operationId: list_audit_log_api_v1_audit_log_get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - auth
+            - payments
+            - occurrences
+            - users
+            type: string
+          - type: 'null'
+          description: auth | payments | occurrences | users
+          title: Category
+        description: auth | payments | occurrences | users
+      - name: action
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          description: Точное действие, например auth.login.failed
+          title: Action
+        description: Точное действие, например auth.login.failed
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          description: Поиск по автору
+          title: Q
+        description: Поиск по автору
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date To
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditList'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /api/v1/app-info:
     get:
       tags:
@@ -880,6 +989,82 @@ components:
       - reminder_channels
       - version
       title: AppInfo
+    AuditEntry:
+      properties:
+        id:
+          type: integer
+          title: Id
+        at:
+          type: string
+          format: date-time
+          title: At
+        actor_user_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Actor User Id
+        actor_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Actor Label
+        action:
+          type: string
+          title: Action
+        entity:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Entity
+        entity_id:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Entity Id
+        entity_label:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Entity Label
+        payload:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Payload
+        ip:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Ip
+      type: object
+      required:
+      - id
+      - at
+      - actor_user_id
+      - actor_label
+      - action
+      - entity
+      - entity_id
+      - entity_label
+      - payload
+      - ip
+      title: AuditEntry
+    AuditList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AuditEntry'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: AuditList
     Currency:
       type: string
       enum:
@@ -1533,5 +1718,7 @@ tags:
   description: Суммы по валютам отдельно, без конвертации.
 - name: Пользователи
   description: Управление обычными пользователями — только администратор.
+- name: Журнал
+  description: 'Бонус: журнал входов и действий — только администратор.'
 - name: Служебное
   description: Проверка работоспособности и параметры для интерфейса.

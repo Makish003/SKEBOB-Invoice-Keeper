@@ -6,6 +6,7 @@ import {
   Moon,
   ReceiptText,
   Repeat,
+  ScrollText,
   Sun,
   Users,
   type LucideIcon,
@@ -43,6 +44,7 @@ export const navItems: NavItem[] = [
   { to: '/payments', label: 'Платежи', icon: ReceiptText },
   { to: '/recurring', label: 'Регулярные', icon: Repeat, adminOnly: true },
   { to: '/users', label: 'Пользователи', icon: Users, adminOnly: true },
+  { to: '/audit', label: 'Журнал', icon: ScrollText, adminOnly: true },
 ]
 
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
