@@ -1,0 +1,51 @@
+# Invoice Keeper: docker compose up -d --build → http://localhost:8080 (Swagger: /api/v1/docs)
+name: invoice-keeper
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  image: invoice-keeper-backend:latest
+  env_file:
+    - path: .env
+      required: false
+  restart: unless-stopped
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-invoice_keeper}
+      POSTGRES_USER: ${POSTGRES_USER:-invoice_keeper}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-invoice_keeper}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  backend:
+    <<: *backend
+    command: ["serve"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    <<: *backend
+    command: ["worker"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(0 if time.time() - os.path.getmtime('/tmp/worker.heartbeat') < 120 else 1)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+volumes:
+  pgdata:

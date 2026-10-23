@@ -3,8 +3,9 @@
 from datetime import date
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import quote
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,8 +26,13 @@ class Settings(BaseSettings):
     admin_password: str = "admin12345"
     admin_display_name: str = "Администратор"
 
-    # --- Database ---
-    database_url: str = "postgresql+psycopg://invoice_keeper:invoice_keeper@db:5432/invoice_keeper"
+    # --- Database (DATABASE_URL необязателен: по умолчанию собирается из POSTGRES_*) ---
+    postgres_db: str = "invoice_keeper"
+    postgres_user: str = "invoice_keeper"
+    postgres_password: str = "invoice_keeper"
+    postgres_host: str = "db"
+    postgres_port: int = 5432
+    database_url: str = ""
 
     # --- Reminders ---
     reminder_days_before: int = 3
@@ -53,6 +59,15 @@ class Settings(BaseSettings):
     @classmethod
     def _empty_to_none(cls, value: object) -> object:
         return None if value in ("", None) else value
+
+    @model_validator(mode="after")
+    def _default_database_url(self) -> "Settings":
+        if not self.database_url:
+            self.database_url = (
+                f"postgresql+psycopg://{quote(self.postgres_user)}:{quote(self.postgres_password)}"
+                f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+            )
+        return self
 
     @property
     def telegram_enabled(self) -> bool:
