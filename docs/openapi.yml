@@ -847,7 +847,6 @@ components:
       - due_today
       - overdue
       title: DisplayStatus
-      description: Статус для отображения (вычисляется от «сегодня», ADR-006).
     ErrorBody:
       properties:
         code:

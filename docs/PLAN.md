@@ -262,8 +262,9 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - [x] **B-05** Auth: argon2, sessions, cookie+bearer, `login/me/logout`, `current_user`, `require_admin`, sync админа из `.env`, rate-limit логина, аудит `auth.login.success/failed`, `auth.logout`.
   Тесты: AC-2, AC-4 (часть), неверный пароль → 401, logout → старый токен 401.
   ↳ done: B-05 · проверка: `pytest -q` → 18 passed (tests/api/test_auth.py 13, test_admin_sync.py 3); curl :8080 login → token+cookie, /auth/me по cookie → admin
-- [ ] **B-06** Домен `schedule.py`/`status.py` + **unit-тесты сначала** (`tdd-guide`): 31.01→28.02/29.02→31.03, 30.11→30.12…, weekly/quarterly/yearly, високосный год, просрочка на границе (due_date, due_date+1), paid_late, оплата в день срока.
+- [x] **B-06** Домен `schedule.py`/`status.py` + **unit-тесты сначала** (`tdd-guide`): 31.01→28.02/29.02→31.03, 30.11→30.12…, weekly/quarterly/yearly, високосный год, просрочка на границе (due_date, due_date+1), paid_late, оплата в день срока.
   DoD: ≥ 25 параметризованных кейсов зелёные.
+  ↳ done: B-06 · проверка: `pytest tests/unit --cov=app/domain` → 56 passed, покрытие app/domain 100%
 - [ ] **B-07** Recurring payments: `GET` (все авторизованные), `POST`/`DELETE` (admin, soft delete), при создании — `ensure_occurrences` + постановка `pending`-напоминания, аудит.
   Тесты: AC-3 (user → 403), AC-14 (после DELETE нет новых периодов и напоминаний, история видна).
 - [ ] **B-08** Occurrences: список с фильтрами/сортировкой/пагинацией, `GET by id`, `PATCH` по правилам §1.5, вычисляемые поля, `paid_by_label`, аудит.
@@ -333,13 +334,13 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 | AC-2 Доступ | B-05, F-03 | `test_ac_02_auth_required.py` | 🟨 |
 | AC-3 Роли | B-07, B-10, F-04 | `test_ac_03_roles.py` | ⬜ |
 | AC-4 Админ .env | B-05, B-10 | `test_ac_04_env_admin.py` | 🟨 |
-| AC-5 Регулярность | B-06, B-07 | `test_schedule.py`, `test_ac_05_periods.py` | ⬜ |
+| AC-5 Регулярность | B-06, B-07 | `test_schedule.py`, `test_ac_05_periods.py` | 🟨 |
 | AC-6 Напоминание | B-11 | `test_ac_06_reminder_once.py` | ⬜ |
 | AC-7 Сразу | B-07, B-11 | `test_ac_07_immediate.py` | ⬜ |
 | AC-8 Оплачено — без напоминания | B-11 | `test_ac_08_paid_no_reminder.py` | ⬜ |
 | AC-9 Отметка/отмена | B-08, F-05 | `test_ac_09_mark_unmark.py`, e2e | ⬜ |
 | AC-10 Исправление даты | B-08, F-05 | `test_ac_10_fix_date.py`, e2e | ⬜ |
-| AC-11 Просрочка | B-06, B-08 | `test_status.py`, `test_ac_11_overdue.py` | ⬜ |
+| AC-11 Просрочка | B-06, B-08 | `test_status.py`, `test_ac_11_overdue.py` | 🟨 |
 | AC-12 Валюты | B-09, F-08 | `test_ac_12_summary.py` | ⬜ |
 | AC-13 Сохранение | B-03 | ручная Q-05 | ⬜ |
 | AC-14 Удаление | B-07, B-11 | `test_ac_14_delete.py` | ⬜ |
@@ -370,6 +371,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 23:29 · SOLO · M1 · **M1 достигнут**: `docker compose up -d --build` → db/backend/worker/web healthy; `/api/v1/docs` → 200 через :8080; логин admin (cookie+bearer) работает. Трассировка: 0/15 AC ✅, 3 🟨 (AC-2, AC-4, FR-26). Дальше: F-03/F-04 (логин, shell), затем B-06 домен · — · pytest 18 passed · —
 - 2026-10-23 23:33 · SOLO · F-03 · Логин (rhf+zod, ошибки по ux-writing, 401/429/сеть), RequireAuth (нет сессии → /login?next=), RequireAdmin (UI-заглушка 403 с переходом к платежам), глобальный 401 → сброс кэша и /login, выход; редирект по роли (admin → Сводка, user → Платежи) · F-03 · e2e 6 passed · —
 - 2026-10-23 23:33 · SOLO · F-04 · Shell: сайдбар (Сводка, Платежи, Регулярные [admin], Пользователи [admin]; Календарь/Журнал появятся с бонусами X-02/X-03), меню пользователя (роль, тема светлая/тёмная/системная, выход), мобильная шапка + выезжающее меню, skip-link · F-04 · e2e 6 passed · страницы разделов заполняются в F-05…F-08
+- 2026-10-23 23:35 · SOLO · B-06 · Домен (TDD, тесты написаны первыми): schedule.due_date_for (anchor_day, без дрейфа, weekly/quarterly/yearly, високосный год), planned_occurrences (горизонт + минимум один будущий, EC-2), status.compute_status (просрочка со следующего дня, paid_late, due_soon/due_today), reminders.reminder_due (окно 3 дня, FR-19/21/22) · B-06 · 56 passed, cov 100% · —
 
 ## 10. Эскалации и блокеры
 

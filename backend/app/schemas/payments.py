@@ -1,25 +1,14 @@
 """Схемы регулярных платежей, периодов и итогов."""
 
-import enum
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Annotated
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
+from app.domain.status import DisplayStatus
 from app.models import Currency, OccurrenceStatus, Period
 from app.schemas.common import Money
-
-
-class DisplayStatus(enum.StrEnum):
-    """Статус для отображения (вычисляется от «сегодня», ADR-006)."""
-
-    paid = "paid"
-    paid_late = "paid_late"
-    upcoming = "upcoming"
-    due_soon = "due_soon"
-    due_today = "due_today"
-    overdue = "overdue"
 
 
 class RecurringPaymentRef(BaseModel):

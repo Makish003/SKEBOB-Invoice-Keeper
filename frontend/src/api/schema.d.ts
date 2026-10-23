@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * Вход по логину и паролю
-         * @description Создаёт сессию: ставит httpOnly-cookie `ik_session` и возвращает `access_token` для Bearer.
+         * @description Создаёт сессию: ставит httpOnly-cookie `ik_session` и возвращает `access_token` для Bearer. После 5 неудачных попыток за минуту с одного IP для логина — 429.
          */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
@@ -52,7 +52,7 @@ export interface paths {
         put?: never;
         /**
          * Завершение текущей сессии
-         * @description Отзывает текущую сессию: её токен и cookie больше не действуют.
+         * @description Отзывает текущую сессию: её токен и cookie больше не действуют. Другие сессии пользователя остаются.
          */
         post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
@@ -272,7 +272,6 @@ export interface components {
         };
         /**
          * DisplayStatus
-         * @description Статус для отображения (вычисляется от «сегодня», ADR-006).
          * @enum {string}
          */
         DisplayStatus: "paid" | "paid_late" | "upcoming" | "due_soon" | "due_today" | "overdue";
