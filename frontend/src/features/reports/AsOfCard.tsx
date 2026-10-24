@@ -1,16 +1,61 @@
 import { useState } from 'react'
-import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
+import { AnimatedNumber } from '@/components/AnimatedNumber'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { DateField } from '@/components/ui/date-field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorState } from '@/components/ui/states'
-import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { useAppInfo } from '@/features/app-info'
-import { type Currency, formatDate, formatMoney } from '@/lib/format'
-import { useSummary } from '@/features/dashboard/api'
+import { type CurrencySummary, useSummary } from '@/features/dashboard/api'
+import { cn } from '@/lib/cn'
+import { type Currency, formatDate, formatDateLong, formatMoney, pluralize } from '@/lib/format'
+import { CurrencyColumn, CurrencyColumns, StatRow } from './CurrencyColumns'
+
+const payments = (n: number) => pluralize(n, { one: 'платёж', few: 'платежа', many: 'платежей' })
+
+function CurrencyAsOf({ row }: { row: CurrencySummary }) {
+  const currency = row.currency as Currency
+  const money = (n: number) => formatMoney(n, currency)
+  const due = Number(row.due)
+  const overdue = Number(row.overdue)
+  return (
+    <CurrencyColumn currency={currency} label={`Итоги ${currency}`}>
+      {row.count_due === 0 ? (
+        <p className="text-fg-tertiary">Сроков в {currency} к этой дате не было</p>
+      ) : (
+        <>
+          <div className="grid gap-1">
+            <span className="text-xs text-fg-tertiary">
+              Должно быть оплачено, {row.count_due} {payments(row.count_due)}
+            </span>
+            <span className="text-2xl font-semibold tracking-tight">
+              <AnimatedNumber value={due} format={money} />
+            </span>
+          </div>
+          <div className="flex h-2 w-full overflow-hidden rounded-full bg-sunken" aria-hidden>
+            <div className="h-full bg-success transition-[width] duration-500" style={{ width: `${Math.min(Number(row.paid) / due, 1) * 100}%` }} />
+            <div className="h-full bg-danger transition-[width] duration-500" style={{ width: `${Math.min(overdue / due, 1) * 100}%` }} />
+          </div>
+          <dl className="grid gap-1.5">
+            <StatRow dot="bg-success" label="Оплачено">
+              <AnimatedNumber value={Number(row.paid)} format={money} />
+            </StatRow>
+            <StatRow
+              dot="bg-danger"
+              label={row.count_overdue > 0 ? `Просрочено, ${row.count_overdue} ${payments(row.count_overdue)}` : 'Просрочено'}
+              className={cn(overdue > 0 && 'text-danger')}
+            >
+              <AnimatedNumber value={overdue} format={money} />
+            </StatRow>
+          </dl>
+        </>
+      )}
+    </CurrencyColumn>
+  )
+}
 
 /** Итоги на дату (FR-B4): с 1 января до выбранной даты: сколько должно быть оплачено, оплачено и просрочено. */
 export function AsOfCard() {
-  const { todayIso } = useAppInfo()
+  const { todayIso, today } = useAppInfo()
   const [asOf, setAsOf] = useState<string | null>(null)
   const date = asOf ?? todayIso
   const yearStart = `${date.slice(0, 4)}-01-01`
@@ -22,54 +67,30 @@ export function AsOfCard() {
         <div className="grid gap-0.5">
           <CardTitle>Итоги на дату</CardTitle>
           <p className="text-xs text-fg-tertiary">
-            Сроки с {formatDate(yearStart)} по {formatDate(date)}, отдельно по каждой валюте
+            Сроки с {formatDateLong(yearStart, today)} по {formatDateLong(date, today)}, по каждой валюте отдельно
           </p>
         </div>
         <div className="w-44">
           <DateField id="as-of" value={date} onChange={setAsOf} />
         </div>
       </CardHeader>
-      <CardBody className="px-0 pb-2 sm:px-0">
+      <div className="mt-4">
         {summary.isPending ? (
-          <div className="grid gap-2 px-4" aria-busy="true">
-            <Skeleton className="h-8" />
-            <Skeleton className="h-8" />
-            <Skeleton className="h-8" />
+          <div className="grid gap-4 border-t border-subtle p-4 sm:p-5 md:grid-cols-3" aria-busy="true">
+            <Skeleton className="h-36" />
+            <Skeleton className="h-36" />
+            <Skeleton className="h-36" />
           </div>
         ) : summary.isError ? (
-          <ErrorState error={summary.error} onRetry={() => summary.refetch()} className="py-6" />
+          <ErrorState error={summary.error} onRetry={() => summary.refetch()} className="border-t border-subtle py-6" />
         ) : (
-          <Table aria-label={`Итоги на ${formatDate(date)}`}>
-            <THead>
-              <tr>
-                <TH className="pl-4 sm:pl-5">Валюта</TH>
-                <TH className="text-right">Должно быть оплачено</TH>
-                <TH className="text-right">Оплачено</TH>
-                <TH className="pr-4 text-right sm:pr-5">Просрочено</TH>
-              </tr>
-            </THead>
-            <TBody>
-              {summary.data.currencies.map((row) => {
-                const currency = row.currency as Currency
-                return (
-                  <TR key={currency}>
-                    <TD className="pl-4 font-medium sm:pl-5">{currency}</TD>
-                    <TD className="text-right whitespace-nowrap tabular">
-                      {formatMoney(row.due, currency)}
-                      <span className="block text-xs text-fg-tertiary">{row.count_due} шт.</span>
-                    </TD>
-                    <TD className="text-right whitespace-nowrap text-success tabular">{formatMoney(row.paid, currency)}</TD>
-                    <TD className={`pr-4 text-right whitespace-nowrap tabular sm:pr-5 ${Number(row.overdue) > 0 ? 'font-medium text-danger' : ''}`}>
-                      {formatMoney(row.overdue, currency)}
-                      <span className="block text-xs text-fg-tertiary">{row.count_overdue} шт.</span>
-                    </TD>
-                  </TR>
-                )
-              })}
-            </TBody>
-          </Table>
+          <CurrencyColumns label={`Итоги на ${formatDate(date)}`}>
+            {summary.data.currencies.map((row) => (
+              <CurrencyAsOf key={row.currency} row={row} />
+            ))}
+          </CurrencyColumns>
         )}
-      </CardBody>
+      </div>
     </Card>
   )
 }

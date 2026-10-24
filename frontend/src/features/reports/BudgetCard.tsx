@@ -3,8 +3,9 @@ import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { api, ApiError, type Schemas, unwrap } from '@/api/client'
+import { AnimatedNumber } from '@/components/AnimatedNumber'
 import { Button } from '@/components/ui/button'
-import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
 import { Field, fieldAria } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -15,41 +16,67 @@ import { cn } from '@/lib/cn'
 import { type Currency, formatMoney } from '@/lib/format'
 import { formatAmountInput, parseAmount, sanitizeAmountInput } from '@/lib/money-input'
 import { useBudgetOverview } from './api'
+import { CurrencyColumn, CurrencyColumns, StatRow } from './CurrencyColumns'
 
 type Overview = Schemas['BudgetOverview']
 type Line = Schemas['BudgetLine']
 const currencies: Currency[] = ['RUB', 'USD', 'EUR']
 const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь']
 
-function BudgetBar({ line, currency, title }: { line: Line; currency: Currency; title: string }) {
-  const budget = line.budget ? Number(line.budget) : null
+/** Полоса бюджета: запланировано (голубым, сверх бюджета красным) и поверх неё оплачено (зелёным). */
+function BudgetBar({ line, className }: { line: Line; className?: string }) {
+  const budget = Number(line.budget)
   const planned = Number(line.planned)
-  const over = budget !== null && planned > budget
-  const ratio = budget ? Math.min(planned / budget, 1) : 0
-  const paidRatio = budget ? Math.min(Number(line.paid) / budget, 1) : 0
   return (
-    <div className="grid gap-1.5">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <span className="text-xs text-fg-tertiary">{title}</span>
-        <span className="text-sm tabular">
-          <span className={cn('font-medium', over && 'text-danger')}>{formatMoney(line.planned, currency)}</span>
-          <span className="text-fg-tertiary">{budget !== null ? ` из ${formatMoney(budget, currency)}` : ', бюджет не задан'}</span>
-        </span>
-      </div>
-      {budget !== null && (
-        <>
-          <div className="relative h-2 overflow-hidden rounded-full bg-sunken" aria-hidden>
-            <div className={cn('absolute inset-y-0 left-0 rounded-full', over ? 'bg-danger' : 'bg-info')} style={{ width: `${ratio * 100}%` }} />
-            <div className="absolute inset-y-0 left-0 rounded-full bg-success" style={{ width: `${paidRatio * 100}%` }} />
-          </div>
-          <span className={cn('text-xs', over ? 'text-danger' : 'text-fg-tertiary')}>
-            {over
-              ? `Превышение на ${formatMoney(planned - budget, currency)}`
-              : `Остаток ${formatMoney(budget - planned, currency)}, оплачено ${formatMoney(line.paid, currency)}`}
-          </span>
-        </>
-      )}
+    <div className={cn('relative overflow-hidden rounded-full bg-sunken', className)} aria-hidden>
+      <div
+        className={cn('absolute inset-y-0 left-0 rounded-full transition-[width] duration-500', planned > budget ? 'bg-danger' : 'bg-info')}
+        style={{ width: `${Math.min(planned / budget, 1) * 100}%` }}
+      />
+      <div
+        className="absolute inset-y-0 left-0 rounded-full bg-success transition-[width] duration-500"
+        style={{ width: `${Math.min(Number(line.paid) / budget, 1) * 100}%` }}
+      />
     </div>
+  )
+}
+
+function CurrencyBudget({ row, month, year }: { row: Overview['currencies'][number]; month: number; year: number }) {
+  const currency = row.currency as Currency
+  const money = (n: number | string) => formatMoney(n, currency)
+  const { month: m, year: y } = row
+  const left = m.budget ? Number(m.budget) - Number(m.planned) : null
+  return (
+    <CurrencyColumn currency={currency} label={`Бюджет ${currency}`}>
+      <div className="grid gap-1">
+        <span className="text-xs text-fg-tertiary">Запланировано на {monthNames[month - 1]}</span>
+        <span className={cn('text-2xl font-semibold tracking-tight', left !== null && left < 0 && 'text-danger')}>
+          <AnimatedNumber value={Number(m.planned)} format={money} />
+        </span>
+        <span className="text-xs text-fg-tertiary">{m.budget ? `из ${money(m.budget)} бюджета` : 'Бюджет на месяц не задан'}</span>
+      </div>
+      {m.budget && <BudgetBar line={m} className="h-2" />}
+      <dl className="grid gap-1.5">
+        <StatRow dot="bg-success" label="Оплачено">
+          {money(m.paid)}
+        </StatRow>
+        {left !== null && (
+          <StatRow dot={left < 0 ? 'bg-danger' : 'bg-info'} label={left < 0 ? 'Сверх бюджета' : 'Остаток'} className={cn(left < 0 && 'text-danger')}>
+            {money(Math.abs(left))}
+          </StatRow>
+        )}
+      </dl>
+      <div className="grid gap-1.5 border-t border-subtle pt-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <span className="text-xs text-fg-tertiary">За {year} год</span>
+          <span className="text-sm tabular">
+            <span className={cn('font-medium', y.budget && Number(y.planned) > Number(y.budget) && 'text-danger')}>{money(y.planned)}</span>
+            <span className="text-fg-tertiary">{y.budget ? ` из ${money(y.budget)}` : ', бюджет не задан'}</span>
+          </span>
+        </div>
+        {y.budget && <BudgetBar line={y} className="h-1.5" />}
+      </div>
+    </CurrencyColumn>
   )
 }
 
@@ -159,9 +186,7 @@ export function BudgetCard({ year, month }: { year: number; month: number }) {
       <CardHeader>
         <div className="grid gap-0.5">
           <CardTitle>Бюджет</CardTitle>
-          <p className="text-xs text-fg-tertiary">
-            Запланированные платежи против бюджета: {monthNames[month - 1]} и {year} год
-          </p>
+          <p className="text-xs text-fg-tertiary">Запланированные платежи против бюджета по каждой валюте</p>
         </div>
         {user.role === 'admin' && overview.data && (
           <Button variant="ghost" size="sm" onClick={() => setOpen(true)}>
@@ -170,27 +195,23 @@ export function BudgetCard({ year, month }: { year: number; month: number }) {
           </Button>
         )}
       </CardHeader>
-      <CardBody>
+      <div className="mt-4">
         {overview.isPending ? (
-          <div className="grid gap-3 sm:grid-cols-3" aria-busy="true">
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
-            <Skeleton className="h-24" />
+          <div className="grid gap-4 border-t border-subtle p-4 sm:p-5 md:grid-cols-3" aria-busy="true">
+            <Skeleton className="h-48" />
+            <Skeleton className="h-48" />
+            <Skeleton className="h-48" />
           </div>
         ) : overview.isError ? (
-          <ErrorState error={overview.error} onRetry={() => overview.refetch()} className="py-6" />
+          <ErrorState error={overview.error} onRetry={() => overview.refetch()} className="border-t border-subtle py-6" />
         ) : (
-          <div className="grid gap-6 sm:grid-cols-3">
+          <CurrencyColumns>
             {overview.data.currencies.map((row) => (
-              <section key={row.currency} aria-label={`Бюджет ${row.currency}`} className="grid content-start gap-3">
-                <h3 className="font-semibold">{row.currency}</h3>
-                <BudgetBar line={row.month} currency={row.currency as Currency} title="Месяц" />
-                <BudgetBar line={row.year} currency={row.currency as Currency} title="Год" />
-              </section>
+              <CurrencyBudget key={row.currency} row={row} month={month} year={year} />
             ))}
-          </div>
+          </CurrencyColumns>
         )}
-      </CardBody>
+      </div>
       {overview.data && <BudgetDialog overview={overview.data} open={open} onOpenChange={setOpen} />}
     </Card>
   )
