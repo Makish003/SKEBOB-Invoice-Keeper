@@ -235,10 +235,8 @@ function OccurrenceMiniList({
                   </span>
                 </div>
                 <span className="text-right font-semibold tabular">{formatMoney(occ.amount, occ.currency as Currency)}</span>
-                <div className="justify-self-start">
+                <div className="col-span-2 flex flex-wrap items-center justify-between gap-2">
                   <StatusBadge status={occ.display_status} />
-                </div>
-                <div className="justify-self-end">
                   <OccurrenceActions occ={occ} />
                 </div>
               </motion.li>
