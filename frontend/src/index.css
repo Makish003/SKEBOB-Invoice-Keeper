@@ -56,6 +56,8 @@
   --color-brand-accent: var(--brand-accent);
   --color-brand-line: var(--brand-line);
   --color-brand-pattern-line: var(--brand-pattern-line);
+  --color-brand-plate: var(--brand-plate);
+  --color-brand-plate-sidebar: var(--brand-plate-sidebar);
 
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);

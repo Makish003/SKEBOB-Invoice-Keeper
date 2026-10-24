@@ -212,8 +212,35 @@ function LoadingRows() {
   )
 }
 
+/** Сколько записей журнала за сегодня (`total` при `limit=1`); фильтр: категория или точное действие. */
+function useTodayCount(todayIso: string, filter: { category?: 'auth'; action?: string } = {}) {
+  return useQuery({
+    queryKey: ['audit', 'today-count', todayIso, filter],
+    queryFn: () =>
+      unwrap(api.GET('/api/v1/audit-log', { params: { query: { ...filter, date_from: todayIso, date_to: todayIso, limit: 1 } } })),
+    select: (data) => data.total,
+  })
+}
+
+function useTodayStats(todayIso: string) {
+  const all = useTodayCount(todayIso)
+  const logins = useTodayCount(todayIso, { action: 'auth.login.success' })
+  const auth = useTodayCount(todayIso, { category: 'auth' })
+  const counts = [all, logins, auth]
+  if (counts.some((c) => c.isError)) return undefined
+  const value = (n: number | undefined) => n ?? <Skeleton className="h-6 w-8" />
+  // Изменения: всё, кроме входов и выходов (платежи, оплаты, пользователи, бюджет).
+  const changes = all.data !== undefined && auth.data !== undefined ? all.data - auth.data : undefined
+  return [
+    { label: 'событий сегодня', value: value(all.data) },
+    { label: 'входов', value: value(logins.data) },
+    { label: 'изменений', value: value(changes) },
+  ]
+}
+
 export function AuditPage() {
-  const { today } = useAppInfo()
+  const { today, todayIso } = useAppInfo()
+  const stats = useTodayStats(todayIso)
   const reduce = useReducedMotion()
   const [params, setParams] = useSearchParams()
   const category = (categories.some((c) => c.value === params.get('category')) ? params.get('category') : 'all') as Category
@@ -248,7 +275,7 @@ export function AuditPage() {
 
   return (
     <Page>
-      <PageHeader title="Журнал" description="Кто, что и когда сделал: входы, платежи, оплаты, пользователи." />
+      <PageHeader title="Журнал" description="Кто, что и когда сделал: входы, платежи, оплаты, пользователи." stats={stats} />
       <div className="flex flex-wrap items-center gap-2">
         <Segmented<Category> label="Категория" value={category} onChange={(v) => update({ category: v === 'all' ? null : v })} options={categories} />
         <div className="relative w-full sm:w-64">

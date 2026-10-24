@@ -18,7 +18,6 @@ import { Dialog as DialogPrimitive } from 'radix-ui'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { toast } from 'sonner'
-import { BrandPattern } from '@/components/BrandPattern'
 import { Logo } from '@/components/Logo'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -33,6 +32,7 @@ import {
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useLogout } from '@/features/auth/api'
 import { useCurrentUser } from '@/features/auth/guards'
+import { MonthPlate } from '@/features/dashboard/MonthPlate'
 import { OverdueNav } from '@/features/occurrences/OverdueNav'
 import { cn } from '@/lib/cn'
 import { pageEnter, spring, useReducedMotion } from '@/lib/motion'
@@ -169,11 +169,12 @@ function UserMenu() {
   )
 }
 
-/** Основание боковой панели: фирменные линии уходят за левый, правый и нижний края (ADR-026). */
-function SidebarBase({ className }: { className?: string }) {
+/** Низ боковой панели: плитка месяца с фирменным паттерном (ADR-028) и профиль. На низком экране плитка уступает место меню. */
+function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <div className={cn('relative h-18 shrink-0', className)}>
-      <BrandPattern variant="strip" />
+    <div className="mt-auto grid gap-3">
+      <MonthPlate onNavigate={onNavigate} className="[@media(max-height:44rem)]:hidden" />
+      <UserMenu />
     </div>
   )
 }
@@ -194,10 +195,7 @@ function MobileNav() {
           <DialogPrimitive.Description className="sr-only">Разделы приложения</DialogPrimitive.Description>
           <Logo />
           <Navigation onNavigate={() => setOpen(false)} />
-          <div className="mt-auto">
-            <UserMenu />
-          </div>
-          <SidebarBase className="-mx-4 -mb-4" />
+          <SidebarFooter onNavigate={() => setOpen(false)} />
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -223,10 +221,7 @@ export function Shell() {
               <Logo />
             </div>
             <Navigation />
-            <div className="mt-auto">
-              <UserMenu />
-            </div>
-            <SidebarBase className="-mx-3 -mb-3" />
+            <SidebarFooter />
           </aside>
         </div>
 

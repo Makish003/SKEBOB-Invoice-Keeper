@@ -118,6 +118,10 @@
   --brand-line: var(--p-gray-0);
   /* Линии паттерна на поверхностях приложения (ADR-026): чёрные на светлой, светлые на тёмной, рельсы brand-accent. */
   --brand-pattern-line: var(--p-black);
+  /* Плитка с паттерном (ADR-028): шапка раздела и плитка месяца в боковой панели. В светлой теме светлая клавиша
+     (белая на фоне страницы, светло-серая на белой панели), в тёмной чёрная, как на стр. 22 гайдбука. */
+  --brand-plate: var(--p-gray-0);
+  --brand-plate-sidebar: var(--p-gray-25);
 
   /* --- type, space, shape, motion --- */
   --font-sans: 'Inter Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -203,6 +207,8 @@
   --key-cap: var(--p-ink-300);
   --key-wall: var(--p-ink-100);
   --brand-pattern-line: var(--p-ink-900);
+  --brand-plate: var(--p-ink-0);
+  --brand-plate-sidebar: var(--p-ink-0);
 
   --shadow-overlay: 0 0.5rem 1.5rem rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.06);
   --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.02);
