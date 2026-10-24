@@ -1,13 +1,25 @@
 import { cn } from '@/lib/cn'
+import { keyDownSound, keyUpSound } from '@/lib/key-sound'
 
 /**
  * Знак «Клавиша IK» (brand/README.md, ADR-025): клавиша Aéza, на ней I и K, у которой плечи образуют голубую галочку.
  * Геометрия из brand/svg/ik-symbol-small.svg (версия для 32 px и меньше), цвета через токены: в тёмной теме клавиша светлеет.
+ * Знак нажимается, как клавиша механической клавиатуры: уходит вниз (index.css, .ik-keycap) и щёлкает (lib/key-sound.ts).
  */
 export function Logo({ className }: { className?: string }) {
   return (
-    <span className={cn('icon-play inline-flex items-center gap-2.5 text-fg', className)}>
-      <svg viewBox="8 8 240 240" className="ik-keycap size-7 shrink-0" aria-hidden focusable="false">
+    <span className={cn('icon-play inline-flex items-center gap-2.5 text-fg select-none', className)}>
+      <svg
+        viewBox="8 8 240 240"
+        className="ik-keycap size-7 shrink-0"
+        aria-hidden
+        focusable="false"
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId)
+          keyDownSound()
+        }}
+        onPointerUp={() => keyUpSound()}
+      >
         <rect x="8" y="8" width="240" height="240" rx="60" className="fill-brand-key" />
         <path d="M45.25 56H81.25V198H45.25Z" className="fill-brand-key-fg" />
         <path

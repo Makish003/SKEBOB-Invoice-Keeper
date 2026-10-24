@@ -130,126 +130,87 @@
 }
 
 /*
- * Живые иконки. Хозяин жеста — элемент с классом icon-play (кнопка, пункт меню, раздел навигации);
- * lib/icon-play.ts ставит ему data-icon-play при наведении мышью, нажатии и фокусе с клавиатуры,
- * и иконка внутри один раз отыгрывает жест. Жест выбирается по смыслу иконки через её класс lucide-*.
- * Только transform (ADR-013); при prefers-reduced-motion скрипт не запускает жест вовсе.
+ * Живые иконки. Хозяин — элемент с классом icon-play (кнопка, пункт меню, раздел навигации, поле выбора).
+ * Пока на нём курсор или фокус с клавиатуры, иконка держит позу по своему смыслу (класс lucide-*),
+ * ушёл курсор — пружиной возвращается. Переход, а не keyframes: его можно прервать в любой точке,
+ * поэтому клик сразу после наведения ничего не перезапускает. На сенсорных экранах поза на время касания.
+ * Только transform (ADR-013); при prefers-reduced-motion позы нет.
  */
-[data-icon-play] :is(svg.lucide, .ik-keycap):not(.animate-spin) {
+.icon-play :is(svg.lucide, .ik-keycap):not(.animate-spin) {
   transform-origin: center;
-  animation: var(--icon-gesture, ik-icon-hop) var(--duration-play) var(--ease-spring);
+  transition: transform var(--duration-play) var(--ease-spring);
 }
 
-/* Плюс, крестик и солнце проворачиваются на четверть оборота: они симметричны, конец совпадает с началом. */
+@media (prefers-reduced-motion: no-preference) {
+  .icon-play:focus-visible :is(svg.lucide, .ik-keycap):not(.animate-spin) {
+    transform: var(--icon-pose);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .icon-play:hover :is(svg.lucide, .ik-keycap):not(.animate-spin) {
+    transform: var(--icon-pose);
+  }
+}
+
+@media (hover: none) and (prefers-reduced-motion: no-preference) {
+  .icon-play:active :is(svg.lucide, .ik-keycap):not(.animate-spin) {
+    transform: var(--icon-pose);
+  }
+}
+
+/* Поза по умолчанию: подпрыгнуть и наклониться (как у kyssltd.ru). Остальные переопределяют её по смыслу. */
+:where(svg.lucide) {
+  --icon-pose: translateY(calc(-1 * var(--icon-travel))) rotate(-10deg) scale(1.15);
+}
+/* Плюс, крестик и солнце на четверть оборота, «Обновить» на пол-оборота. */
 :is(.lucide-plus, .lucide-x, .lucide-sun) {
-  --icon-gesture: ik-icon-turn;
+  --icon-pose: rotate(90deg);
 }
 .lucide-refresh-cw {
-  --icon-gesture: ik-icon-turn;
-  --icon-turn: 360deg;
+  --icon-pose: rotate(180deg);
 }
-/* Удалить, напомнить, закрыто: покачивание, как у колокольчика. */
+/* Удалить, напомнить, закрыто, внимание: наклон, как у качнувшегося колокольчика. */
 :is(.lucide-trash-2, .lucide-bell-ring, .lucide-alarm-clock, .lucide-lock, .lucide-paperclip, .lucide-archive),
 .lucide-triangle-alert {
-  --icon-gesture: ik-icon-shake;
+  --icon-pose: rotate(-14deg) scale(1.1);
 }
-/* Стрелки двигаются туда, куда ведут. */
+/* Стрелки шагают туда, куда ведут. */
 :is(.lucide-arrow-right, .lucide-chevron-right, .lucide-log-out) {
-  --icon-gesture: ik-icon-shift;
+  --icon-pose: translateX(var(--icon-travel));
 }
 .lucide-chevron-left {
-  --icon-gesture: ik-icon-shift;
-  --icon-dx: calc(-1 * var(--icon-travel));
+  --icon-pose: translateX(calc(-1 * var(--icon-travel)));
 }
 .lucide-external-link {
-  --icon-gesture: ik-icon-shift;
-  --icon-dy: calc(-1 * var(--icon-travel));
+  --icon-pose: translate(var(--icon-travel), calc(-1 * var(--icon-travel)));
 }
 .lucide-upload {
-  --icon-gesture: ik-icon-shift;
-  --icon-dx: 0;
-  --icon-dy: calc(-1 * var(--icon-travel));
+  --icon-pose: translateY(calc(-1 * var(--icon-travel)));
 }
 .lucide-chevron-down {
-  --icon-gesture: ik-icon-shift;
-  --icon-dx: 0;
-  --icon-dy: var(--icon-travel);
+  --icon-pose: translateY(var(--icon-travel));
 }
-/* Отменить, история: стрелка отматывает назад и возвращается. */
+/* Отменить, история: стрелка отматывает назад. */
 :is(.lucide-undo-2, .lucide-history) {
-  --icon-gesture: ik-icon-tilt;
-  --icon-turn: -40deg;
+  --icon-pose: rotate(-40deg);
 }
-/* Готово: галочка «щёлкает». */
+/* Готово: галочка вырастает. */
 :is(.lucide-check, .lucide-circle-check, .lucide-calendar-check) {
-  --icon-gesture: ik-icon-pop;
+  --icon-pose: scale(1.25) rotate(-8deg);
 }
 .lucide-pencil {
-  --icon-gesture: ik-icon-scribble;
+  --icon-pose: translate(calc(-1 * var(--icon-travel) / 3), calc(var(--icon-travel) / 3)) rotate(-12deg);
 }
+
+/* Знак-клавиша: под курсором чуть приподнимается, при нажатии уходит вниз, как настоящая клавиша (звук — lib/key-sound.ts). */
 .ik-keycap {
-  --icon-gesture: ik-key-press;
+  --icon-pose: translateY(calc(-1 * var(--icon-travel) / 3));
 }
-
-@keyframes ik-icon-hop {
-  40% {
-    transform: translateY(calc(-1 * var(--icon-travel))) rotate(-10deg) scale(1.15);
-  }
-}
-
-@keyframes ik-icon-turn {
-  to {
-    transform: rotate(var(--icon-turn, 90deg));
-  }
-}
-
-@keyframes ik-icon-tilt {
-  40% {
-    transform: rotate(var(--icon-turn));
-  }
-}
-
-@keyframes ik-icon-shake {
-  20% {
-    transform: rotate(-14deg);
-  }
-  45% {
-    transform: rotate(10deg);
-  }
-  70% {
-    transform: rotate(-5deg);
-  }
-}
-
-@keyframes ik-icon-shift {
-  40% {
-    transform: translate(var(--icon-dx, var(--icon-travel)), var(--icon-dy, 0));
-  }
-}
-
-@keyframes ik-icon-pop {
-  40% {
-    transform: scale(1.3) rotate(-8deg);
-  }
-}
-
-@keyframes ik-icon-scribble {
-  25% {
-    transform: translate(calc(-1 * var(--icon-travel) / 3), calc(var(--icon-travel) / 3)) rotate(-12deg);
-  }
-  55% {
-    transform: translate(calc(var(--icon-travel) / 3), calc(-1 * var(--icon-travel) / 3)) rotate(6deg);
-  }
-  80% {
-    transform: rotate(-4deg);
-  }
-}
-
-/* Знак-клавиша нажимается, как настоящая клавиша. */
-@keyframes ik-key-press {
-  30% {
-    transform: translateY(calc(var(--icon-travel) / 2)) scale(0.92);
-  }
+/* Специфичность равна правилу наведения, правило ниже по тексту и побеждает. */
+.icon-play svg.ik-keycap:active:not(.animate-spin) {
+  transform: translateY(calc(var(--icon-travel) / 2)) scale(0.92);
+  transition-duration: var(--duration-fast);
 }
 
 @utility tabular {
