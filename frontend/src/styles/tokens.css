@@ -112,6 +112,19 @@
   --brand-key-wall: var(--p-gray-600);
   --key-cap: var(--p-gray-0);
   --key-wall: var(--p-gray-300);
+  /* Кейкап у кнопок с иконкой (P-29): стенки рисуются рамкой внутри границ элемента; цвета выводятся из лица клавиши,
+     поэтому объявлены один раз и следуют за темой. Передняя стенка темнее боковин: свет сверху. */
+  --key-wall-back: 1px;
+  --key-wall-side: 0.125rem;
+  --key-wall-front: 0.25rem;
+  --key-front: color-mix(in oklab, var(--key-wall) 80%, var(--p-black));
+  --key-brand-front: color-mix(in oklab, var(--brand-tile-wall) 70%, var(--p-black));
+  --key-primary-wall: color-mix(in oklab, var(--action-primary-hover) 78%, var(--p-black));
+  --key-primary-front: color-mix(in oklab, var(--action-primary-hover) 60%, var(--p-black));
+  --key-destructive-wall: color-mix(in oklab, var(--action-destructive-hover) 75%, var(--p-black));
+  --key-destructive-front: color-mix(in oklab, var(--action-destructive-hover) 55%, var(--p-black));
+  --key-danger-wall: color-mix(in oklab, var(--feedback-danger-bg) 72%, var(--feedback-danger));
+  --key-danger-front: color-mix(in oklab, var(--feedback-danger-bg) 50%, var(--feedback-danger));
   /* Брендовая панель (вход) одинакова в обеих темах: чёрный фон, светлый текст, голубой акцент. */
   --brand-panel: var(--p-black);
   --brand-panel-fg: var(--p-gray-25);

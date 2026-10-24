@@ -138,25 +138,25 @@
  * поэтому клик сразу после наведения ничего не перезапускает. На сенсорных экранах поза на время касания.
  * Только transform (ADR-013); при prefers-reduced-motion позы нет.
  */
-.icon-play :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-tile *) {
+.icon-play :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-key *) {
   transform-origin: center;
   transition: transform var(--duration-play) var(--ease-spring);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .icon-play:focus-visible :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-tile *) {
+  .icon-play:focus-visible :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-key *) {
     transform: var(--icon-pose);
   }
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .icon-play:hover :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-tile *) {
+  .icon-play:hover :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-key *) {
     transform: var(--icon-pose);
   }
 }
 
 @media (hover: none) and (prefers-reduced-motion: no-preference) {
-  .icon-play:active :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-tile *) {
+  .icon-play:active :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-key *) {
     transform: var(--icon-pose);
   }
 }
@@ -206,36 +206,147 @@
 }
 
 /*
- * Иконка на плитке (раздел навигации) — кейкап механической клавиатуры (ADR-025). В покое вид сверху: плоская плитка.
- * Под курсором или фокусом клавиша наклоняется верхом от зрителя, вокруг колпачка (.ik-tile-cap) появляется
- * юбка (.ik-skirt, components/KeySkirt.tsx): основание шире площадки, боковины сужаются кверху, передняя стенка
- * самая высокая. Площадка вогнутая (::before). Нажатие опускает колпачок, юбка проседает к основанию,
- * площадка уходит в тень прогиба (::after). Отпустили — пружиной обратно. Иконка своей позы не держит
- * (исключена через .ik-tile * выше). Двигаются только transform и opacity (ADR-013);
- * при prefers-reduced-motion клавиша остаётся плоской.
+ * Кейкап механической клавиатуры (ADR-025): кнопки с иконкой, плитки навигации, ссылка просрочки на сводке.
+ * Элемент .ik-key сам становится клавишей в своих границах: рамка — юбка (задняя стенка 1 px, боковины,
+ * передняя стенка выше всех и темнее), фон — площадка. Стыки рамки дают скошенные грани, как у кейкапа.
+ * В покое рамка прозрачная, и элемент выглядит как раньше. Под курсором или фокусом клавиша наклоняется
+ * верхом от зрителя (перспектива сужает её кверху) и рамка окрашивается в стенки; нажатие опускает клавишу
+ * и затеняет площадку (::before). Хозяин наведения — сам элемент или предок .ik-key-host (строка навигации).
+ * Только у элементов с иконкой (:has(> svg)); иконка своей позы не держит (исключена через .ik-key * выше).
+ * Двигаются только transform и opacity (ADR-013), цвета стенок меняются переходом, как у любого наведения.
+ * При prefers-reduced-motion клавиша остаётся плоской.
  */
-.ik-tile {
-  --key-depth: var(--icon-travel);
-  --tile-cap: var(--key-cap);
-  --tile-wall: var(--key-wall);
+.ik-key {
+  --kc-face: var(--key-cap);
+  --kc-wall: var(--key-wall);
+  --kc-front: var(--key-front);
+}
+
+.ik-key-brand {
+  --kc-face: var(--brand-tile);
+  --kc-wall: var(--brand-tile-wall);
+  --kc-front: var(--key-brand-front);
+}
+
+.ik-key-primary {
+  --kc-face: var(--action-primary-hover);
+  --kc-wall: var(--key-primary-wall);
+  --kc-front: var(--key-primary-front);
+}
+
+.ik-key-destructive {
+  --kc-face: var(--action-destructive-hover);
+  --kc-wall: var(--key-destructive-wall);
+  --kc-front: var(--key-destructive-front);
+}
+
+.ik-key-danger {
+  --kc-face: var(--feedback-danger-bg);
+  --kc-wall: var(--key-danger-wall);
+  --kc-front: var(--key-danger-front);
+}
+
+.ik-key:has(> svg) {
   position: relative;
+  border-style: solid;
+  border-width: var(--key-wall-back) var(--key-wall-side) var(--key-wall-front);
+  border-color: transparent;
   transform-origin: center;
-  transition: transform var(--duration-play) var(--ease-spring);
+  transition:
+    transform var(--duration-play) var(--ease-spring),
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 
-.icon-play[aria-current='page'] .ik-tile {
-  --tile-cap: var(--brand-tile);
-  --tile-wall: var(--brand-tile-wall);
+/* Прогиб: площадка уходит в тень, как под пальцем. */
+.ik-key:has(> svg)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.22), transparent 75%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-/* Юбка в координатах плитки 28×28: 4 px с боков, 2 px сверху, 6 px снизу (в процентах, чтобы не держать px). */
+/* Обводка вторичной кнопки в покое: рамку занимают стенки, поэтому обводка — отдельный слой по внешнему краю. */
+.ik-key-ring:has(> svg)::after {
+  content: '';
+  position: absolute;
+  inset: calc(-1 * var(--key-wall-back)) calc(-1 * var(--key-wall-side)) calc(-1 * var(--key-wall-front));
+  border: 1px solid var(--border-default);
+  border-radius: inherit;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .ik-key-host:focus-visible .ik-key:has(> svg),
+  .ik-key:focus-visible:has(> svg) {
+    transform: perspective(12rem) rotateX(16deg);
+    background-color: var(--kc-face);
+    border-color: var(--kc-wall) var(--kc-wall) var(--kc-front);
+  }
+
+  .ik-key-ring:focus-visible:has(> svg)::after {
+    opacity: 0;
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .ik-key-host:hover .ik-key:has(> svg),
+  .ik-key:hover:has(> svg) {
+    transform: perspective(12rem) rotateX(16deg);
+    background-color: var(--kc-face);
+    border-color: var(--kc-wall) var(--kc-wall) var(--kc-front);
+  }
+
+  .ik-key-ring:hover:has(> svg)::after {
+    opacity: 0;
+  }
+}
+
+/* Нажатие ниже наведения по тексту: при равной специфичности побеждает оно. Работает и на сенсорных экранах. */
+@media (prefers-reduced-motion: no-preference) {
+  .ik-key-host:active .ik-key:has(> svg),
+  .ik-key:active:has(> svg) {
+    transform: perspective(12rem) rotateX(16deg) translateY(var(--key-wall-side)) scale(0.97);
+    scale: none;
+    background-color: var(--kc-face);
+    border-color: var(--kc-wall) var(--kc-wall) var(--kc-front);
+    transition-duration: var(--duration-fast);
+  }
+
+  .ik-key-host:active .ik-key:has(> svg)::before,
+  .ik-key:active:has(> svg)::before {
+    opacity: 1;
+  }
+
+  .ik-key-ring:active:has(> svg)::after {
+    opacity: 0;
+  }
+}
+
+/*
+ * Знак-клавиша IK (логотип): под курсором чуть приподнимается, а кейкапом встаёт только при нажатии:
+ * наклоняется, показывает юбку (components/KeySkirt.tsx), колпачок уходит вниз с тенью прогиба
+ * (звук — lib/key-sound.ts). Рамкой, как у кнопок, знак не рисуется: она изменила бы геометрию знака в покое.
+ */
+.ik-keycap {
+  --icon-pose: translateY(calc(-1 * var(--icon-travel) / 3));
+  --key-depth: var(--icon-travel);
+}
+
+/* Юбка в координатах знака 28×28: 4 px с боков, 2 px сверху, 6 px снизу (в процентах, чтобы не держать px). */
 .ik-skirt {
   position: absolute;
   inset: -7.1429% -14.2857% -21.4286%;
   width: 128.5714%;
   height: 128.5714%;
   overflow: visible;
-  fill: var(--tile-wall);
+  fill: var(--brand-key-wall);
   filter: drop-shadow(var(--shadow-key));
   opacity: 0;
   transform-origin: 50% 100%;
@@ -249,18 +360,13 @@
   fill: rgb(0 0 0 / 0.22);
 }
 
-.ik-tile-cap,
 .ik-keycap-cap {
   position: relative;
   isolation: isolate;
-  transition:
-    transform var(--duration-play) var(--ease-spring),
-    color var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
+  transition: transform var(--duration-play) var(--ease-spring);
 }
 
-/* Вогнутая площадка: тень у дальнего края, блик у ближнего; под иконкой (z-index внутри колпачка). */
-.ik-tile-cap::before,
+/* Вогнутая площадка: тень у дальнего края, блик у ближнего; под знаком (z-index внутри колпачка). */
 .ik-keycap-cap::before {
   content: '';
   position: absolute;
@@ -273,7 +379,6 @@
 }
 
 /* Прогиб: площадка уходит в тень, как под пальцем. */
-.ik-tile-cap::after,
 .ik-keycap-cap::after {
   content: '';
   position: absolute;
@@ -282,67 +387,6 @@
   background: linear-gradient(to bottom, rgb(0 0 0 / 0.3), transparent 75%);
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-out);
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .icon-play:is(:focus-visible, :active) .ik-tile {
-    transform: perspective(4rem) rotateX(20deg);
-  }
-
-  .icon-play:is(:focus-visible, :active) .ik-skirt,
-  .icon-play:is(:focus-visible, :active) .ik-tile-cap::before {
-    opacity: 1;
-  }
-
-  .icon-play:focus-visible .ik-tile-cap {
-    transform: translateY(calc(-1 * var(--key-depth) / 3));
-    background-color: var(--tile-cap);
-  }
-}
-
-@media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .icon-play:hover .ik-tile {
-    transform: perspective(4rem) rotateX(20deg);
-  }
-
-  .icon-play:hover .ik-skirt,
-  .icon-play:hover .ik-tile-cap::before {
-    opacity: 1;
-  }
-
-  .icon-play:hover .ik-tile-cap {
-    transform: translateY(calc(-1 * var(--key-depth) / 3));
-    background-color: var(--tile-cap);
-  }
-}
-
-/* Нажатие ниже наведения по тексту: при равной специфичности побеждает оно. */
-@media (prefers-reduced-motion: no-preference) {
-  .icon-play:active .ik-tile-cap {
-    transform: translateY(calc(var(--key-depth) * 2 / 3)) scale(0.97);
-    background-color: var(--tile-cap);
-    transition-duration: var(--duration-fast);
-  }
-
-  .icon-play:active .ik-tile .ik-skirt {
-    transform: scaleY(0.9);
-    transition-duration: var(--duration-fast);
-  }
-
-  .icon-play:active .ik-tile-cap::after {
-    opacity: 1;
-  }
-}
-
-/*
- * Знак-клавиша IK (логотип): под курсором чуть приподнимается, а кейкапом встаёт только при нажатии:
- * наклоняется, как плитка навигации, показывает юбку, колпачок уходит вниз с тенью прогиба (звук — lib/key-sound.ts).
- * Юбка, вогнутая площадка и тень прогиба общие с плиткой (.ik-tile выше).
- */
-.ik-keycap {
-  --icon-pose: translateY(calc(-1 * var(--icon-travel) / 3));
-  --key-depth: var(--icon-travel);
-  --tile-wall: var(--brand-key-wall);
 }
 
 @media (prefers-reduced-motion: no-preference) {
