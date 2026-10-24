@@ -10,7 +10,7 @@ export const buttonVariants = cva(
     'inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md font-medium select-none',
     'transition-control outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
     'disabled:pointer-events-none disabled:opacity-50 aria-busy:cursor-progress active:scale-[0.98] motion-reduce:active:scale-100',
-    // С иконкой кнопка становится кейкапом (index.css, .ik-key): под курсором встаёт клавишей, при нажатии опускается.
+    // Любая кнопка, с иконкой и без, становится кейкапом (index.css, .ik-key): под курсором встаёт клавишей, при нажатии опускается.
     'icon-play ik-key [&_svg]:size-4 [&_svg]:shrink-0',
   ],
   {

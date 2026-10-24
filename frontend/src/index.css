@@ -206,13 +206,13 @@
 }
 
 /*
- * Кейкап механической клавиатуры (ADR-025): кнопки с иконкой, плитки навигации, ссылка просрочки на сводке.
+ * Кейкап механической клавиатуры (ADR-025): все кнопки (Button), плитки навигации, ссылка просрочки на сводке.
  * Элемент .ik-key сам становится клавишей в своих границах: рамка — юбка (задняя стенка 1 px, боковины,
  * передняя стенка выше всех и темнее), фон — площадка. Стыки рамки дают скошенные грани, как у кейкапа.
  * В покое рамка прозрачная, и элемент выглядит как раньше. Под курсором или фокусом клавиша наклоняется
  * верхом от зрителя (перспектива сужает её кверху) и рамка окрашивается в стенки; нажатие опускает клавишу
  * и затеняет площадку (::before). Хозяин наведения — сам элемент или предок .ik-key-host (строка навигации).
- * Только у элементов с иконкой (:has(> svg)); иконка своей позы не держит (исключена через .ik-key * выше).
+ * Иконка на клавише своей позы не держит (исключена через .ik-key * выше).
  * Двигаются только transform и opacity (ADR-013), цвета стенок меняются переходом, как у любого наведения.
  * При prefers-reduced-motion клавиша остаётся плоской.
  */
@@ -246,7 +246,7 @@
   --kc-front: var(--key-danger-front);
 }
 
-.ik-key:has(> svg) {
+.ik-key {
   position: relative;
   border-style: solid;
   border-width: var(--key-wall-back) var(--key-wall-side) var(--key-wall-front);
@@ -260,7 +260,7 @@
 }
 
 /* Прогиб: площадка уходит в тень, как под пальцем. */
-.ik-key:has(> svg)::before {
+.ik-key::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -272,7 +272,7 @@
 }
 
 /* Обводка вторичной кнопки в покое: рамку занимают стенки, поэтому обводка — отдельный слой по внешнему краю. */
-.ik-key-ring:has(> svg)::after {
+.ik-key-ring::after {
   content: '';
   position: absolute;
   inset: calc(-1 * var(--key-wall-back)) calc(-1 * var(--key-wall-side)) calc(-1 * var(--key-wall-front));
@@ -283,35 +283,35 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .ik-key-host:focus-visible .ik-key:has(> svg),
-  .ik-key:focus-visible:has(> svg) {
+  .ik-key-host:focus-visible .ik-key,
+  .ik-key:focus-visible {
     transform: perspective(12rem) rotateX(16deg);
     background-color: var(--kc-face);
     border-color: var(--kc-wall) var(--kc-wall) var(--kc-front);
   }
 
-  .ik-key-ring:focus-visible:has(> svg)::after {
+  .ik-key-ring:focus-visible::after {
     opacity: 0;
   }
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .ik-key-host:hover .ik-key:has(> svg),
-  .ik-key:hover:has(> svg) {
+  .ik-key-host:hover .ik-key,
+  .ik-key:hover {
     transform: perspective(12rem) rotateX(16deg);
     background-color: var(--kc-face);
     border-color: var(--kc-wall) var(--kc-wall) var(--kc-front);
   }
 
-  .ik-key-ring:hover:has(> svg)::after {
+  .ik-key-ring:hover::after {
     opacity: 0;
   }
 }
 
 /* Нажатие ниже наведения по тексту: при равной специфичности побеждает оно. Работает и на сенсорных экранах. */
 @media (prefers-reduced-motion: no-preference) {
-  .ik-key-host:active .ik-key:has(> svg),
-  .ik-key:active:has(> svg) {
+  .ik-key-host:active .ik-key,
+  .ik-key:active {
     transform: perspective(12rem) rotateX(16deg) translateY(var(--key-wall-side)) scale(0.97);
     scale: none;
     background-color: var(--kc-face);
@@ -319,12 +319,12 @@
     transition-duration: var(--duration-fast);
   }
 
-  .ik-key-host:active .ik-key:has(> svg)::before,
-  .ik-key:active:has(> svg)::before {
+  .ik-key-host:active .ik-key::before,
+  .ik-key:active::before {
     opacity: 1;
   }
 
-  .ik-key-ring:active:has(> svg)::after {
+  .ik-key-ring:active::after {
     opacity: 0;
   }
 }
