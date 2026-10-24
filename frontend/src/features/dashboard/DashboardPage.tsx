@@ -4,7 +4,6 @@ import { ArrowRight, CalendarClock, CircleCheck, TriangleAlert } from 'lucide-re
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
-import { BrandPattern } from '@/components/BrandPattern'
 import { MonthSwitcher } from '@/components/MonthSwitcher'
 import { Page, PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -129,9 +128,7 @@ function Hero({
   // Просрочка в боковой панели считает все месяцы, здесь только выбранный: разницу называем явно.
   const earlier = isCurrent ? Math.max(overdueAllTime - overdue, 0) : 0
   return (
-    <Card className="relative isolate grid gap-6 overflow-hidden p-5 sm:p-6 lg:grid-cols-2 lg:items-end">
-      {/* На телефоне карточка в одну колонку, и линии угла легли бы на подпись: показываем с sm. */}
-      <BrandPattern variant="corner" className="-z-10 hidden sm:block" />
+    <Card className="grid gap-6 p-5 sm:p-6 lg:grid-cols-2 lg:items-end">
       <div className="grid gap-2">
         <span className="text-fg-secondary">{isCurrent ? 'Осталось оплатить в этом месяце' : 'Не оплачено в этом месяце'}</span>
         <div className="flex items-baseline gap-3">

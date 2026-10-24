@@ -170,7 +170,7 @@ function UserMenu() {
 /** Основание боковой панели: фирменные линии уходят за левый, правый и нижний края (ADR-026). */
 function SidebarBase({ className }: { className?: string }) {
   return (
-    <div className={cn('relative h-22 shrink-0', className)}>
+    <div className={cn('relative h-18 shrink-0', className)}>
       <BrandPattern variant="strip" />
     </div>
   )
