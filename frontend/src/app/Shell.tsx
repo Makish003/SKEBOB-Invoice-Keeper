@@ -18,6 +18,7 @@ import { Dialog as DialogPrimitive } from 'radix-ui'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { toast } from 'sonner'
+import { BrandPattern } from '@/components/BrandPattern'
 import { Logo } from '@/components/Logo'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -166,6 +167,15 @@ function UserMenu() {
   )
 }
 
+/** Основание боковой панели: фирменные линии уходят за левый, правый и нижний края (ADR-026). */
+function SidebarBase({ className }: { className?: string }) {
+  return (
+    <div className={cn('relative h-22 shrink-0', className)}>
+      <BrandPattern variant="strip" />
+    </div>
+  )
+}
+
 function MobileNav() {
   const [open, setOpen] = useState(false)
   return (
@@ -185,6 +195,7 @@ function MobileNav() {
           <div className="mt-auto">
             <UserMenu />
           </div>
+          <SidebarBase className="-mx-4 -mb-4" />
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
     </DialogPrimitive.Root>
@@ -213,6 +224,7 @@ export function Shell() {
             <div className="mt-auto">
               <UserMenu />
             </div>
+            <SidebarBase className="-mx-3 -mb-3" />
           </aside>
         </div>
 

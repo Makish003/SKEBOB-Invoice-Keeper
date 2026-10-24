@@ -55,6 +55,7 @@
   --color-brand-panel-fg-secondary: var(--brand-panel-fg-secondary);
   --color-brand-accent: var(--brand-accent);
   --color-brand-line: var(--brand-line);
+  --color-brand-pattern-line: var(--brand-pattern-line);
 
   --font-sans: var(--font-sans);
   --font-display: var(--font-display);

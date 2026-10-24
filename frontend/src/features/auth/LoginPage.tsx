@@ -58,7 +58,8 @@ export function LoginPage() {
     <div className="grid min-h-dvh grid-cols-1 bg-raised lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <main className="flex flex-col px-6 py-8 sm:px-12">
         <Logo />
-        <div className="flex flex-1 items-center">
+        {/* Форма по центру колонки: прижатая к логотипу, она оставляла пустой правую половину экрана. */}
+        <div className="flex flex-1 items-center justify-center">
           <form onSubmit={onSubmit} noValidate className="grid w-full max-w-sm gap-6 py-12">
             <div className="grid gap-2">
               <h1 className="font-display text-4xl leading-none font-extrabold uppercase">Вход</h1>
@@ -97,10 +98,10 @@ export function LoginPage() {
             </Button>
           </form>
         </div>
-        <p className="text-xs text-fg-tertiary">Учётную запись выдаёт администратор.</p>
+        <p className="mx-auto w-full max-w-sm text-xs text-fg-tertiary">Учётную запись выдаёт администратор.</p>
       </main>
 
-      <aside className="relative hidden overflow-hidden bg-brand-panel text-brand-panel-fg lg:flex lg:flex-col lg:justify-between">
+      <aside className="relative hidden overflow-hidden bg-brand-panel text-brand-panel-fg lg:flex lg:flex-col lg:justify-between lg:gap-12">
         <div className="grid max-w-lg gap-10 px-12 pt-16">
           <p className="font-display text-5xl leading-[1.05] font-extrabold text-brand-accent uppercase">
             Ни один регулярный платёж не останется без внимания
@@ -117,7 +118,10 @@ export function LoginPage() {
             ))}
           </ul>
         </div>
-        <BrandPattern className="h-56 w-full" />
+        {/* Отдельный блок под текстом: линии паттерна уходят за левый, правый и нижний края панели. */}
+        <div className="relative h-44 shrink-0 2xl:h-64">
+          <BrandPattern variant="panel" tone="panel" />
+        </div>
       </aside>
     </div>
   )

@@ -111,6 +111,8 @@
   --brand-panel-fg-secondary: var(--p-gray-300);
   --brand-accent: var(--p-cyan-400);
   --brand-line: var(--p-gray-0);
+  /* Линии паттерна на поверхностях приложения (ADR-026): чёрные на светлой, светлые на тёмной, рельсы brand-accent. */
+  --brand-pattern-line: var(--p-black);
 
   /* --- type, space, shape, motion --- */
   --font-sans: 'Inter Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -186,6 +188,7 @@
   --brand-key-fg: var(--p-black);
   --brand-tile: var(--p-navy-500);
   --brand-tile-fg: var(--p-cyan-400);
+  --brand-pattern-line: var(--p-ink-900);
 
   --shadow-overlay: 0 0.5rem 1.5rem rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.06);
   --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.02);
