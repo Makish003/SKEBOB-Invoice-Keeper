@@ -17,7 +17,7 @@ from app.models import Currency, OccurrenceStatus, PaymentOccurrence, RecurringP
 from app.schemas.common import errors
 from app.schemas.payments import Occurrence, OccurrenceList, OccurrencePatch
 from app.services import audit
-from app.services.occurrences import ensure_all, get_occurrence, occurrence_query, to_schema
+from app.services.occurrences import refresh_periods, get_occurrence, occurrence_query, to_schema
 
 router = APIRouter(prefix="/payment-occurrences", tags=["Периоды оплаты"])
 
@@ -69,8 +69,7 @@ def list_occurrences(
     user: User = Depends(current_user),
 ) -> OccurrenceList:
     settings, today = get_settings(), clock.today()
-    ensure_all(db, today, settings.generation_horizon_days)
-    db.commit()
+    refresh_periods(db, today, settings.generation_horizon_days)
 
     conditions: list[ColumnElement[bool]] = []
     if not include_deleted:

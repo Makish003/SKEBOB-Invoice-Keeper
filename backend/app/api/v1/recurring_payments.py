@@ -11,9 +11,9 @@ from app.core.db import get_db
 from app.core.errors import not_found, unprocessable
 from app.models import OccurrenceStatus, PaymentOccurrence, RecurringPayment as PaymentModel, User
 from app.schemas.common import errors
-from app.schemas.payments import RecurringPayment, RecurringPaymentCreate, RecurringPaymentList
+from app.schemas.payments import Occurrence, RecurringPayment, RecurringPaymentCreate, RecurringPaymentList
 from app.services import audit
-from app.services.occurrences import ensure_all, ensure_for_payment, occurrence_query, to_schema
+from app.services.occurrences import ensure_for_payment, next_occurrences, occurrence_query, refresh_periods, to_schema
 from app.services.reminders import cancel_open_for_payment, enqueue_due
 
 router = APIRouter(prefix="/recurring-payments", tags=["Регулярные платежи"])
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/recurring-payments", tags=["Регулярные п�
 MAX_YEARS_FROM_TODAY = 10
 
 
-def _next_occurrence(db: Session, payment: PaymentModel, today: date, settings: Settings):  # type: ignore[no-untyped-def]
+def _next_occurrence(db: Session, payment: PaymentModel, today: date, settings: Settings) -> Occurrence | None:
     if not payment.is_active:
         return None
     row = db.execute(
@@ -34,6 +34,10 @@ def _next_occurrence(db: Session, payment: PaymentModel, today: date, settings: 
 
 
 def _to_schema(db: Session, payment: PaymentModel, today: date, settings: Settings) -> RecurringPayment:
+    return _build(payment, _next_occurrence(db, payment, today, settings))
+
+
+def _build(payment: PaymentModel, next_occurrence: Occurrence | None) -> RecurringPayment:
     return RecurringPayment(
         id=payment.id,
         name=payment.name,
@@ -45,7 +49,7 @@ def _to_schema(db: Session, payment: PaymentModel, today: date, settings: Settin
         is_active=payment.is_active,
         created_at=payment.created_at,
         deleted_at=payment.deleted_at,
-        next_occurrence=_next_occurrence(db, payment, today, settings),
+        next_occurrence=next_occurrence,
     )
 
 
@@ -70,12 +74,12 @@ def list_recurring_payments(
     user: User = Depends(current_user),
 ) -> RecurringPaymentList:
     settings, today = get_settings(), clock.today()
-    ensure_all(db, today, settings.generation_horizon_days)
-    db.commit()
+    refresh_periods(db, today, settings.generation_horizon_days)
     query = select(PaymentModel).order_by(PaymentModel.deleted_at.desc().nulls_first(), PaymentModel.name, PaymentModel.id)
     if not include_deleted:
         query = query.where(PaymentModel.deleted_at.is_(None))
-    items = [_to_schema(db, payment, today, settings) for payment in db.scalars(query)]
+    upcoming = next_occurrences(db, today, settings)
+    items = [_build(payment, upcoming.get(payment.id) if payment.is_active else None) for payment in db.scalars(query)]
     return RecurringPaymentList(items=items, total=len(items))
 
 

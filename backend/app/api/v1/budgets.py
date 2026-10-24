@@ -18,7 +18,7 @@ from app.core.db import get_db
 from app.models import Budget, Currency, OccurrenceStatus, PaymentOccurrence, RecurringPayment, User
 from app.schemas.common import Money, errors
 from app.services import audit
-from app.services.occurrences import ensure_all
+from app.services.occurrences import refresh_periods
 
 router = APIRouter(prefix="/budgets", tags=["Бюджет"])
 
@@ -86,8 +86,7 @@ def budget_overview(
 ) -> BudgetOverview:
     today = clock.today()
     year, month = year or today.year, month or today.month
-    ensure_all(db, today, get_settings().generation_horizon_days)
-    db.commit()
+    refresh_periods(db, today, get_settings().generation_horizon_days)
     month_sums = _sums(db, date(year, month, 1), date(year, month, calendar.monthrange(year, month)[1]))
     year_sums = _sums(db, date(year, 1, 1), date(year, 12, 31))
     budgets = {

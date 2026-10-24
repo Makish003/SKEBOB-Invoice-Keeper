@@ -13,7 +13,7 @@ from app.core.errors import unprocessable
 from app.models import Currency, OccurrenceStatus, PaymentOccurrence, RecurringPayment, User
 from app.schemas.common import errors
 from app.schemas.payments import CurrencySummary, Summary, SummaryPeriod
-from app.services.occurrences import ensure_all
+from app.services.occurrences import refresh_periods
 
 router = APIRouter(prefix="/payments", tags=["Итоги"])
 
@@ -52,8 +52,7 @@ def payments_summary(
     if date_from > date_to:
         raise unprocessable("Начало интервала позже конца: проверьте due_from и due_to")
 
-    ensure_all(db, today, settings.generation_horizon_days)
-    db.commit()
+    refresh_periods(db, today, settings.generation_horizon_days)
 
     paid_by = and_(PaymentOccurrence.status == OccurrenceStatus.paid, PaymentOccurrence.paid_at <= as_of_date)
     overdue_by = and_(PaymentOccurrence.due_date < as_of_date, not_(paid_by))

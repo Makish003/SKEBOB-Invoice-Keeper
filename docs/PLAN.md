@@ -364,9 +364,11 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 
 - [x] **P-01** (ANY) E2E на изолированном стенде (`compose.e2e.yml`: проект `invoice-keeper-e2e`, порт 8081, свои тома, каналы выключены) + `app.scripts.reset_demo` (в production — только `--force`).
   ↳ done: P-01 · проверка: `pytest tests/api/test_reset_demo.py` → 2 passed; `compose config` → name invoice-keeper-e2e, том invoice-keeper-e2e_pgdata, порт 8081
-- [ ] **P-02** (BACK) Материализация периодов за 1 запрос без записи в установившемся режиме; GET не делает commit без изменений.
-- [ ] **P-03** (BACK) N+1 в `GET /recurring-payments`: ближайшие периоды одним запросом (`DISTINCT ON`).
-- [ ] **P-04** (BACK+FRONT) Редактирование регулярного платежа: `PATCH /recurring-payments/{id}` (название, описание, сумма текущих и будущих неоплаченных периодов), ADR-021.
+- [x] **P-02** (BACK) Материализация периодов за 1 запрос без записи в установившемся режиме; GET не делает commit без изменений (ADR-021).
+  ↳ done: P-02 · проверка: red — `test_query_budget` 7→21 / 6→13 / 5→12 / 7→14 запросов при 2→9 платежах и COMMIT на каждом GET; green — 8 passed; `pytest` → 272 passed
+- [x] **P-03** (BACK) N+1 в `GET /recurring-payments`: ближайшие периоды одним запросом (`DISTINCT ON`).
+  ↳ done: P-03 · проверка: тот же `test_query_budget` (число запросов списка не зависит от числа платежей) → passed
+- [ ] **P-04** (BACK+FRONT) Редактирование регулярного платежа: `PATCH /recurring-payments/{id}` (название, описание, сумма текущих и будущих неоплаченных периодов), ADR-022.
 - [ ] **P-05** (BACK) Сервисный слой для отметки оплаты и чеков; старый файл чека удаляется только после commit (баг).
 - [ ] **P-06** (BACK) Воркер: обращения к БД при доставке — вне event loop (`asyncio.to_thread`).
 - [ ] **P-07** (FRONT) Vitest; правила статуса и оптимистичного обновления — с порогом из `app-info`, а не «3».
@@ -462,6 +464,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 08:50 · SOLO · DEPLOY · Деплой на VPS aeza: оверлей `deploy/compose.https.yml` + `deploy/Caddyfile` (Let's Encrypt для DOMAIN, /api напрямую в backend с реальным X-Forwarded-For, web без публичного порта); базовый compose и запуск по README не тронуты · — · `compose config` (web ports: None, caddy 80/443) + `caddy validate` → Valid configuration · не баг-фикс, но вне кода приложения — freeze M4 не нарушает
 - 2026-10-24 09:05 · SOLO · FIX-UI · Мобильная Сводка: в строках «Просрочено»/«Ближайшие 7 дней» бейдж статуса наезжал на «Отметить оплату», название обрезалось до «Google …». Бейдж и действия вынесены в отдельный ряд на всю ширину с flex-wrap (как в Календаре) · — · браузер 360px, шрифт 100% и 140%: пересечений 0, выхода за край 0, ширина названия ≥167px; `docker compose up --build` (сборка web) ок
 - 2026-10-24 12:00 · SOLO · P-01 · Фаза 5 (ADR-020). E2E вынесены на стенд compose.e2e.yml (:8081, свои тома, без Telegram/SMTP/webhook) — демо-база на :8080 больше не засоряется «E2E Хостинг …»; reset_demo возвращает демо-набор за секунды · P-01 · test_reset_demo 2 passed · ADR-020
+- 2026-10-24 12:40 · SOLO · P-02, P-03 · GET-списки больше не масштабируются по числу платежей: материализация — один SELECT с GROUP BY и один INSERT при нехватке, без COMMIT в установившемся режиме; ближайшие периоды списка — DISTINCT ON · P-02 · test_query_budget red→green, 272 passed · ADR-021
 
 ## 10. Эскалации и блокеры
 
