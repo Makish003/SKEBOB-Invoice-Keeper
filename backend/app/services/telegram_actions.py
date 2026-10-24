@@ -1,7 +1,7 @@
 """Отметка оплаты из Telegram: кнопка «Оплачено» в напоминании (FR-B1) и кнопки карточки периода в меню бота.
 
 callback_data напоминания = "pay:<occurrence_id>:<hmac16>" — подпись от SECRET_KEY, иначе любой участник чата смог бы
-сформировать callback для чужого периода. Нажатие принимается только из чата TELEGRAM_CHAT_ID.
+сформировать callback для чужого периода. Нажатие принимается только из чатов TELEGRAM_CHAT_ID.
 Кнопки меню проверяют доступ в боте на каждое нажатие (участник командного чата), поэтому без подписи.
 """
 
@@ -54,13 +54,13 @@ def handle_pay_callback(
     *,
     data: str,
     chat_id: str,
-    allowed_chat_id: str,
+    allowed_chat_ids: tuple[str, ...],
     username: str,
     today: date,
     secret: str,
 ) -> PayResult:
     occurrence_id = _parse(data, secret)
-    if occurrence_id is None or str(chat_id) != str(allowed_chat_id):
+    if occurrence_id is None or str(chat_id) not in allowed_chat_ids:
         return PayResult("forbidden", "Кнопка недействительна")
     return set_paid(sessions, occurrence_id, paid=True, username=username, today=today)
 

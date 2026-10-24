@@ -16,8 +16,9 @@ MESSAGE = ReminderMessage(1, 2, "Сервер Hetzner", Decimal("49.90"), "USD",
 
 
 class FakeBot:
-    def __init__(self, error: Exception | None = None) -> None:
+    def __init__(self, error: Exception | None = None, failing: set[str] | None = None) -> None:
         self.error = error
+        self.failing = failing or set()
         self.calls: list[tuple[str, str, str]] = []
 
     async def send_message(
@@ -26,14 +27,16 @@ class FakeBot:
         self.markup = reply_markup
         if self.error:
             raise self.error
+        if chat_id in self.failing:
+            raise OSError(f"chat {chat_id} unavailable")
         self.calls.append((chat_id, text, parse_mode))
-        return SimpleNamespace(message_id=42)
+        return SimpleNamespace(message_id=40 + len(self.calls))
 
 
 def test_telegram_sends_html_to_configured_chat() -> None:
     bot = FakeBot()
-    external_id = asyncio.run(TelegramNotifier(bot, "-100123", "s3cret").send(MESSAGE))  # type: ignore[arg-type]
-    assert external_id == "42"
+    external_id = asyncio.run(TelegramNotifier(bot, ("-100123",), "s3cret").send(MESSAGE))  # type: ignore[arg-type]
+    assert external_id == "41"
     chat_id, text, mode = bot.calls[0]
     assert (chat_id, mode) == ("-100123", "HTML")
     assert "Сервер Hetzner" in text and "49,90 USD" in text and "26.10.2026 (сегодня)" in text
@@ -43,7 +46,27 @@ def test_telegram_sends_html_to_configured_chat() -> None:
 
 def test_telegram_network_error_becomes_notifier_error() -> None:
     with pytest.raises(NotifierError):
-        asyncio.run(TelegramNotifier(FakeBot(OSError("network down")), "1", "s3cret").send(MESSAGE))  # type: ignore[arg-type]
+        asyncio.run(TelegramNotifier(FakeBot(OSError("network down")), ("1",), "s3cret").send(MESSAGE))  # type: ignore[arg-type]
+
+
+def test_telegram_sends_to_every_configured_chat() -> None:
+    bot = FakeBot()
+    external_id = asyncio.run(TelegramNotifier(bot, ("-100123", "555"), "s3cret").send(MESSAGE))  # type: ignore[arg-type]
+    assert [call[0] for call in bot.calls] == ["-100123", "555"]
+    assert external_id == "41,42"
+
+
+def test_telegram_chat_failure_does_not_fail_the_rest(caplog: pytest.LogCaptureFixture) -> None:
+    # Повтор отправил бы напоминание и в чаты, где оно уже дошло; неудачный чат (бот не запущен в личке) — предупреждение.
+    bot = FakeBot(failing={"555"})
+    with caplog.at_level(logging.WARNING):
+        assert asyncio.run(TelegramNotifier(bot, ("-100123", "555"), "s3cret").send(MESSAGE)) == "41"  # type: ignore[arg-type]
+    assert "555" in caplog.text
+
+
+def test_telegram_fails_when_no_chat_received_it() -> None:
+    with pytest.raises(NotifierError):
+        asyncio.run(TelegramNotifier(FakeBot(failing={"1", "2"}), ("1", "2"), "s3cret").send(MESSAGE))  # type: ignore[arg-type]
 
 
 def test_console_logs_reminder(caplog: pytest.LogCaptureFixture) -> None:

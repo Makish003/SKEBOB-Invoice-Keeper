@@ -203,9 +203,35 @@ def test_configure_sets_commands_descriptions_and_menu_button() -> None:
     assert isinstance(local.of(SetChatMenuButton)[0].menu_button, MenuButtonCommands)
 
 
+def test_private_chat_listed_in_settings_is_allowed_without_membership_check(occurrence: int) -> None:
+    session = feed(text_update("/upcoming", chat_id=STRANGER, user_id=STRANGER), telegram_chat_id=f"{CHAT}, {STRANGER}")
+    [sent] = session.of(SendMessage)
+    assert sent.chat_id == STRANGER and "Ближайшие сроки" in sent.text
+    assert session.of(GetChatMember) == []
+
+
+class OnlyInTeamChat(RecordingSession):
+    """MEMBER состоит только в CHAT, в остальных группах его нет."""
+
+    async def make_request(self, bot: Bot, method: TelegramMethod[Any], timeout: int | None = None) -> Any:
+        if isinstance(method, GetChatMember) and str(method.chat_id) != str(CHAT):
+            self.calls.append(method)
+            return ChatMemberLeft(user=User(id=method.user_id, is_bot=False, first_name="U"))
+        return await super().make_request(bot, method, timeout)
+
+
+def test_member_of_any_listed_group_is_allowed() -> None:
+    session = OnlyInTeamChat({MEMBER})
+    bot, access = Bot("42:TEST", session=session), Access((str(STRANGER), "-100999", str(CHAT)))
+    assert asyncio.run(access.allows(bot, Chat(id=MEMBER, type="private"), MEMBER))
+    assert asyncio.run(access.allows(bot, Chat(id=-100999, type="supergroup"), STRANGER))
+    # личные чаты из списка — не группы: членство в них не запрашивается
+    assert [call.chat_id for call in session.of(GetChatMember)] == ["-100999", str(CHAT)]
+
+
 def test_access_caches_membership_for_ttl() -> None:
     session, now = RecordingSession({MEMBER}), [0.0]
-    bot, access = Bot("42:TEST", session=session), Access(str(CHAT), now=lambda: now[0])
+    bot, access = Bot("42:TEST", session=session), Access((str(CHAT),), now=lambda: now[0])
     private = Chat(id=MEMBER, type="private")
     assert asyncio.run(access.allows(bot, private, MEMBER))
     assert asyncio.run(access.allows(bot, private, MEMBER)) and len(session.of(GetChatMember)) == 1

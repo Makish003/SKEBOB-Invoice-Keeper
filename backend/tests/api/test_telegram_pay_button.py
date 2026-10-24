@@ -26,9 +26,9 @@ def occurrence_id(client: TestClient, headers: dict[str, str]) -> int:
     ).json()["items"][0]["id"]
 
 
-def press(data: str, chat: str = CHAT, user: str = "ivan", today: date = date(2026, 10, 23)) -> PayResult:
+def press(data: str, chat: str = CHAT, user: str = "ivan", today: date = date(2026, 10, 23), allowed: tuple[str, ...] = (CHAT,)) -> PayResult:
     return handle_pay_callback(
-        get_sessionmaker(), data=data, chat_id=chat, allowed_chat_id=CHAT, username=user, today=today, secret=SECRET
+        get_sessionmaker(), data=data, chat_id=chat, allowed_chat_ids=allowed, username=user, today=today, secret=SECRET
     )
 
 
@@ -72,6 +72,11 @@ def test_other_chat_is_rejected(client: TestClient, db: Session, admin_headers: 
     occ = occurrence_id(client, admin_headers)
     assert press(pay_callback_data(occ, SECRET), chat="-100999").status == "forbidden"
     assert db.get(PaymentOccurrence, occ).status == OccurrenceStatus.unpaid  # type: ignore[union-attr]
+
+
+def test_any_configured_chat_is_accepted(client: TestClient, db: Session, admin_headers: dict[str, str]) -> None:
+    occ = occurrence_id(client, admin_headers)
+    assert press(pay_callback_data(occ, SECRET), chat="555", allowed=(CHAT, "555")).status == "paid"
 
 
 def test_missing_period(client: TestClient, admin_headers: dict[str, str]) -> None:

@@ -1,6 +1,7 @@
 """Telegram-бот (long polling, ADR-003): упрощённая панель в чате и кнопка «Оплачено» в напоминаниях (FR-B1, FR-B10).
 
-Меню доступно в командном чате TELEGRAM_CHAT_ID и в личных чатах его участников (проверка get_chat_member с кешем).
+Меню доступно в чатах из TELEGRAM_CHAT_ID (их может быть несколько) и в личных чатах участников этих групп
+(проверка get_chat_member с кешем).
 Экраны строятся в app.services.telegram_screens, здесь — только команды, кнопки и настройка бота.
 """
 
@@ -93,34 +94,44 @@ MEMBER_STATUSES = {ChatMemberStatus.CREATOR, ChatMemberStatus.ADMINISTRATOR, Cha
 
 
 class Access:
-    """Кто может открыть меню: командный чат и личные чаты его участников. Членство кешируется на TTL."""
+    """Кто может открыть меню: чаты из TELEGRAM_CHAT_ID и личные чаты участников групп из него.
+
+    Положительный id — личный чат (пускаем по id), отрицательный — группа (её участников проверяем get_chat_member).
+    Членство кешируется на TTL.
+    """
 
     TTL_SECONDS = 300
 
-    def __init__(self, allowed_chat_id: str, now: Callable[[], float] = time.monotonic) -> None:
-        self.allowed_chat_id = str(allowed_chat_id)
+    def __init__(self, allowed_chat_ids: tuple[str, ...], now: Callable[[], float] = time.monotonic) -> None:
+        self.allowed_chat_ids = allowed_chat_ids
+        self.groups = tuple(chat_id for chat_id in allowed_chat_ids if chat_id.startswith("-"))
         self.now = now
         self._members: dict[int, tuple[bool, float]] = {}
 
     async def allows(self, bot: Bot, chat: Chat, user_id: int | None) -> bool:
-        if not self.allowed_chat_id:
-            return False
-        if str(chat.id) == self.allowed_chat_id:
+        if str(chat.id) in self.allowed_chat_ids:
             return True
-        if chat.type != ChatType.PRIVATE or user_id is None:
+        if chat.type != ChatType.PRIVATE or user_id is None or not self.groups:
             return False
         cached = self._members.get(user_id)
         if cached and self.now() - cached[1] < self.TTL_SECONDS:
             return cached[0]
-        try:
-            member = await bot.get_chat_member(self.allowed_chat_id, user_id)
-        except TelegramAPIError as exc:  # бот не в чате, пользователь не найден — не участник
-            log.info("Membership check for %s failed: %s", user_id, exc)
-            allowed = False
-        else:
-            allowed = member.status in MEMBER_STATUSES and getattr(member, "is_member", True)
+        allowed = False
+        for group in self.groups:
+            if await self._is_member(bot, group, user_id):
+                allowed = True
+                break
         self._members[user_id] = (allowed, self.now())
         return allowed
+
+    @staticmethod
+    async def _is_member(bot: Bot, group: str, user_id: int) -> bool:
+        try:
+            member = await bot.get_chat_member(group, user_id)
+        except TelegramAPIError as exc:  # бот не в чате, пользователь не найден — не участник
+            log.info("Membership check for %s in %s failed: %s", user_id, group, exc)
+            return False
+        return member.status in MEMBER_STATUSES and getattr(member, "is_member", True)
 
 
 def start_text(reminder_days: int) -> str:
@@ -131,7 +142,7 @@ def start_text(reminder_days: int) -> str:
 
 
 def denied_text(settings: Settings) -> str:
-    if not settings.telegram_chat_id:
+    if not settings.telegram_chat_ids:
         return (
             "Бот ещё не подключён к командному чату. Добавьте меня в чат команды, отправьте там /chatid "
             "и укажите id в .env (TELEGRAM_CHAT_ID)."
@@ -200,7 +211,7 @@ async def configure(bot: Bot, settings: Settings) -> None:
 
 def build_dispatcher(sessions: sessionmaker[Session], clock: Clock, settings: Settings) -> Dispatcher:
     router = Router(name="bot")
-    access = Access(settings.telegram_chat_id)
+    access = Access(settings.telegram_chat_ids)
     links = Links(settings.site_url)
 
     async def render(build: Build, chat: Chat) -> Screen:
@@ -326,7 +337,7 @@ def build_dispatcher(sessions: sessionmaker[Session], clock: Clock, settings: Se
             sessions,
             data=callback.data or "",
             chat_id=chat_id,
-            allowed_chat_id=settings.telegram_chat_id,
+            allowed_chat_ids=settings.telegram_chat_ids,
             username=callback.from_user.username or "",
             today=clock.today(),
             secret=settings.secret_key,

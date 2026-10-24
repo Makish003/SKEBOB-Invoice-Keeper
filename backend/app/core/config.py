@@ -1,5 +1,6 @@
 """Настройки приложения из переменных окружения (.env, см. .env.example)."""
 
+import re
 from datetime import date
 from functools import lru_cache
 from typing import Literal
@@ -45,7 +46,7 @@ class Settings(BaseSettings):
 
     # --- Telegram ---
     telegram_bot_token: str = ""
-    telegram_chat_id: str = ""
+    telegram_chat_id: str = ""  # один id или список; разобранный — telegram_chat_ids
     # Адрес панели для кнопок бота. Пусто — https://DOMAIN (сервер) или http://localhost:WEB_PORT (локально).
     public_url: str = ""
     domain: str = ""
@@ -80,8 +81,13 @@ class Settings(BaseSettings):
         return self
 
     @property
+    def telegram_chat_ids(self) -> tuple[str, ...]:
+        """TELEGRAM_CHAT_ID может быть списком: «-100777, 652749973» (запятая, точка с запятой или пробел)."""
+        return tuple(dict.fromkeys(part for part in re.split(r"[\s,;]+", self.telegram_chat_id) if part))
+
+    @property
     def telegram_enabled(self) -> bool:
-        return bool(self.telegram_bot_token and self.telegram_chat_id)
+        return bool(self.telegram_bot_token and self.telegram_chat_ids)
 
     @property
     def site_url(self) -> str:

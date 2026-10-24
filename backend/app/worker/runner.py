@@ -42,10 +42,10 @@ async def run() -> None:
     bot = Bot(settings.telegram_bot_token) if settings.telegram_bot_token else None
     notifiers: dict[Channel, Notifier] = {Channel.console: ConsoleNotifier()}
     links = Links(settings.site_url)
-    if bot and settings.telegram_chat_id:
+    if bot and settings.telegram_chat_ids:
         site_url = links.url("/payments", tab="due") if links.clickable else None
-        notifiers[Channel.telegram] = TelegramNotifier(bot, settings.telegram_chat_id, settings.secret_key, site_url)
-        log.info("Reminders → Telegram chat %s", settings.telegram_chat_id)
+        notifiers[Channel.telegram] = TelegramNotifier(bot, settings.telegram_chat_ids, settings.secret_key, site_url)
+        log.info("Reminders → Telegram chats %s", ", ".join(settings.telegram_chat_ids))
     elif bot:
         log.warning("TELEGRAM_CHAT_ID пуст: напоминания пишутся в лог. Отправьте боту /chatid в нужном чате")
     else:
