@@ -13,6 +13,7 @@ import {
   Users,
   type LucideIcon,
 } from 'lucide-react'
+import { LayoutGroup, motion } from 'motion/react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
@@ -31,7 +32,9 @@ import {
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useLogout } from '@/features/auth/api'
 import { useCurrentUser } from '@/features/auth/guards'
+import { OverdueNav } from '@/features/occurrences/OverdueNav'
 import { cn } from '@/lib/cn'
+import { spring, useReducedMotion } from '@/lib/motion'
 import { type ThemePreference, useTheme } from '@/lib/theme'
 
 interface NavItem {
@@ -54,39 +57,49 @@ export const navItems: NavItem[] = [
 function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const user = useCurrentUser()
   const items = navItems.filter((item) => !item.adminOnly || user.role === 'admin')
+  const reduce = useReducedMotion()
+  // LayoutGroup: когда под «Платежами» раскрывается просрочка, пункты ниже съезжают анимацией transform.
   return (
-    <nav aria-label="Основная навигация" className="grid gap-0.5">
-      {items.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === '/'}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              'flex h-10 items-center gap-2.5 rounded-md px-2 text-sm font-medium transition-control outline-none',
-              'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
-              isActive ? 'bg-sunken text-fg' : 'text-fg-secondary hover:bg-secondary-hover hover:text-fg',
-            )
-          }
-        >
-          {({ isActive }) => (
-            <>
-              {/* Иконка на фирменной плитке: чёрная клавиша с голубым знаком у активного раздела. */}
-              <span
-                className={cn(
-                  'flex size-7 shrink-0 items-center justify-center rounded-sm transition-control',
-                  isActive ? 'bg-brand-tile text-brand-tile-fg' : 'text-fg-tertiary',
-                )}
-              >
-                <Icon className="size-4" aria-hidden />
-              </span>
-              {label}
-            </>
-          )}
-        </NavLink>
-      ))}
-    </nav>
+    <LayoutGroup>
+      <motion.nav
+        layoutScroll
+        aria-label="Основная навигация"
+        className="-mx-1 grid min-h-0 content-start gap-0.5 overflow-y-auto px-1 pb-1"
+      >
+        {items.map(({ to, label, icon: Icon }) => (
+          <motion.div key={to} layout="position" transition={reduce ? { duration: 0 } : spring} className="grid gap-0.5">
+            <NavLink
+              to={to}
+              end={to === '/'}
+              onClick={onNavigate}
+              className={({ isActive }) =>
+                cn(
+                  'flex h-10 items-center gap-2.5 rounded-md px-2 text-sm font-medium transition-control outline-none',
+                  'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
+                  isActive ? 'bg-sunken text-fg' : 'text-fg-secondary hover:bg-secondary-hover hover:text-fg',
+                )
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  {/* Иконка на фирменной плитке: чёрная клавиша с голубым знаком у активного раздела. */}
+                  <span
+                    className={cn(
+                      'flex size-7 shrink-0 items-center justify-center rounded-sm transition-control',
+                      isActive ? 'bg-brand-tile text-brand-tile-fg' : 'text-fg-tertiary',
+                    )}
+                  >
+                    <Icon className="size-4" aria-hidden />
+                  </span>
+                  {label}
+                </>
+              )}
+            </NavLink>
+            {to === '/payments' && <OverdueNav onNavigate={onNavigate} />}
+          </motion.div>
+        ))}
+      </motion.nav>
+    </LayoutGroup>
   )
 }
 

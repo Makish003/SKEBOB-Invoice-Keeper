@@ -13,6 +13,7 @@ import { EmptyState, ErrorState } from '@/components/ui/states'
 import { useAppInfo } from '@/features/app-info'
 import { type Occurrence, useOccurrences } from '@/features/occurrences/api'
 import { OccurrenceActions } from '@/features/occurrences/OccurrenceActions'
+import { overdueHref } from '@/features/occurrences/OverdueNav'
 import { StatusBadge } from '@/features/occurrences/StatusBadge'
 import { type BudgetOverview, useBudgetOverview } from '@/features/reports/api'
 import { cn } from '@/lib/cn'
@@ -124,7 +125,7 @@ function Hero({
   const overdue = rows.reduce((sum, r) => sum + r.count_overdue, 0)
   const total = rows.reduce((sum, r) => sum + r.count_total, 0)
   const paid = total - count
-  // Список «Все просроченные» считает все месяцы, здесь только выбранный: разницу называем явно.
+  // Просрочка в боковой панели считает все месяцы, здесь только выбранный: разницу называем явно.
   const earlier = isCurrent ? Math.max(overdueAllTime - overdue, 0) : 0
   return (
     <Card className="grid gap-6 p-5 sm:p-6 lg:grid-cols-2 lg:items-end">
@@ -137,14 +138,17 @@ function Hero({
           <span className="text-lg text-fg-secondary">{payments(count)}</span>
         </div>
         {overdue > 0 || earlier > 0 ? (
-          <p className="flex items-start gap-1.5 font-medium text-danger">
+          <Link
+            to={overdueHref()}
+            className="flex items-start gap-1.5 justify-self-start rounded-sm font-medium text-danger underline-offset-4 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+          >
             <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
               {overdue > 0 && `Из них ${overdue} ${pluralize(overdue, { one: 'просрочен', few: 'просрочены', many: 'просрочены' })}`}
               {overdue > 0 && earlier > 0 && ', '}
               {earlier > 0 && `${overdue > 0 ? 'ещё' : 'Ещё'} ${earlier} ${pluralize(earlier, { one: 'платёж просрочен', few: 'платежа просрочены', many: 'платежей просрочено' })} в прошлых месяцах`}
             </span>
-          </p>
+          </Link>
         ) : total > 0 ? (
           <p className="flex items-center gap-1.5 text-success">
             <CircleCheck className="size-4" aria-hidden />
@@ -233,7 +237,10 @@ function OccurrenceMiniList({
               <motion.li
                 key={occ.id}
                 variants={reduce ? reduced : fadeUp}
-                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0"
+                className={cn(
+                  'grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 py-3 first:pt-0 last:pb-0',
+                  'md:grid-cols-[minmax(0,1fr)_11rem_10rem_auto] md:gap-x-6',
+                )}
               >
                 <div className="grid min-w-0">
                   <span className="truncate font-medium">{occ.recurring_payment.name}</span>
@@ -241,9 +248,14 @@ function OccurrenceMiniList({
                     {formatDate(occ.due_date)}, {relativeDue(occ.days_until_due)}
                   </span>
                 </div>
-                <span className="text-right font-semibold tabular">{formatMoney(occ.amount, occ.currency as Currency)}</span>
-                <div className="col-span-2 flex flex-wrap items-center justify-between gap-2">
+                {/* Телефон: имя и сумма, под ними статус и действия. Шире: всё в одну строку. */}
+                <span className="text-right font-semibold tabular md:col-start-3 md:row-start-1">
+                  {formatMoney(occ.amount, occ.currency as Currency)}
+                </span>
+                <div className="justify-self-start md:col-start-2 md:row-start-1">
                   <StatusBadge status={occ.display_status} />
+                </div>
+                <div className="justify-self-end md:col-start-4 md:row-start-1">
                   <OccurrenceActions occ={occ} />
                 </div>
               </motion.li>
@@ -267,7 +279,8 @@ export function DashboardPage() {
     sort: 'due_date',
     limit: 6,
   })
-  const overdue = useOccurrences({ status: 'unpaid', overdue: true, sort: 'due_date', limit: 6 })
+  // Сами просрочки показаны в боковой панели; здесь нужен только их счёт для героя.
+  const overdue = useOccurrences({ status: 'unpaid', overdue: true, sort: 'due_date', limit: 1 })
   const budget = useBudgetOverview(current.getFullYear(), current.getMonth() + 1)
   const budgetFor = (currency: string) => budget.data?.currencies.find((c) => c.currency === currency)?.month
   const reduce = useReducedMotion()
@@ -313,30 +326,17 @@ export function DashboardPage() {
         </motion.div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <OccurrenceMiniList
-          title="Все просроченные"
-          icon={<TriangleAlert aria-hidden />}
-          items={overdue.data?.items ?? []}
-          total={overdue.data?.total ?? 0}
-          isPending={overdue.isPending}
-          error={overdue.error}
-          onRetry={() => overdue.refetch()}
-          emptyTitle="Просроченных платежей нет"
-          link="/payments?tab=overdue"
-        />
-        <OccurrenceMiniList
-          title="Ближайшие 7 дней"
-          icon={<CalendarClock aria-hidden />}
-          items={upcoming.data?.items ?? []}
-          total={upcoming.data?.total ?? 0}
-          isPending={upcoming.isPending}
-          error={upcoming.error}
-          onRetry={() => upcoming.refetch()}
-          emptyTitle="В ближайшую неделю платить нечего"
-          link="/payments"
-        />
-      </div>
+      <OccurrenceMiniList
+        title="Ближайшие 7 дней"
+        icon={<CalendarClock aria-hidden />}
+        items={upcoming.data?.items ?? []}
+        total={upcoming.data?.total ?? 0}
+        isPending={upcoming.isPending}
+        error={upcoming.error}
+        onRetry={() => upcoming.refetch()}
+        emptyTitle="В ближайшую неделю платить нечего"
+        link="/payments"
+      />
 
     </Page>
   )

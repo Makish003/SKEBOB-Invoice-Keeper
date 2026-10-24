@@ -11,11 +11,12 @@ export type OccurrenceQuery = NonNullable<paths['/api/v1/payment-occurrences']['
 
 export const occurrencesKey = ['occurrences'] as const
 
-export function useOccurrences(query: OccurrenceQuery) {
+export function useOccurrences(query: OccurrenceQuery, options?: { refetchInterval?: number }) {
   return useQuery({
     queryKey: [...occurrencesKey, query],
     queryFn: () => unwrap(api.GET('/api/v1/payment-occurrences', { params: { query } })),
     placeholderData: keepPreviousData,
+    ...options,
   })
 }
 

@@ -65,6 +65,8 @@ function useFilters() {
   const q = params.get('q') ?? ''
   const page = Math.max(1, Number(params.get('page')) || 1)
   const archived = params.get('archived') === '1'
+  // Платёж, по которому пришли из просрочки в боковой панели: показываем первым и подсвечиваем.
+  const focus = tab === 'overdue' ? Number(params.get('focus')) || null : null
 
   const update = (patch: Record<string, string | null>, resetPage = true) =>
     setParams(
@@ -76,7 +78,7 @@ function useFilters() {
       },
       { replace: true },
     )
-  return { tab, currency, period, q, page, archived, update }
+  return { tab, currency, period, q, page, archived, focus, update }
 }
 
 function StatusCell({ occ }: { occ: Occurrence }) {
@@ -147,7 +149,7 @@ function LoadingRows() {
 }
 
 export function PaymentsPage() {
-  const { tab, currency, period, q, page, archived, update } = useFilters()
+  const { tab, currency, period, q, page, archived, focus, update } = useFilters()
   const { today } = useAppInfo()
   const reduce = useReducedMotion()
   const searchRef = useRef<HTMLInputElement>(null)
@@ -178,7 +180,8 @@ export function PaymentsPage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const items = list.data?.items ?? []
+  const listed = list.data?.items ?? []
+  const items = focus ? [...listed].sort((a, b) => Number(b.id === focus) - Number(a.id === focus)) : listed
   const total = list.data?.total ?? 0
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const filtered = Boolean(currency || q || archived || period !== 'any')
@@ -194,7 +197,7 @@ export function PaymentsPage() {
         <Segmented<Tab>
           label="Показать периоды"
           value={tab}
-          onChange={(value) => update({ tab: value === 'due' ? null : value })}
+          onChange={(value) => update({ tab: value === 'due' ? null : value, focus: null })}
           options={[
             { value: 'due', label: 'К оплате', count: dueCount.data?.total },
             { value: 'overdue', label: 'Просрочено', count: overdueCount.data?.total },
@@ -319,7 +322,7 @@ export function PaymentsPage() {
                   </tr>
                 </THead>
                 <motion.tbody
-                  key={`${tab}-${page}`}
+                  key={`${tab}-${page}-${focus}`}
                   initial="hidden"
                   animate="show"
                   variants={stagger(0.025)}
@@ -329,7 +332,8 @@ export function PaymentsPage() {
                     <motion.tr
                       key={occ.id}
                       variants={variants}
-                      className="border-b border-subtle transition-control hover:bg-page"
+                      aria-current={occ.id === focus ? 'true' : undefined}
+                      className="border-b border-subtle transition-control hover:bg-page aria-[current=true]:bg-danger-bg"
                     >
                       <TD className="max-w-64 pl-4">
                         <NameCell occ={occ} />
@@ -370,7 +374,7 @@ export function PaymentsPage() {
             </div>
 
             <motion.ul
-              key={`m-${tab}-${page}`}
+              key={`m-${tab}-${page}-${focus}`}
               initial="hidden"
               animate="show"
               variants={stagger(0.03)}
@@ -378,7 +382,12 @@ export function PaymentsPage() {
               aria-label="Периоды платежей"
             >
               {items.map((occ) => (
-                <motion.li key={occ.id} variants={variants} className="px-4 py-3">
+                <motion.li
+                  key={occ.id}
+                  variants={variants}
+                  aria-current={occ.id === focus ? 'true' : undefined}
+                  className="px-4 py-3 aria-[current=true]:bg-danger-bg"
+                >
                   <MobileRow occ={occ} />
                 </motion.li>
               ))}
