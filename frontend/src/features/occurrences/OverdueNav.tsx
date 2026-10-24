@@ -1,6 +1,6 @@
 import { TriangleAlert } from 'lucide-react'
 import { AnimatePresence, motion, type Transition } from 'motion/react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router'
 import { cn } from '@/lib/cn'
 import { days, pluralize } from '@/lib/format'
@@ -10,6 +10,10 @@ import { type Occurrence, type OccurrenceList, useOccurrences } from './api'
 const VISIBLE = 5
 /** Срок истекает в полночь, а не по действию пользователя: список переспрашиваем раз в минуту. */
 const POLL_MS = 60_000
+/** Через сколько после входа на сайт просрочка раскрывается из «Платежей». */
+const REVEAL_DELAY_MS = 2000
+/** Раскрыто один раз до перезагрузки страницы: мобильное меню монтирует список заново и не должно ждать снова. */
+let revealedThisLoad = false
 
 /** id → «просрочка появилась после первой загрузки». */
 type Known = Map<number, boolean>
@@ -25,8 +29,9 @@ function track(prev: Known | null, items: Occurrence[]): Known {
 export const overdueHref = (id?: number) => `/payments?tab=overdue${id ? `&focus=${id}` : ''}`
 
 /**
- * Просроченные платежи подстрокой под «Платежами». Раскрываются после загрузки; платёж, просроченный
- * уже при открытой странице, въезжает с подсветкой. Скрыть список нельзя: он уходит с последней просрочкой.
+ * Просроченные платежи подстрокой под «Платежами». Через пару секунд после входа выезжают каскадом из-под
+ * пункта «Платежи» и остаются открытыми до перезагрузки; платёж, просроченный уже при открытой странице,
+ * въезжает сбоку с подсветкой. Скрыть список нельзя: он уходит с последней просрочкой.
  * Пункты меню ниже сдвигаются через layout-анимацию (transform), см. LayoutGroup в Shell.
  */
 export function OverdueNav({ onNavigate }: { onNavigate?: () => void }) {
@@ -41,12 +46,24 @@ export function OverdueNav({ onNavigate }: { onNavigate?: () => void }) {
   if (overdue.data && overdue.data !== seen.data) setSeen({ data: overdue.data, known: track(seen.known, items) })
   const fresh = (id: number) => seen.known?.get(id) ?? false
 
+  const [revealed, setRevealed] = useState(revealedThisLoad)
+  useEffect(() => {
+    if (revealed) return
+    const timer = setTimeout(() => {
+      revealedThisLoad = true
+      setRevealed(true)
+    }, REVEAL_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [revealed])
+
   const move: Transition = reduce ? { duration: 0 } : spring
+  // Раскрытие: пункт выезжает из-под «Платежей» (чем ниже, тем длиннее путь). Новая просрочка: сбоку.
+  const unfold = (index: number) => (reduce ? { opacity: 0 } : { opacity: 0, y: -24 * (index + 1), scale: 0.96 })
   const enter = reduce ? { opacity: 0 } : { opacity: 0, x: -8 }
 
   return (
     <AnimatePresence mode="popLayout">
-      {items.length > 0 && (
+      {revealed && items.length > 0 && (
         <motion.div key="overdue" layout="position" transition={move} exit={{ opacity: 0 }} className="ml-9 grid gap-0.5 pb-1">
           <ul aria-label="Просроченные платежи" className="grid gap-0.5">
             <AnimatePresence mode="popLayout">
@@ -54,8 +71,8 @@ export function OverdueNav({ onNavigate }: { onNavigate?: () => void }) {
                 <motion.li
                   key={occ.id}
                   layout="position"
-                  initial={enter}
-                  animate={{ opacity: 1, x: 0, transition: reduce ? { duration: 0 } : { ...spring, delay: index * 0.05 } }}
+                  initial={fresh(occ.id) ? enter : unfold(index)}
+                  animate={{ opacity: 1, x: 0, y: 0, scale: 1, transition: reduce ? { duration: 0 } : { ...spring, delay: index * 0.07 } }}
                   exit={{ ...enter, transition: { duration: reduce ? 0 : 0.15 } }}
                   transition={move}
                 >

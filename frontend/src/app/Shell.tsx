@@ -16,7 +16,7 @@ import {
 import { LayoutGroup, motion } from 'motion/react'
 import { Dialog as DialogPrimitive } from 'radix-ui'
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Logo } from '@/components/Logo'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +34,7 @@ import { useLogout } from '@/features/auth/api'
 import { useCurrentUser } from '@/features/auth/guards'
 import { OverdueNav } from '@/features/occurrences/OverdueNav'
 import { cn } from '@/lib/cn'
-import { spring, useReducedMotion } from '@/lib/motion'
+import { pageEnter, spring, useReducedMotion } from '@/lib/motion'
 import { type ThemePreference, useTheme } from '@/lib/theme'
 
 interface NavItem {
@@ -193,6 +193,8 @@ function MobileNav() {
 
 export function Shell() {
   const user = useCurrentUser()
+  const { pathname } = useLocation()
+  const reduce = useReducedMotion()
   return (
     <TooltipProvider delayDuration={300}>
       <a
@@ -225,7 +227,10 @@ export function Shell() {
         </header>
 
         <main id="content" tabIndex={-1} className="min-w-0 outline-none">
-          <Outlet />
+          {/* Ключ по пути: смена раздела проигрывает вход страницы, смена фильтров (search) нет. */}
+          <motion.div key={pathname} initial={reduce ? false : 'hidden'} animate="show" variants={pageEnter}>
+            <Outlet />
+          </motion.div>
         </main>
       </div>
     </TooltipProvider>
