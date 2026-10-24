@@ -13,7 +13,7 @@ import { cn } from '@/lib/cn'
  * - `card`: та же композиция в миниатюре на плитке месяца в боковой панели (ADR-028). Текст правее
  *   акцентной вертикали и ниже её поворота (`cardText`);
  * - `header`: шапка раздела (ADR-028). Горизонтали на всю ширину внизу, вертикали и оба поворота
- *   (акцентный и цвета линий) в правой части, текст слева над горизонталями (`headerText`).
+ *   (акцентный и цвета линий) в правой части, текст слева над горизонталями (`headerText`, `headerRails`).
  *   На узком экране вертикали прижаты к правому краю, второго поворота нет.
  *
  * Контейнер родителя должен быть `relative overflow-hidden`. Декорация, скрыта от скринридеров.
@@ -31,8 +31,10 @@ export const patternMetrics: Record<Variant, string> = {
 export const panelText = 'pl-[calc(var(--p)*7.5)] pb-[calc(var(--p)*9)]'
 /** Текст плитки месяца: правее акцентной вертикали, ниже её поворота. */
 export const cardText = 'left-[calc(var(--p)*7)] top-[calc(var(--p)*4.4)] right-[calc(var(--p)*1.4)]'
-/** Текст шапки: левее вертикалей и выше горизонталей. */
-export const headerText = 'pr-[calc(100%-var(--x)+var(--p)*2)] pb-[calc(var(--p)*3.5+1.75rem)]'
+/** Текст шапки: левее вертикалей. */
+export const headerText = 'pr-[calc(100%-var(--x)+var(--p)*2)]'
+/** Место под горизонталями шапки, чтобы текст и действия их не касались. */
+export const headerRails = 'h-[calc(var(--p)*3.5+1.75rem)]'
 
 // Полные имена классов: Tailwind не видит классы, собранные из частей.
 const tones = {
@@ -55,7 +57,8 @@ function Rail({ y, className }: { y: string; className: string }) {
 /** Вертикаль от верхнего до нижнего края, `x`: центр линии от левого края. */
 function Post({ x, className }: { x: string; className: string }) {
   return (
-    <span className={cn('absolute w-(--s)', className)} style={{ top: bleed, bottom: bleed, left: v(`${x} - var(--s) / 2`) }} />
+    // data-line: e2e проверяет, что текст и действия шапки не заходят на вертикали.
+    <span data-line="post" className={cn('absolute w-(--s)', className)} style={{ top: bleed, bottom: bleed, left: v(`${x} - var(--s) / 2`) }} />
   )
 }
 
