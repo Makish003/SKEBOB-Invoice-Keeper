@@ -1,0 +1,29 @@
+# Только для сервера с доменом. Локальный запуск по README этот файл не использует.
+# docker compose -f docker-compose.yml -f deploy/compose.https.yml up -d --build
+services:
+  web:
+    # Наружу смотрит только Caddy.
+    ports: !reset []
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?укажите DOMAIN в .env, например invoice-keeper.duckdns.org}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      web:
+        condition: service_started
+
+volumes:
+  caddy_data:
+  caddy_config:

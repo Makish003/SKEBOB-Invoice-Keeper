@@ -1,0 +1,17 @@
+# HTTPS для сервера: Caddy сам получает сертификат Let's Encrypt для {$DOMAIN} и редиректит http → https.
+{$DOMAIN} {
+	encode gzip
+
+	# API — напрямую в backend: Caddy ставит X-Forwarded-For = IP клиента (входящий заголовок отбрасывает),
+	# иначе nginx подставил бы IP контейнера Caddy и лимит входа стал бы общим для всех.
+	handle /api/* {
+		request_body {
+			max_size 6MB
+		}
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy web:80
+	}
+}

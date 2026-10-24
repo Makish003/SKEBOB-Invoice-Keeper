@@ -183,6 +183,17 @@ npx playwright install chromium
 npm run test:e2e                                 # 18 сценариев: вход, права, платежи, чеки, календарь, бюджет, журнал, демо
 ```
 
+## Деплой на сервер с HTTPS (необязательно)
+
+Для локального запуска не нужен. На сервере с доменом, который указывает на его IP (подойдёт бесплатный `*.duckdns.org`):
+
+```bash
+# в .env на сервере: DOMAIN=invoice-keeper.duckdns.org, COOKIE_SECURE=true, свои SECRET_KEY/ADMIN_PASSWORD/POSTGRES_PASSWORD
+docker compose -f docker-compose.yml -f deploy/compose.https.yml up -d --build
+```
+
+Caddy (`deploy/Caddyfile`) сам получает сертификат Let's Encrypt, редиректит http → https и передаёт API реальный IP клиента. Наружу открыты только порты 80 и 443.
+
 ## Известные ограничения
 
 - Один Telegram-чат на всю систему (из `.env`); бот работает через long polling (публичный HTTPS не нужен).
