@@ -75,7 +75,7 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
               onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
-                  'flex h-10 items-center gap-2.5 rounded-md px-2 text-sm font-medium transition-control outline-none',
+                  'icon-play flex h-10 items-center gap-2.5 rounded-md px-2 text-sm font-medium transition-control outline-none',
                   'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
                   isActive ? 'bg-sunken text-fg' : 'text-fg-secondary hover:bg-secondary-hover hover:text-fg',
                 )

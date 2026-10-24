@@ -29,7 +29,7 @@ export function DateField({ id, value, onChange, placeholder = 'Выберите
           type="button"
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
-          className={cn(fieldControl, 'flex items-center justify-between gap-2 text-left', !value && 'text-fg-tertiary')}
+          className={cn(fieldControl, 'icon-play flex items-center justify-between gap-2 text-left', !value && 'text-fg-tertiary')}
         >
           <span className="tabular">{value ? formatDate(value) : placeholder}</span>
           <CalendarDays className="size-4 shrink-0 text-fg-tertiary" aria-hidden />

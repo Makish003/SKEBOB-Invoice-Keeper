@@ -36,7 +36,7 @@ export function DropdownMenuItem({ className, destructive, ...props }: ItemProps
   return (
     <MenuPrimitive.Item
       className={cn(
-        'flex h-9 cursor-pointer items-center gap-2 rounded-md px-2.5 text-sm outline-none select-none [&_svg]:size-4',
+        'icon-play flex h-9 cursor-pointer items-center gap-2 rounded-md px-2.5 text-sm outline-none select-none [&_svg]:size-4',
         'data-[highlighted]:bg-secondary-hover data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
         destructive ? 'text-danger data-[highlighted]:bg-danger-bg' : 'text-fg',
         className,

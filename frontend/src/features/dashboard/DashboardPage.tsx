@@ -140,7 +140,7 @@ function Hero({
         {overdue > 0 || earlier > 0 ? (
           <Link
             to={overdueHref()}
-            className="flex items-start gap-1.5 justify-self-start rounded-sm font-medium text-danger underline-offset-4 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+            className="icon-play flex items-start gap-1.5 justify-self-start rounded-sm font-medium text-danger underline-offset-4 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ring"
           >
             <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>

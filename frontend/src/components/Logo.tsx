@@ -6,8 +6,8 @@ import { cn } from '@/lib/cn'
  */
 export function Logo({ className }: { className?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-2.5 text-fg', className)}>
-      <svg viewBox="8 8 240 240" className="size-7 shrink-0" aria-hidden focusable="false">
+    <span className={cn('icon-play inline-flex items-center gap-2.5 text-fg', className)}>
+      <svg viewBox="8 8 240 240" className="ik-keycap size-7 shrink-0" aria-hidden focusable="false">
         <rect x="8" y="8" width="240" height="240" rx="60" className="fill-brand-key" />
         <path d="M45.25 56H81.25V198H45.25Z" className="fill-brand-key-fg" />
         <path

@@ -129,6 +129,129 @@
   }
 }
 
+/*
+ * Живые иконки. Хозяин жеста — элемент с классом icon-play (кнопка, пункт меню, раздел навигации);
+ * lib/icon-play.ts ставит ему data-icon-play при наведении мышью, нажатии и фокусе с клавиатуры,
+ * и иконка внутри один раз отыгрывает жест. Жест выбирается по смыслу иконки через её класс lucide-*.
+ * Только transform (ADR-013); при prefers-reduced-motion скрипт не запускает жест вовсе.
+ */
+[data-icon-play] :is(svg.lucide, .ik-keycap):not(.animate-spin) {
+  transform-origin: center;
+  animation: var(--icon-gesture, ik-icon-hop) var(--duration-play) var(--ease-spring);
+}
+
+/* Плюс, крестик и солнце проворачиваются на четверть оборота: они симметричны, конец совпадает с началом. */
+:is(.lucide-plus, .lucide-x, .lucide-sun) {
+  --icon-gesture: ik-icon-turn;
+}
+.lucide-refresh-cw {
+  --icon-gesture: ik-icon-turn;
+  --icon-turn: 360deg;
+}
+/* Удалить, напомнить, закрыто: покачивание, как у колокольчика. */
+:is(.lucide-trash-2, .lucide-bell-ring, .lucide-alarm-clock, .lucide-lock, .lucide-paperclip, .lucide-archive),
+.lucide-triangle-alert {
+  --icon-gesture: ik-icon-shake;
+}
+/* Стрелки двигаются туда, куда ведут. */
+:is(.lucide-arrow-right, .lucide-chevron-right, .lucide-log-out) {
+  --icon-gesture: ik-icon-shift;
+}
+.lucide-chevron-left {
+  --icon-gesture: ik-icon-shift;
+  --icon-dx: calc(-1 * var(--icon-travel));
+}
+.lucide-external-link {
+  --icon-gesture: ik-icon-shift;
+  --icon-dy: calc(-1 * var(--icon-travel));
+}
+.lucide-upload {
+  --icon-gesture: ik-icon-shift;
+  --icon-dx: 0;
+  --icon-dy: calc(-1 * var(--icon-travel));
+}
+.lucide-chevron-down {
+  --icon-gesture: ik-icon-shift;
+  --icon-dx: 0;
+  --icon-dy: var(--icon-travel);
+}
+/* Отменить, история: стрелка отматывает назад и возвращается. */
+:is(.lucide-undo-2, .lucide-history) {
+  --icon-gesture: ik-icon-tilt;
+  --icon-turn: -40deg;
+}
+/* Готово: галочка «щёлкает». */
+:is(.lucide-check, .lucide-circle-check, .lucide-calendar-check) {
+  --icon-gesture: ik-icon-pop;
+}
+.lucide-pencil {
+  --icon-gesture: ik-icon-scribble;
+}
+.ik-keycap {
+  --icon-gesture: ik-key-press;
+}
+
+@keyframes ik-icon-hop {
+  40% {
+    transform: translateY(calc(-1 * var(--icon-travel))) rotate(-10deg) scale(1.15);
+  }
+}
+
+@keyframes ik-icon-turn {
+  to {
+    transform: rotate(var(--icon-turn, 90deg));
+  }
+}
+
+@keyframes ik-icon-tilt {
+  40% {
+    transform: rotate(var(--icon-turn));
+  }
+}
+
+@keyframes ik-icon-shake {
+  20% {
+    transform: rotate(-14deg);
+  }
+  45% {
+    transform: rotate(10deg);
+  }
+  70% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes ik-icon-shift {
+  40% {
+    transform: translate(var(--icon-dx, var(--icon-travel)), var(--icon-dy, 0));
+  }
+}
+
+@keyframes ik-icon-pop {
+  40% {
+    transform: scale(1.3) rotate(-8deg);
+  }
+}
+
+@keyframes ik-icon-scribble {
+  25% {
+    transform: translate(calc(-1 * var(--icon-travel) / 3), calc(var(--icon-travel) / 3)) rotate(-12deg);
+  }
+  55% {
+    transform: translate(calc(var(--icon-travel) / 3), calc(-1 * var(--icon-travel) / 3)) rotate(6deg);
+  }
+  80% {
+    transform: rotate(-4deg);
+  }
+}
+
+/* Знак-клавиша нажимается, как настоящая клавиша. */
+@keyframes ik-key-press {
+  30% {
+    transform: translateY(calc(var(--icon-travel) / 2)) scale(0.92);
+  }
+}
+
 @utility tabular {
   font-variant-numeric: tabular-nums;
 }

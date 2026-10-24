@@ -14,7 +14,7 @@ export function ListboxTrigger({ className, children, ...props }: ComponentProps
     <SelectPrimitive.Trigger
       className={cn(
         fieldControl,
-        'flex items-center justify-between gap-2 text-left data-[placeholder]:text-fg-tertiary [&>span]:truncate',
+        'icon-play flex items-center justify-between gap-2 text-left data-[placeholder]:text-fg-tertiary [&>span]:truncate',
         className,
       )}
       {...props}
