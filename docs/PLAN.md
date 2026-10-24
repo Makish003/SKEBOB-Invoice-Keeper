@@ -391,6 +391,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
   ↳ done: P-13 · проверка: `pytest` → 306 passed (+25: test_telegram_screens, test_telegram_bot — апдейты через Dispatcher.feed_update с записывающей сессией Bot API, unpay/клавиатура в test_telegram_pay_button); экраны отрисованы на демо-БД в контейнере воркера; воркер без токена стартует (console). Живая проверка в Telegram — за человеком (ESC-1)
 - [x] **P-14** (FRONT) Фирменный стиль Aéza по гайдбуку 2026 (ADR-024): палитра #000 / #4CC6F1 / #F4F4F4 (+ #182D48, #E97C35), Exo 2 для заголовков, логотип-«клавиши», фирменные плитки иконок, паттерн на входе, favicon.
   ↳ done: P-14 · проверка: `npm run build`, `oxlint`, `tsc` чисто; `npm run test` → 12 passed; Playwright на стенде e2e → 18 passed (desktop + mobile); lint_hardcodes → 0, check_no_emoji по изменённым файлам → OK; контраст всех новых пар текст/фон ≥ 5.1:1 (кнопка: чёрный на #4CC6F1 10.7:1); скриншоты 1440/375 в обеих темах просмотрены, горизонтальной прокрутки нет
+- [x] **P-15** (FRONT) Логотип «Клавиша IK» (ADR-025): знак inline-SVG через токены brand-key / brand-key-fg / brand-accent (мелкая версия для 28px) в сайдбаре, мобильной шапке, меню и на входе; favicon .ico 16/32/48 + SVG со сменой темы, apple-touch-icon, icon-192/512 + maskable, site.webmanifest (nginx отдаёт application/manifest+json); полный комплект в `brand/`.
+  ↳ done: P-15 · проверка: `npm run build`, `oxlint` чисто; `npm run test` → 12 passed; Playwright на стенде e2e → 18 passed (desktop + mobile); lint_hardcodes → 0, check_no_emoji → OK; скриншоты входа, сайдбара, мобильной шапки и меню в светлой и тёмной темах просмотрены; `curl :8080/site.webmanifest` → 200 application/manifest+json, `/favicon.ico` → 200 image/x-icon
 
 ---
 
@@ -491,6 +493,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 
 - 2026-10-24 17:20 · SOLO · P-13 · Бот стал упрощённой панелью: сводка, ближайшие сроки, просрочки, карточка периода с «Оплачено»/«Отменить оплату», итоги месяца, платежи, переходы на сайт. Итоги по валютам вынесены из роутера в services/summary.py (общие для REST и бота, OpenAPI не изменился). Доступ к меню — командный чат и личка его участников (get_chat_member, кеш 5 мин). Новая настройка PUBLIC_URL · P-13 · 306 passed · ADR-023
 - 2026-10-24 17:50 · SOLO · P-14 · Интерфейс переведён в айдентику Aéza: токены (структура прежняя, меняются только значения и пара новых: text-on-destructive, brand-*), Exo 2 + Inter, логотип из клавиш «i k», активный раздел — чёрная клавиша с голубой иконкой, переключатели — «нажатая клавиша», экран входа — чёрная панель с фирменным паттерном. Белый на #4CC6F1 = 1.97:1, поэтому кнопка — чёрный текст, ссылки и фокус — #0B6F94 · P-14 · e2e 18 passed, vitest 12 passed, build чисто · ADR-024
+- 2026-10-24 14:53 · SOLO · P-15 · Логотип «Клавиша IK» вместо клавиш «i k»: одна клавиша Aéza с I и голубой галочкой-K, название строчными Exo 2 Bold как в подписи из `brand/`; цвета только через токены, в тёмной теме клавиша светлая. Иконки сайта и манифест в `frontend/public`, комплект (варианты, подписи, аватарка бота 640/512, презентация, правила) в `brand/` · P-15 · e2e 18 passed, vitest 12 passed, build чисто · ADR-025
 
 ## 10. Эскалации и блокеры
 
