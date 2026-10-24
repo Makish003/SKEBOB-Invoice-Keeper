@@ -2,70 +2,76 @@ import type { CSSProperties } from 'react'
 import { cn } from '@/lib/cn'
 
 /**
- * Фирменный паттерн Aéza: три прямые параллельные линии и линии, которые идут параллельно и меняют
- * направление со скруглённым углом. Правило гайдбука: линия не обрывается внутри кадра, оба её конца
- * уходят за край контейнера. Поэтому паттерн собран из CSS-рамок, привязанных к краям, а не из SVG
- * фиксированной высоты: при любой ширине и высоте концы остаются за краем.
+ * Фирменный паттерн Aéza по гайдбуку (docs/aeza-guidebook-2026.pdf, стр. 22): три прямые параллельные
+ * линии и одна акцентная линия контрастного цвета, которая идёт параллельно и меняет направление
+ * с плавным скруглением угла. Линия не обрывается внутри кадра: оба конца уходят за край контейнера,
+ * поэтому паттерн собран из CSS-рамок, привязанных к краям, и не зависит от размеров контейнера.
  *
- * - `panel`: низ брендовой панели входа (рельсы снизу, тройка линий поднимается и уходит вправо);
- * - `strip`: то же мельче, основание боковой панели;
- * - `corner`: тройка линий спускается сверху и уходит вправо, угол карточки.
+ * - `panel`: композиция стр. 22. Три белые вертикали на всю высоту у левого края, три голубые
+ *   горизонтали у нижнего, голубая акцентная линия спускается сверху правее вертикалей и поворачивает
+ *   к правому краю. Текст панели ставится правее акцентной линии и выше её поворота (`panelText`);
+ * - `strip`: основание боковой панели. Её верхний край не край кадра, поэтому вертикалей нет:
+ *   три голубые горизонтали и акцентная линия цвета линий, которая поднимается от низа и уходит вправо.
  *
  * Контейнер родителя должен быть `relative overflow-hidden`. Декорация, скрыта от скринридеров.
  */
-type Variant = 'panel' | 'strip' | 'corner'
+type Variant = 'panel' | 'strip'
 
-const metrics: Record<Variant, string> = {
-  panel: '[--s:8px] [--p:24px] [--r:20px] [--x:3] [--y:4.5] 2xl:[--s:10px] 2xl:[--p:32px] 2xl:[--r:24px] 2xl:[--y:5]',
-  strip: '[--s:4px] [--p:12px] [--r:10px] [--x:2.5] [--y:4.5]',
-  corner: '[--s:6px] [--p:16px] [--r:14px]',
+/** Толщина --s, шаг --p (у гайдбука толщина около половины шага), радиус поворота --r по центру линии. */
+export const patternMetrics: Record<Variant, string> = {
+  panel: '[--s:12px] [--p:24px] [--r:44px] 2xl:[--s:14px] 2xl:[--p:28px] 2xl:[--r:52px]',
+  strip: '[--s:4px] [--p:10px] [--r:14px]',
+}
+
+/** Отступы текста брендовой панели: правее акцентной вертикали и выше её поворота. */
+export const panelText = 'pl-[calc(var(--p)*7.5)] pb-[calc(var(--p)*9)]'
+
+// Полные имена классов: Tailwind не видит классы, собранные из частей.
+const tones = {
+  panel: { post: 'bg-brand-line', turn: 'border-brand-line' },
+  app: { post: 'bg-brand-pattern-line', turn: 'border-brand-pattern-line' },
 }
 
 const lines = [0, 1, 2]
 const v = (expr: string) => `calc(${expr})`
+const bleed = v('-1 * var(--s)')
+const step = (base: string, i: number) => `${base} + var(--p) * ${i}`
 
-/** Прямая рельса от левого до правого края, `y`: центр линии от низа. */
+/** Горизонталь от левого до правого края, `y`: центр линии от низа. */
 function Rail({ y, className }: { y: string; className: string }) {
   return (
-    <span
-      className={cn('absolute h-(--s)', className)}
-      style={{ left: v('-1 * var(--s)'), right: v('-1 * var(--s)'), bottom: v(`${y} - var(--s) / 2`) }}
-    />
+    <span className={cn('absolute h-(--s)', className)} style={{ left: bleed, right: bleed, bottom: v(`${y} - var(--s) / 2`) }} />
+  )
+}
+
+/** Вертикаль от верхнего до нижнего края, `x`: центр линии от левого края. */
+function Post({ x, className }: { x: string; className: string }) {
+  return (
+    <span className={cn('absolute w-(--s)', className)} style={{ top: bleed, bottom: bleed, left: v(`${x} - var(--s) / 2`) }} />
   )
 }
 
 /**
- * Линия поднимается от нижнего края и поворачивает вправо к правому краю.
- * `x`: центр вертикали от левого края, `y`: центр горизонтали от низа, `r`: радиус по центру линии.
+ * Акцентная линия: вертикаль на `x` от левого края, поворот к правому краю на высоте `y` от низа.
+ * `from`: край, откуда приходит вертикаль, сверху (поворот вниз-вправо) или снизу (вверх-вправо).
  */
-function RiseRight({ x, y, r, className }: { x: string; y: string; r: string; className: string }) {
-  const style: CSSProperties = {
-    left: v(`${x} - var(--s) / 2`),
-    right: v('-1 * var(--s)'),
-    bottom: v('-1 * var(--s)'),
-    height: v(`${y} + var(--s) * 1.5`),
-    borderTopLeftRadius: v(`${r} + var(--s) / 2`),
-  }
-  return <span className={cn('absolute border-t-(length:--s) border-l-(length:--s)', className)} style={style} />
+function Turn({ x, y, from, className }: { x: string; y: string; from: 'top' | 'bottom'; className: string }) {
+  const radius = v('var(--r) + var(--s) / 2')
+  const style: CSSProperties =
+    from === 'top'
+      ? { top: bleed, bottom: v(`${y} - var(--s) / 2`), borderBottomLeftRadius: radius }
+      : { bottom: bleed, height: v(`${y} + var(--s) * 1.5`), borderTopLeftRadius: radius }
+  return (
+    <span
+      className={cn(
+        'absolute border-l-(length:--s)',
+        from === 'top' ? 'border-b-(length:--s)' : 'border-t-(length:--s)',
+        className,
+      )}
+      style={{ ...style, left: v(`${x} - var(--s) / 2`), right: bleed }}
+    />
+  )
 }
-
-/**
- * Линия спускается от верхнего края и поворачивает вправо к правому краю.
- * `x`: центр вертикали от правого края, `y`: центр горизонтали от верха.
- */
-function DropRight({ x, y, r, className }: { x: string; y: string; r: string; className: string }) {
-  const style: CSSProperties = {
-    top: v('-1 * var(--s)'),
-    right: v('-1 * var(--s)'),
-    width: v(`${x} + var(--s) * 1.5`),
-    height: v(`${y} + var(--s) * 1.5`),
-    borderBottomLeftRadius: v(`${r} + var(--s) / 2`),
-  }
-  return <span className={cn('absolute border-b-(length:--s) border-l-(length:--s)', className)} style={style} />
-}
-
-// Концентрические повороты: i = 0: внутренняя линия (ближе к углу поворота), шаг и радиус растут на --p.
-const step = (base: string, i: number) => `${base} + var(--p) * ${i}`
 
 export function BrandPattern({
   variant,
@@ -77,38 +83,22 @@ export function BrandPattern({
   tone?: 'panel' | 'app'
   className?: string
 }) {
-  const line = tone === 'panel' ? 'border-brand-line' : 'border-brand-pattern-line'
-  const accent = 'border-brand-accent'
-  const rail = 'bg-brand-accent'
-
+  const { post, turn } = tones[tone]
   return (
-    <div aria-hidden className={cn('pointer-events-none absolute inset-0 overflow-hidden', metrics[variant], className)}>
-      {variant === 'corner' ? (
-        lines.map((i) => (
-          <DropRight
-            key={i}
-            x={step('var(--p) * 7', i)}
-            y={step('var(--p) * 1.5', i)}
-            r={step('var(--r)', i)}
-            className={i === 0 ? accent : line}
-          />
-        ))
-      ) : (
+    <div aria-hidden className={cn('pointer-events-none absolute inset-0 overflow-hidden', patternMetrics[variant], className)}>
+      {lines.map((i) => (
+        <Rail key={i} y={step('var(--p) * 1.5', i)} className="bg-brand-accent" />
+      ))}
+      {variant === 'panel' ? (
         <>
+          <Turn x="var(--p) * 5.5" y="var(--p) * 6.5" from="top" className="border-brand-accent" />
+          {/* Вертикали последними: на стр. 22 белые линии лежат поверх голубых горизонталей. */}
           {lines.map((i) => (
-            <Rail key={i} y={step('var(--p) * 1.5', i)} className={rail} />
-          ))}
-          {/* Ближняя к левому краю линия поворачивает выше всех: у неё самый большой радиус. */}
-          {lines.map((i) => (
-            <RiseRight
-              key={i}
-              x={step('var(--p) * var(--x)', 2 - i)}
-              y={step('var(--p) * var(--y)', i)}
-              r={step('var(--r)', i)}
-              className={line}
-            />
+            <Post key={i} x={step('var(--p) * 2', i)} className={post} />
           ))}
         </>
+      ) : (
+        <Turn x="var(--p) * 3" y="var(--p) * 5.5" from="bottom" className={turn} />
       )}
     </div>
   )

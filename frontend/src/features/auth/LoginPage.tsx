@@ -4,11 +4,12 @@ import { useForm } from 'react-hook-form'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
 import { z } from 'zod'
 import { ApiError } from '@/api/client'
-import { BrandPattern } from '@/components/BrandPattern'
+import { BrandPattern, panelText, patternMetrics } from '@/components/BrandPattern'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/button'
 import { Field, fieldAria } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/cn'
 import { useLogin, useMe } from './api'
 
 const schema = z.object({
@@ -101,9 +102,11 @@ export function LoginPage() {
         <p className="mx-auto w-full max-w-sm text-xs text-fg-tertiary">Учётную запись выдаёт администратор.</p>
       </main>
 
-      <aside className="relative hidden overflow-hidden bg-brand-panel text-brand-panel-fg lg:flex lg:flex-col lg:justify-between lg:gap-12">
-        <div className="grid max-w-lg gap-10 px-12 pt-16">
-          <p className="font-display text-5xl leading-[1.05] font-extrabold text-brand-accent uppercase">
+      {/* Паттерн по стр. 22 гайдбука на всю панель; текст правее акцентной линии и выше её поворота. */}
+      <aside className={cn('relative hidden overflow-hidden bg-brand-panel text-brand-panel-fg lg:block', patternMetrics.panel)}>
+        <BrandPattern variant="panel" tone="panel" />
+        <div className={cn('relative grid max-w-2xl gap-10 pt-16 pr-12', panelText)}>
+          <p className="font-display text-4xl leading-[1.05] font-extrabold text-brand-accent uppercase xl:text-5xl">
             Ни один регулярный платёж не останется без внимания
           </p>
           <ul className="grid gap-6">
@@ -117,10 +120,6 @@ export function LoginPage() {
               </li>
             ))}
           </ul>
-        </div>
-        {/* Отдельный блок под текстом: линии паттерна уходят за левый, правый и нижний края панели. */}
-        <div className="relative h-44 shrink-0 2xl:h-64">
-          <BrandPattern variant="panel" tone="panel" />
         </div>
       </aside>
     </div>
