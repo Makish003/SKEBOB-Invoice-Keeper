@@ -41,7 +41,9 @@ docker compose up -d --build
 домен (ежегодно), Google Workspace (срок сегодня), бухгалтерия. Есть все статусы: оплачен, оплачен с опозданием, скоро срок,
 срок сегодня, просрочен, ожидает.
 
-Остановить: `docker compose down` (данные сохраняются в томе `pgdata`). Полностью сбросить данные: `docker compose down -v`.
+Остановить: `docker compose down` (данные сохраняются в томе `pgdata`). Вернуть демо-данные, не пересоздавая тома:
+`docker compose run --rm backend python -m app.scripts.reset_demo` (в `APP_ENV=production` откажется без `--force`).
+Полностью удалить данные: `docker compose down -v`.
 
 ## Подключение Telegram
 
@@ -175,12 +177,16 @@ docker compose run --rm backend pytest -q       # 261 тест: домен, API,
 sh scripts/smoke.sh                              # дымовая проверка запущенного стека
 ```
 
-E2E (нужен Node.js 20+, стек запущен):
+E2E (нужен Node.js 20+) идут на **отдельном стенде** `compose.e2e.yml` (проект `invoice-keeper-e2e`, порт 8081,
+свои тома, каналы уведомлений выключены), поэтому тестовые платежи не попадают в рабочую базу на :8080:
 ```bash
 cd frontend
 npm ci
 npx playwright install chromium
+npm run test                                     # unit-тесты интерфейса (vitest)
+npm run e2e:up                                   # поднять стенд E2E (ждёт healthy)
 npm run test:e2e                                 # 18 сценариев: вход, права, платежи, чеки, календарь, бюджет, журнал, демо
+npm run e2e:down                                 # удалить стенд вместе с данными
 ```
 
 ## Деплой на сервер с HTTPS (необязательно)

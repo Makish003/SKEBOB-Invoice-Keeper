@@ -35,5 +35,5 @@
 |---|---|
 | Telegram не отвечает / нет интернета | Показать `docker compose logs -f worker`: строка `REMINDER … Аренда склада, 42 000,00 RUB, срок …` и `sent via console`; объяснить, что канал переключается на лог автоматически |
 | Напоминание не пришло за 10 секунд | Проверить, что срок в окне 3 дней и платёж не оплачен; в Swagger `GET /payment-occurrences?q=…` — поле `reminder_sent_at` |
-| Порт 8080 занят | `WEB_PORT=8081` в `.env`, `docker compose up -d` |
-| Сбились демо-данные | `docker compose down -v && docker compose up -d --build` (≈ 1 мин с кешем) |
+| Порт 8080 занят | `WEB_PORT=8090` в `.env`, `docker compose up -d` (8081 занят стендом E2E) |
+| Сбились демо-данные | `docker compose run --rm backend python -m app.scripts.reset_demo` (≈ 5 с) или `docker compose down -v && docker compose up -d --build` |

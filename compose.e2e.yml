@@ -1,0 +1,25 @@
+# E2E-стенд, изолированный от рабочей/демо-базы: отдельный проект compose (свои тома pgdata/uploads),
+# порт 8081, внешние каналы отключены (иначе тестовые платежи ушли бы в Telegram/почту, а два воркера
+# с одним токеном бота конфликтовали бы на getUpdates).
+# Запуск: cd frontend && npm run e2e:up && npm run test:e2e   ·   сброс: npm run e2e:down
+name: invoice-keeper-e2e
+
+x-e2e-env: &e2e-env
+  APP_ENV: development
+  SEED_DEMO_DATA: "true"
+  CLOCK_OVERRIDE: ""
+  COOKIE_SECURE: "false"
+  TELEGRAM_BOT_TOKEN: ""
+  TELEGRAM_CHAT_ID: ""
+  WEBHOOK_URL: ""
+  SMTP_HOST: ""
+  EMAIL_TO: ""
+
+services:
+  backend:
+    environment: *e2e-env
+  worker:
+    environment: *e2e-env
+  web:
+    ports: !override
+      - "${E2E_WEB_PORT:-8081}:80"

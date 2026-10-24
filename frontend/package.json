@@ -10,7 +10,10 @@
     "lint": "oxlint src",
     "typecheck": "tsc -b",
     "gen:api": "openapi-typescript ../docs/openapi.yml -o src/api/schema.d.ts",
-    "test:e2e": "playwright test"
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "e2e:up": "docker compose -f ../docker-compose.yml -f ../compose.e2e.yml up -d --build --wait",
+    "e2e:down": "docker compose -f ../docker-compose.yml -f ../compose.e2e.yml down -v"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
