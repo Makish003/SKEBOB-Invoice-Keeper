@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { Navigate, useNavigate, useSearchParams } from 'react-router'
 import { z } from 'zod'
 import { ApiError } from '@/api/client'
+import { BrandPattern } from '@/components/BrandPattern'
 import { Logo } from '@/components/Logo'
 import { Button } from '@/components/ui/button'
 import { Field, fieldAria } from '@/components/ui/field'
@@ -60,7 +61,7 @@ export function LoginPage() {
         <div className="flex flex-1 items-center">
           <form onSubmit={onSubmit} noValidate className="grid w-full max-w-sm gap-6 py-12">
             <div className="grid gap-2">
-              <h1 className="text-3xl font-semibold tracking-tight">Вход</h1>
+              <h1 className="font-display text-4xl leading-none font-extrabold uppercase">Вход</h1>
               <p className="text-fg-secondary">Платежи команды, сроки и оплаты в одном месте.</p>
             </div>
 
@@ -99,23 +100,24 @@ export function LoginPage() {
         <p className="text-xs text-fg-tertiary">Учётную запись выдаёт администратор.</p>
       </main>
 
-      <aside className="hidden border-l border-subtle bg-panel px-12 py-16 lg:flex lg:flex-col lg:justify-center">
-        <div className="grid max-w-md gap-10">
-          <p className="text-4xl leading-tight font-semibold tracking-tight text-fg">
-            Ни один регулярный платёж не останется без внимания.
+      <aside className="relative hidden overflow-hidden bg-brand-panel text-brand-panel-fg lg:flex lg:flex-col lg:justify-between">
+        <div className="grid max-w-lg gap-10 px-12 pt-16">
+          <p className="font-display text-5xl leading-[1.05] font-extrabold text-brand-accent uppercase">
+            Ни один регулярный платёж не останется без внимания
           </p>
           <ul className="grid gap-6">
             {facts.map(({ icon: Icon, title, text }) => (
               <li key={title} className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-                <span className="row-span-2 mt-0.5 flex size-8 items-center justify-center rounded-lg bg-raised text-link ring-1 ring-subtle">
-                  <Icon className="size-4" aria-hidden />
+                <span className="row-span-2 flex size-10 items-center justify-center rounded-md bg-brand-accent text-brand-panel">
+                  <Icon className="size-5" aria-hidden />
                 </span>
-                <span className="font-medium text-fg">{title}</span>
-                <span className="text-fg-secondary">{text}</span>
+                <span className="font-semibold">{title}</span>
+                <span className="text-brand-panel-fg-secondary">{text}</span>
               </li>
             ))}
           </ul>
         </div>
+        <BrandPattern className="h-56 w-full" />
       </aside>
     </div>
   )

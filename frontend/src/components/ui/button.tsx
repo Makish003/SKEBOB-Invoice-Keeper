@@ -15,11 +15,11 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-fg-on-action hover:bg-primary-hover active:bg-primary-active',
+        primary: 'bg-primary font-semibold text-fg-on-action hover:bg-primary-hover active:bg-primary-active',
         secondary:
           'border border-default bg-raised text-fg hover:border-strong hover:bg-secondary-hover active:bg-secondary-active',
         ghost: 'text-fg-secondary hover:bg-secondary-hover hover:text-fg active:bg-secondary-active',
-        destructive: 'bg-destructive text-fg-on-action hover:bg-destructive-hover active:bg-destructive-hover',
+        destructive: 'bg-destructive text-fg-on-destructive hover:bg-destructive-hover active:bg-destructive-hover',
         'destructive-ghost': 'text-danger hover:bg-danger-bg active:bg-danger-bg',
       },
       size: {

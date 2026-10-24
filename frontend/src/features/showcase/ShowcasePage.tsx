@@ -47,7 +47,7 @@ export function ShowcasePage() {
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-medium text-fg-tertiary">Invoice Keeper</p>
-            <h1 className="text-4xl font-semibold tracking-tight">Компоненты</h1>
+            <h1 className="font-display text-4xl leading-none font-extrabold uppercase">Компоненты</h1>
           </div>
           <Segmented<ThemePreference>
             label="Тема"

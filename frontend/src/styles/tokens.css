@@ -1,41 +1,48 @@
 /*
- * Единственный источник визуальных значений (ADR-016, направление linear-app).
+ * Единственный источник визуальных значений (ADR-016, фирменный стиль Aéza — ADR-024).
+ * Бренд: чёрный #000, светло-голубой акцент #4CC6F1 (PANTONE 298 C), светло-серый #F4F4F4;
+ * дополнительные: тёмно-синий #182D48, оранжевый #E97C35, розовый #ECCFDB. Шрифты Exo 2 + Inter.
  * Примитивы → семантические токены по смыслу. Тёмная тема меняет только семантику.
- * Контраст пар проверен scripts/contrast.py (журнал PLAN, F-02).
  */
 :root {
   /* --- primitives --- */
+  --p-black: #000000;
   --p-gray-0: #ffffff;
-  --p-gray-25: #f6f7f8;
-  --p-gray-50: #f1f2f4;
-  --p-gray-75: #e8eaed;
-  --p-gray-100: #e3e5e8;
-  --p-gray-300: #c4c8ce;
-  --p-gray-400: #858b95;
-  --p-gray-500: #5f6570;
-  --p-gray-600: #4a4f57;
-  --p-gray-900: #16171a;
+  --p-gray-25: #f4f4f4;
+  --p-gray-50: #efeff0;
+  --p-gray-75: #e8e8ea;
+  --p-gray-100: #dfe0e2;
+  --p-gray-300: #c2c3c6;
+  --p-gray-400: #85878c;
+  --p-gray-500: #5d5f64;
+  --p-gray-600: #47494d;
+  --p-gray-900: #0d0d0f;
 
-  --p-ink-0: #0b0c0d;
-  --p-ink-50: #0f1011;
-  --p-ink-100: #17181a;
-  --p-ink-150: #1c1d20;
-  --p-ink-200: #1f2023;
+  --p-ink-0: #000000;
+  --p-ink-50: #08090b;
+  --p-ink-100: #121316;
+  --p-ink-150: #17181b;
+  --p-ink-200: #1c1d21;
   --p-ink-250: #25272b;
-  --p-ink-300: #2c2e33;
-  --p-ink-500: #6b707a;
-  --p-ink-600: #969ba5;
-  --p-ink-800: #c9ced8;
-  --p-ink-900: #f7f8f8;
+  --p-ink-300: #303237;
+  --p-ink-500: #6b6e76;
+  --p-ink-600: #9ea1a8;
+  --p-ink-800: #c9cbd0;
+  --p-ink-900: #f4f4f4;
 
-  --p-indigo-50: #eceefc;
-  --p-indigo-400: #7c86ff;
-  --p-indigo-300: #8f97ff;
-  --p-indigo-500: #5e6ad2;
-  --p-indigo-600: #4f5bc4;
-  --p-indigo-650: #4b55c0;
-  --p-indigo-700: #4450b5;
-  --p-indigo-950: #1c1e36;
+  --p-cyan-50: #e4f6fd;
+  --p-cyan-300: #7dd6f5;
+  --p-cyan-400: #4cc6f1;
+  --p-cyan-500: #2fb6e6;
+  --p-cyan-600: #22a8da;
+  --p-cyan-700: #0b6f94;
+
+  --p-navy-500: #182d48;
+
+  --p-orange-50: #fdeee3;
+  --p-orange-300: #f2a066;
+  --p-orange-700: #9a4a12;
+  --p-orange-950: #2a1c12;
 
   --p-red-50: #fdecea;
   --p-red-300: #ff8a80;
@@ -50,65 +57,75 @@
   --p-green-700: #17723a;
   --p-green-950: #112319;
 
-  --p-amber-50: #fff3dc;
-  --p-amber-300: #f2b544;
-  --p-amber-700: #8a4f00;
-  --p-amber-950: #2a2110;
-
   /* --- semantic: light --- */
   --surface-page: var(--p-gray-25);
-  --surface-panel: var(--p-gray-50);
+  --surface-panel: var(--p-gray-0);
   --surface-raised: var(--p-gray-0);
   --surface-sunken: var(--p-gray-75);
   --surface-overlay: var(--p-gray-0);
-  --surface-scrim: rgb(15 16 17 / 0.45);
+  --surface-scrim: rgb(0 0 0 / 0.5);
 
   --text-primary: var(--p-gray-900);
   --text-secondary: var(--p-gray-600);
   --text-tertiary: var(--p-gray-500);
-  --text-on-action: var(--p-gray-0);
-  --text-link: var(--p-indigo-650);
+  --text-on-action: var(--p-black);
+  --text-on-destructive: var(--p-gray-0);
+  --text-link: var(--p-cyan-700);
 
   --border-subtle: var(--p-gray-100);
   --border-default: var(--p-gray-300);
   --border-strong: var(--p-gray-400);
 
-  --action-primary: var(--p-indigo-500);
-  --action-primary-hover: var(--p-indigo-600);
-  --action-primary-active: var(--p-indigo-700);
-  --action-secondary-hover: var(--p-gray-75);
-  --action-secondary-active: var(--p-gray-100);
+  --action-primary: var(--p-cyan-400);
+  --action-primary-hover: var(--p-cyan-500);
+  --action-primary-active: var(--p-cyan-600);
+  --action-secondary-hover: var(--p-gray-50);
+  --action-secondary-active: var(--p-gray-75);
   --action-destructive: var(--p-red-600);
   --action-destructive-hover: var(--p-red-750);
-  --action-selected: var(--p-indigo-50);
+  --action-selected: var(--p-cyan-50);
 
-  --focus-ring: var(--p-indigo-500);
+  --focus-ring: var(--p-cyan-700);
   --focus-ring-width: 2px;
   --focus-ring-offset: 2px;
 
   --feedback-success: var(--p-green-700);
   --feedback-success-bg: var(--p-green-50);
-  --feedback-warning: var(--p-amber-700);
-  --feedback-warning-bg: var(--p-amber-50);
+  --feedback-warning: var(--p-orange-700);
+  --feedback-warning-bg: var(--p-orange-50);
   --feedback-danger: var(--p-red-700);
   --feedback-danger-bg: var(--p-red-50);
-  --feedback-info: var(--p-indigo-650);
-  --feedback-info-bg: var(--p-indigo-50);
+  --feedback-info: var(--p-cyan-700);
+  --feedback-info-bg: var(--p-cyan-50);
   --feedback-neutral: var(--p-gray-600);
   --feedback-neutral-bg: var(--p-gray-75);
 
+  /* Фирменные «клавиши» (логотип, иконки в плитках): чёрная клавиша и белый знак, в тёмной теме — инверсия. */
+  --brand-key: var(--p-black);
+  --brand-key-fg: var(--p-gray-0);
+  --brand-tile: var(--p-black);
+  --brand-tile-fg: var(--p-cyan-400);
+  /* Брендовая панель (вход) одинакова в обеих темах: чёрный фон, светлый текст, голубой акцент. */
+  --brand-panel: var(--p-black);
+  --brand-panel-fg: var(--p-gray-25);
+  --brand-panel-fg-secondary: var(--p-gray-300);
+  --brand-accent: var(--p-cyan-400);
+  --brand-line: var(--p-gray-0);
+
   /* --- type, space, shape, motion --- */
   --font-sans: 'Inter Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-display: 'Exo 2 Variable', 'Inter Variable', 'Segoe UI', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Menlo, monospace;
   --font-features: 'cv01', 'ss03', 'tnum';
 
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  /* Скругления как у фирменных клавиш: заметные, но не «таблетки». */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
 
-  --shadow-overlay: 0 0.5rem 1.5rem rgb(15 16 17 / 0.12), 0 0 0 1px rgb(15 16 17 / 0.06);
-  --shadow-raised: 0 1px 2px rgb(15 16 17 / 0.05);
+  --shadow-overlay: 0 0.5rem 1.5rem rgb(0 0 0 / 0.12), 0 0 0 1px rgb(0 0 0 / 0.06);
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.04);
 
   --duration-instant: 0.01ms;
   --duration-fast: 120ms;
@@ -135,36 +152,42 @@
   --text-primary: var(--p-ink-900);
   --text-secondary: var(--p-ink-800);
   --text-tertiary: var(--p-ink-600);
-  --text-on-action: var(--p-gray-0);
-  --text-link: var(--p-indigo-300);
+  --text-on-action: var(--p-black);
+  --text-on-destructive: var(--p-gray-0);
+  --text-link: var(--p-cyan-400);
 
   --border-subtle: var(--p-ink-250);
   --border-default: var(--p-ink-300);
   --border-strong: var(--p-ink-500);
 
-  --action-primary: var(--p-indigo-500);
-  --action-primary-hover: var(--p-indigo-600);
-  --action-primary-active: var(--p-indigo-700);
+  --action-primary: var(--p-cyan-400);
+  --action-primary-hover: var(--p-cyan-300);
+  --action-primary-active: var(--p-cyan-500);
   --action-secondary-hover: var(--p-ink-200);
   --action-secondary-active: var(--p-ink-250);
   --action-destructive: var(--p-red-650);
   --action-destructive-hover: var(--p-red-600);
-  --action-selected: var(--p-indigo-950);
+  --action-selected: var(--p-navy-500);
 
-  --focus-ring: var(--p-indigo-400);
+  --focus-ring: var(--p-cyan-400);
 
   --feedback-success: var(--p-green-300);
   --feedback-success-bg: var(--p-green-950);
-  --feedback-warning: var(--p-amber-300);
-  --feedback-warning-bg: var(--p-amber-950);
+  --feedback-warning: var(--p-orange-300);
+  --feedback-warning-bg: var(--p-orange-950);
   --feedback-danger: var(--p-red-300);
   --feedback-danger-bg: var(--p-red-950);
-  --feedback-info: var(--p-indigo-300);
-  --feedback-info-bg: var(--p-indigo-950);
+  --feedback-info: var(--p-cyan-400);
+  --feedback-info-bg: var(--p-navy-500);
   --feedback-neutral: var(--p-ink-800);
   --feedback-neutral-bg: var(--p-ink-250);
 
-  --shadow-overlay: 0 0.5rem 1.5rem rgb(0 0 0 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --brand-key: var(--p-ink-900);
+  --brand-key-fg: var(--p-black);
+  --brand-tile: var(--p-navy-500);
+  --brand-tile-fg: var(--p-cyan-400);
+
+  --shadow-overlay: 0 0.5rem 1.5rem rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.06);
   --shadow-raised: 0 0 0 1px rgb(255 255 255 / 0.02);
 
   color-scheme: dark;

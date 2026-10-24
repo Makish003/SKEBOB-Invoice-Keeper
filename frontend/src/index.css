@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
+@import '@fontsource-variable/exo-2';
 @import './styles/tokens.css';
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
@@ -17,6 +18,7 @@
   --color-fg-secondary: var(--text-secondary);
   --color-fg-tertiary: var(--text-tertiary);
   --color-fg-on-action: var(--text-on-action);
+  --color-fg-on-destructive: var(--text-on-destructive);
   --color-link: var(--text-link);
 
   --color-subtle: var(--border-subtle);
@@ -44,7 +46,18 @@
   --color-neutral: var(--feedback-neutral);
   --color-neutral-bg: var(--feedback-neutral-bg);
 
+  --color-brand-key: var(--brand-key);
+  --color-brand-key-fg: var(--brand-key-fg);
+  --color-brand-tile: var(--brand-tile);
+  --color-brand-tile-fg: var(--brand-tile-fg);
+  --color-brand-panel: var(--brand-panel);
+  --color-brand-panel-fg: var(--brand-panel-fg);
+  --color-brand-panel-fg-secondary: var(--brand-panel-fg-secondary);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-line: var(--brand-line);
+
   --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
   --font-mono: var(--font-mono);
 
   --radius-sm: var(--radius-sm);

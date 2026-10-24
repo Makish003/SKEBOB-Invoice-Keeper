@@ -131,7 +131,7 @@ function Hero({
       <div className="grid gap-2">
         <span className="text-fg-secondary">{isCurrent ? 'Осталось оплатить в этом месяце' : 'Не оплачено в этом месяце'}</span>
         <div className="flex items-baseline gap-3">
-          <span className="text-5xl font-semibold tracking-tight sm:text-6xl">
+          <span className="font-display text-5xl font-extrabold sm:text-6xl">
             <AnimatedNumber value={count} format={(n) => String(Math.round(n))} />
           </span>
           <span className="text-lg text-fg-secondary">{payments(count)}</span>

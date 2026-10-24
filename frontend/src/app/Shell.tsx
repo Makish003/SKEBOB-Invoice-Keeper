@@ -64,14 +64,26 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              'flex h-9 items-center gap-2.5 rounded-md px-2.5 text-sm font-medium transition-control outline-none',
+              'flex h-10 items-center gap-2.5 rounded-md px-2 text-sm font-medium transition-control outline-none',
               'focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
-              isActive ? 'bg-raised text-fg shadow-raised ring-1 ring-subtle' : 'text-fg-secondary hover:bg-secondary-hover hover:text-fg',
+              isActive ? 'bg-sunken text-fg' : 'text-fg-secondary hover:bg-secondary-hover hover:text-fg',
             )
           }
         >
-          <Icon className="size-4 shrink-0" aria-hidden />
-          {label}
+          {({ isActive }) => (
+            <>
+              {/* Иконка на фирменной плитке: чёрная клавиша с голубым знаком у активного раздела. */}
+              <span
+                className={cn(
+                  'flex size-7 shrink-0 items-center justify-center rounded-sm transition-control',
+                  isActive ? 'bg-brand-tile text-brand-tile-fg' : 'text-fg-tertiary',
+                )}
+              >
+                <Icon className="size-4" aria-hidden />
+              </span>
+              {label}
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
@@ -107,7 +119,7 @@ function UserMenu() {
             'hover:bg-secondary-hover focus-visible:outline-2 focus-visible:outline-ring',
           )}
         >
-          <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sunken text-sm font-semibold text-fg-secondary">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-sm bg-brand-key text-sm font-bold text-brand-key-fg">
             {initials}
           </span>
           <span className="grid min-w-0 flex-1">
