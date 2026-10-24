@@ -3,6 +3,7 @@ import { api, type Schemas, unwrap } from '@/api/client'
 
 export type RecurringPayment = Schemas['RecurringPayment']
 export type RecurringPaymentCreate = Schemas['RecurringPaymentCreate']
+export type RecurringPaymentPatch = Schemas['RecurringPaymentPatch']
 export type Period = RecurringPayment['period']
 
 export const recurringKey = ['recurring'] as const
@@ -25,6 +26,7 @@ function invalidateAll(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: recurringKey })
   void queryClient.invalidateQueries({ queryKey: ['occurrences'] })
   void queryClient.invalidateQueries({ queryKey: ['summary'] })
+  void queryClient.invalidateQueries({ queryKey: ['budget'] })
 }
 
 export function useCreateRecurring() {
@@ -40,6 +42,15 @@ export function useDeleteRecurring() {
   return useMutation({
     mutationFn: (id: number) =>
       unwrap(api.DELETE('/api/v1/recurring-payments/{payment_id}', { params: { path: { payment_id: id } } })),
+    onSuccess: () => invalidateAll(queryClient),
+  })
+}
+
+export function useUpdateRecurring() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, patch }: { id: number; patch: RecurringPaymentPatch }) =>
+      unwrap(api.PATCH('/api/v1/recurring-payments/{payment_id}', { params: { path: { payment_id: id } }, body: patch })),
     onSuccess: () => invalidateAll(queryClient),
   })
 }

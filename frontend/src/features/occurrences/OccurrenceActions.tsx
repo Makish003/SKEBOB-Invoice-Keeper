@@ -81,7 +81,7 @@ function errorText(error: unknown): string {
 
 export function useOccurrenceMutations() {
   const { todayIso } = useAppInfo()
-  const patch = usePatchOccurrence(todayIso)
+  const patch = usePatchOccurrence()
 
   const run = (occ: Occurrence, body: OccurrencePatch, success: string, undo?: OccurrencePatch) =>
     patch.mutate(

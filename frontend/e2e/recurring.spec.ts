@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { isoFromToday } from './api'
 import { ADMIN, signIn } from './helpers'
 
-test('администратор добавляет платёж со сроком завтра и прекращает его @mobile', async ({ page }) => {
+test('администратор добавляет платёж со сроком завтра, меняет сумму и прекращает его @mobile', async ({ page }) => {
   const name = `E2E Подписка ${Date.now()}`
   await signIn(page, ADMIN)
   await page.goto('/recurring')
@@ -35,7 +35,17 @@ test('администратор добавляет платёж со сроко
   await expect(row).toContainText('1 500,50 $')
   await expect(row.getByText('Скоро срок')).toBeVisible()
 
-  await row.getByRole('button', { name: 'Прекратить' }).click()
+  await row.getByRole('button', { name: `Действия: ${name}` }).click()
+  await page.getByRole('menuitem', { name: 'Изменить' }).click()
+  const edit = page.getByRole('dialog', { name: 'Изменить платёж' })
+  await edit.getByLabel('Сумма, USD').fill('1600')
+  await expect(edit.getByText('Новая сумма применится к неоплаченным периодам')).toBeVisible()
+  await edit.getByRole('button', { name: 'Сохранить' }).click()
+  await expect(page.getByText('Платёж изменён')).toBeVisible()
+  await expect(row).toContainText('1 600,00 $')
+
+  await row.getByRole('button', { name: `Действия: ${name}` }).click()
+  await page.getByRole('menuitem', { name: 'Прекратить' }).click()
   const confirm = page.getByRole('alertdialog')
   await expect(confirm).toContainText('сохранятся в истории')
   await confirm.getByRole('button', { name: 'Прекратить платёж' }).click()

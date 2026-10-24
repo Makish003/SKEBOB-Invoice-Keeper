@@ -1,5 +1,5 @@
 import { motion } from 'motion/react'
-import { Archive, Repeat, Trash2 } from 'lucide-react'
+import { Archive, Ellipsis, Pencil, Repeat, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Segmented } from '@/components/ui/tabs'
@@ -18,8 +19,33 @@ import { formatDate, formatDateTime, formatMoney, relativeDue } from '@/lib/form
 import { fadeUp, reduced, stagger, useReducedMotion } from '@/lib/motion'
 import { periodLabels, type RecurringPayment, useDeleteRecurring, useRecurringPayments } from './api'
 import { CreateRecurringDialog } from './CreateRecurringDialog'
+import { EditRecurringDialog } from './EditRecurringDialog'
 
 type View = 'active' | 'archived'
+
+/** Действия над платежом в меню: опасное «Прекратить» не соседствует с каждой строкой таблицы. */
+function PaymentMenu({ payment, onEdit, onDelete }: { payment: RecurringPayment; onEdit: () => void; onDelete: () => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon-sm" aria-label={`Действия: ${payment.name}`}>
+          <Ellipsis aria-hidden />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent>
+        <DropdownMenuItem onSelect={onEdit}>
+          <Pencil aria-hidden />
+          Изменить
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem destructive onSelect={onDelete}>
+          <Trash2 aria-hidden />
+          Прекратить
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}
 
 function NextDue({ payment }: { payment: RecurringPayment }) {
   if (!payment.is_active) {
@@ -41,6 +67,7 @@ function NextDue({ payment }: { payment: RecurringPayment }) {
 export function RecurringPage() {
   const [view, setView] = useState<View>('active')
   const [toDelete, setToDelete] = useState<RecurringPayment | null>(null)
+  const [toEdit, setToEdit] = useState<RecurringPayment | null>(null)
   const list = useRecurringPayments()
   const remove = useDeleteRecurring()
   const reduce = useReducedMotion()
@@ -148,10 +175,7 @@ export function RecurringPage() {
                       </TD>
                       <TD className="pr-4 text-right">
                         {payment.is_active && (
-                          <Button variant="destructive-ghost" size="sm" onClick={() => setToDelete(payment)}>
-                            <Trash2 aria-hidden />
-                            Прекратить
-                          </Button>
+                          <PaymentMenu payment={payment} onEdit={() => setToEdit(payment)} onDelete={() => setToDelete(payment)} />
                         )}
                       </TD>
                     </motion.tr>
@@ -165,23 +189,23 @@ export function RecurringPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="grid min-w-0">
                       <span className="truncate font-medium">{payment.name}</span>
-                      <span className="text-xs text-fg-tertiary">{periodLabels[payment.period]}</span>
+                      <span className="text-xs text-fg-tertiary">
+                        {periodLabels[payment.period]}, {formatMoney(payment.amount, payment.currency)}
+                      </span>
                     </div>
-                    <span className="shrink-0 font-semibold tabular">{formatMoney(payment.amount, payment.currency)}</span>
+                    {payment.is_active && (
+                      <PaymentMenu payment={payment} onEdit={() => setToEdit(payment)} onDelete={() => setToDelete(payment)} />
+                    )}
                   </div>
                   <NextDue payment={payment} />
-                  {payment.is_active && (
-                    <Button variant="destructive-ghost" size="sm" className="justify-self-start" onClick={() => setToDelete(payment)}>
-                      <Trash2 aria-hidden />
-                      Прекратить
-                    </Button>
-                  )}
                 </motion.li>
               ))}
             </motion.ul>
           </>
         )}
       </Card>
+
+      <EditRecurringDialog payment={toEdit} onClose={() => setToEdit(null)} />
 
       <ConfirmDialog
         open={toDelete !== null}

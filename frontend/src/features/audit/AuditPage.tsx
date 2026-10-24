@@ -48,6 +48,17 @@ function describe(entry: Entry): { text: string; tone: BadgeProps['tone']; label
         tone: 'info',
         text: `${formatMoney(String(p.amount ?? '0'), (p.currency as Currency) ?? 'RUB')}, ${periodLabels[(p.period as Period) ?? 'monthly'].toLowerCase()}, первый срок ${p.first_due_date ? formatDate(String(p.first_due_date)) : ''}`,
       }
+    case 'recurring_payment.updated': {
+      const changes = (p.changes ?? {}) as Record<string, [string | null, string | null]>
+      const parts = Object.entries(changes).map(([field, [before, after]]) =>
+        field === 'amount'
+          ? `сумма ${before} → ${after}${p.periods_repriced ? ` (периодов: ${String(p.periods_repriced)})` : ''}`
+          : field === 'name'
+            ? `название «${before ?? ''}» → «${after ?? ''}»`
+            : 'комментарий',
+      )
+      return { label: 'Платёж изменён', tone: 'info', text: `Изменено: ${parts.join(', ')}` }
+    }
     case 'recurring_payment.deleted':
       return { label: 'Платёж прекращён', tone: 'warning', text: 'Новые периоды и напоминания остановлены, история сохранена' }
     case 'occurrence.paid':

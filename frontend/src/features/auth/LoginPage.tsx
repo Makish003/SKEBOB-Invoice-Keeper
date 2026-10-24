@@ -27,7 +27,7 @@ function loginErrorMessage(error: unknown): string {
 }
 
 const facts = [
-  { icon: BellRing, title: 'Напоминание за 3 дня', text: 'Бот сам пишет в Telegram-чат команды, без дублей' },
+  { icon: BellRing, title: 'Напоминание до срока', text: 'Бот сам пишет в Telegram-чат команды, без дублей' },
   { icon: Coins, title: 'RUB, USD и EUR отдельно', text: 'Итоги по каждой валюте, без конвертации' },
   { icon: History, title: 'История по периодам', text: 'У каждого периода свой срок и своя отметка оплаты' },
 ]

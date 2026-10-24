@@ -16,9 +16,9 @@ from app.services.telegram_actions import PREFIX, handle_pay_callback
 log = logging.getLogger("app.bot")
 
 
-async def on_start(message: Message) -> None:
-    await message.answer(
-        "Привет! Я Invoice Keeper: напоминаю о регулярных платежах за 3 дня до срока.\n"
+def start_text(reminder_days: int) -> str:
+    return (
+        f"Привет! Я Invoice Keeper: напоминаю о регулярных платежах за {reminder_days} дн. до срока.\n"
         "Добавьте меня в чат команды и отправьте /chatid — я пришлю id чата для TELEGRAM_CHAT_ID в .env."
     )
 
@@ -34,6 +34,10 @@ async def on_chat_id(message: Message) -> None:
 
 def build_dispatcher(sessions: sessionmaker[Session], clock: Clock, settings: Settings) -> Dispatcher:
     router = Router(name="commands")
+
+    async def on_start(message: Message) -> None:
+        await message.answer(start_text(settings.reminder_days_before))
+
     router.message.register(on_start, CommandStart())
     router.message.register(on_chat_id, Command("chatid"))
 

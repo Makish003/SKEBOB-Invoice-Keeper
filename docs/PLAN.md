@@ -368,18 +368,21 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
   ↳ done: P-02 · проверка: red — `test_query_budget` 7→21 / 6→13 / 5→12 / 7→14 запросов при 2→9 платежах и COMMIT на каждом GET; green — 8 passed; `pytest` → 272 passed
 - [x] **P-03** (BACK) N+1 в `GET /recurring-payments`: ближайшие периоды одним запросом (`DISTINCT ON`).
   ↳ done: P-03 · проверка: тот же `test_query_budget` (число запросов списка не зависит от числа платежей) → passed
-- [~] **P-04** (BACK+FRONT) Редактирование регулярного платежа: `PATCH /recurring-payments/{id}` (название, описание, сумма текущих и будущих неоплаченных периодов), ADR-022.
+- [x] **P-04** (BACK+FRONT) Редактирование регулярного платежа: `PATCH /recurring-payments/{id}` (название, описание, сумма текущих и будущих неоплаченных периодов), ADR-022.
   ↳ backend: `pytest tests/api/test_recurring_payment_edit.py` → 5 passed (401/403 без изменений, переименование, сумма только у текущих и будущих неоплаченных, новые периоды с новой суммой, аудит «было/стало», 422/404/409); test_ac_02/03 → passed; openapi.yml экспортирован
+  ↳ frontend: диалог «Изменить платёж» (только изменённые поля, подсказка о том, к каким периодам применится сумма), журнал показывает «было → стало»; e2e recurring.spec дополнен шагом изменения суммы
 - [x] **P-05** (BACK) Сервисный слой для отметки оплаты и чеков; старый файл чека удаляется только после commit (баг).
   ↳ done: P-05 · проверка: red — при сбое транзакции замены старый файл удалялся, новый оставался сиротой (`test_failed_replace_keeps_previous_file`, `test_failed_delete_keeps_file`); green — services/receipts.py (запись до COMMIT с откатом файла, удаление прежнего после COMMIT), services/occurrences.apply_patch; `pytest` → 281 passed
 - [x] **P-06** (BACK) Воркер: обращения к БД при доставке — вне event loop (`asyncio.to_thread`).
   ↳ done: P-06 · проверка: red — `test_delivery_keeps_database_off_the_event_loop`: claim выполнялся в потоке event loop; green — _take/_mark_sent/_mark_failed через asyncio.to_thread; `pytest` → 281 passed
-- [ ] **P-07** (FRONT) Vitest; правила статуса и оптимистичного обновления — с порогом из `app-info`, а не «3».
+- [x] **P-07** (FRONT) Vitest; правила статуса и оптимистичного обновления — с порогом из `app-info`, а не «3».
+  ↳ done: P-07 · проверка: `npm run test` → 11 passed (status: пороги как в domain/status.py, оптимистичная оплата с опозданием считает overdue_days; format/money-input). Заодно убраны захардкоженные «3 дня» в подсказке формы, на экране входа и в приветствии бота
 - [ ] **P-08** (FRONT) Сводка без противоречий и дублей; бюджет и итоги на дату — на странице «Отчёты».
 - [ ] **P-09** (FRONT) Просрочка сообщается один раз (без «41 день назад» + «Просрочен» + «на 41 день»).
 - [ ] **P-10** (FRONT) Календарь: сумма и число платежей за день, однозначные статусы (не только цвет).
 - [ ] **P-11** (FRONT) Мобильная «Платежи»: компактная шапка и фильтры, плотная карточка.
-- [ ] **P-12** (FRONT) «Регулярные»: действия в меню (изменить / прекратить) вместо красной кнопки в каждой строке.
+- [x] **P-12** (FRONT) «Регулярные»: действия в меню (изменить / прекратить) вместо красной кнопки в каждой строке.
+  ↳ done: P-12 · проверка: `tsc -b` чисто; e2e recurring.spec (меню «Действия: …» → Изменить / Прекратить) — прогон в финальной проверке
 
 ---
 
@@ -421,7 +424,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-23 22:48 · SOLO · B-01 · FastAPI-скелет: config (pydantic-settings), Clock, единый формат ошибок, health, Swagger /api/v1/docs, export_openapi · B-01 · curl health → {"status":"ok"}, docs 200, 404 → {"error":{"code":"not_found",…}} · uv.lock сгенерирован в контейнере (uv локально нет)
 - 2026-10-23 22:50 · SOLO · B-02 · Модели §1.1 (6 таблиц, 7 enum, CHECK paid_at↔status, UNIQUE(payment,seq)/(payment,due_date)/(occurrence,channel,kind), частичный UNIQUE логина среди не удалённых) + 0001_initial · B-02 · upgrade→check→downgrade→upgrade OK на postgres:16-alpine · логин уникален только среди активных — см. ADR-014
 - 2026-10-23 22:52 · SOLO · B-03 · docker-compose.yml (db+backend+worker, healthchecks, volume pgdata, env_file .env необязателен — дефолты в Settings), entrypoint serve|worker|bootstrap (wait db → alembic → sync admin), .env.example без секретов, compose.dev.yml для разработки · B-03 · `docker compose ps` → 3× healthy · DATABASE_URL по умолчанию собирается из POSTGRES_* — нельзя рассинхронизировать пароль БД
-- 2026-10-23 22:55 · SOLO · B-04 · Контракт-first: Pydantic-схемы (деньги — строка, единый ErrorResponse), роутеры всех эндпоинтов FR-25 (+ GET /recurring-payments/{id}, GET /users/{id} по FR-27) с 501, зависимости current_user/require_admin, docs/openapi.yml экспортирован · B-04 · test_openapi_up_to_date 2 passed · FRONT: docs/openapi.yml готов для openapi-typescript
+- 2026-10-23 22:55 · SOLO · B-04 · Контракт-first: Pydantic-схемы (деньги — строка, единый ErrorResponse), роутеры всех эндпоинтов FR-25 (+ GET /recurring-payments/{id}, GET /users/{id} по FR-27) с 501, зависимости current_user/require_admin, docs/openapi.yml экспортирован
+  ↳ frontend: диалог «Изменить платёж» (только изменённые поля, подсказка о том, к каким периодам применится сумма), журнал показывает «было → стало»; e2e recurring.spec дополнен шагом изменения суммы · B-04 · test_openapi_up_to_date 2 passed · FRONT: docs/openapi.yml готов для openapi-typescript
 - 2026-10-23 23:08 · SOLO · F-01 · Vite 8 + React 19 + TS strict + Tailwind v4, React Router 8, TanStack Query, openapi-typescript → src/api/schema.d.ts, openapi-fetch (credentials: include, глобальный 401-листенер), Dockerfile node→nginx, nginx.conf (SPA fallback, proxy /api с Docker DNS, CSP), сервис web в compose · F-01 · curl через :8080 · ADR-015 (radix-ui вместо shadcn CLI, TS 5.9, oxlint)
 - 2026-10-23 23:25 · SOLO · F-02 · Токены linear-app (light/dark), Inter cyrillic, motion.ts (fadeUp/stagger/spring 380/30/useReducedMotion), ThemeProvider, компоненты на radix-ui: Button, Input, Field, Select (listbox), Dialog/ConfirmDialog, Popover, DropdownMenu, Segmented (layoutId), Tooltip, Badge, Card, Skeleton, Table, Calendar (react-day-picker ru), Empty/ErrorState, Toaster; витрина /_ui (dev) · F-02 · гейты XIAS зелёные, скриншоты light/dark/360px просмотрены · ADR-016; хук XIAS ложно падает на кириллице (cp1252) — гейты гоняются вручную с PYTHONUTF8=1
 - 2026-10-23 23:29 · SOLO · B-05 · Auth: argon2, серверные сессии (sha256 токена), cookie ik_session (httpOnly, SameSite=Lax) + Bearer, login/me/logout, rate-limit 5/мин на IP+логин (429), одинаковый 401 для неверного пароля и неизвестного логина, аудит auth.login.success/failed, auth.logout, sync админа из .env · B-05 · 18 passed
@@ -470,6 +474,7 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
 - 2026-10-24 12:40 · SOLO · P-02, P-03 · GET-списки больше не масштабируются по числу платежей: материализация — один SELECT с GROUP BY и один INSERT при нехватке, без COMMIT в установившемся режиме; ближайшие периоды списка — DISTINCT ON · P-02 · test_query_budget red→green, 272 passed · ADR-021
 - 2026-10-24 13:20 · SOLO · P-05 · Бизнес-логика отметки оплаты и чеков вынесена из роутера в сервисы; баг: сбой транзакции при замене/удалении чека стирал прежний файл (запись ссылалась на несуществующий) и оставлял сироту — теперь файл удаляется только после COMMIT · P-05 · red→green, 281 passed · —
 - 2026-10-24 13:25 · SOLO · P-06 · Доставка напоминаний не блокирует event loop воркера (там же long polling бота): запросы к БД через asyncio.to_thread · P-06 · red→green · —
+- 2026-10-24 14:10 · SOLO · P-04, P-07, P-12 · Редактирование платежа в UI через меню действий; vitest с первыми 11 тестами; правило «скоро срок» на клиенте берёт порог из настроек · P-07 · npm run test 11 passed, tsc чисто · ADR-022
 
 ## 10. Эскалации и блокеры
 

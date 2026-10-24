@@ -36,7 +36,7 @@ function reminderHint(dueIso: string | undefined, todayIso: string, reminderDays
   if (!dueIso) return `Напоминание придёт в Telegram за ${days(reminderDays)} до срока.`
   const until = daysBetween(todayIso, dueIso)
   if (until < 0) return 'Срок уже прошёл: периоды с этой даты появятся как просроченные, напоминание о них не придёт.'
-  if (until <= reminderDays) return 'Срок ближе, чем через 3 дня: напоминание уйдёт сразу после сохранения.'
+  if (until <= reminderDays) return `Срок ближе, чем через ${days(reminderDays)}: напоминание уйдёт сразу после сохранения.`
   return `Напоминание придёт ${formatDate(toIsoDate(addDays(fromIsoDate(dueIso), -reminderDays)))}, за ${days(reminderDays)} до срока.`
 }
 
