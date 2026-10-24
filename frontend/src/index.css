@@ -214,35 +214,98 @@
 }
 
 /*
- * Иконка на плитке (раздел навигации): двигается вся плитка вместе с иконкой, а при нажатии
- * продавливается, как клавиша. Иконка внутри своей позы не держит (исключена через .ik-tile * выше).
+ * Иконка на плитке (раздел навигации) — клавиша (ADR-025). В покое вид сверху: плоская плитка.
+ * Под курсором или фокусом клавиша наклоняется верхом от зрителя, колпачок (.ik-tile-cap) поднимается
+ * над основанием (::before), и снизу видна боковина — силуэт клавиши, как на клавиатуре под углом.
+ * Нажатие опускает колпачок до упора: боковина почти скрыта, поверхность затенена прогибом.
+ * Отпустили — пружиной обратно. Иконка своей позы не держит (исключена через .ik-tile * выше).
+ * Двигаются только transform и opacity (ADR-013); при prefers-reduced-motion клавиша остаётся плоской.
  */
 .ik-tile {
-  --icon-pose: translateY(calc(-1 * var(--icon-travel))) rotate(-8deg) scale(1.1);
+  --key-depth: var(--icon-travel);
+  --tile-cap: var(--key-cap);
+  --tile-wall: var(--key-wall);
+  position: relative;
   transform-origin: center;
+  transition: transform var(--duration-play) var(--ease-spring);
+}
+
+.icon-play[aria-current='page'] .ik-tile {
+  --tile-cap: var(--brand-tile);
+  --tile-wall: var(--brand-tile-wall);
+}
+
+/* Основание: на пиксель шире колпачка с боков и снизу, видно, только пока клавиша в объёме. */
+.ik-tile::before {
+  content: '';
+  position: absolute;
+  inset: 0 -1px -1px;
+  border-radius: calc(var(--radius-sm) + 1px);
+  background: var(--tile-wall);
+  box-shadow: var(--shadow-key);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.ik-tile-cap {
+  position: relative;
   transition:
     transform var(--duration-play) var(--ease-spring),
     color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
 
+/* Прогиб: верх колпачка уходит в тень, как вогнутая поверхность под пальцем. */
+.ik-tile-cap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.3), transparent 75%);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .icon-play:focus-visible .ik-tile {
-    transform: var(--icon-pose);
+  .icon-play:is(:focus-visible, :active) .ik-tile {
+    transform: perspective(4rem) rotateX(28deg);
+  }
+
+  .icon-play:is(:focus-visible, :active) .ik-tile::before {
+    opacity: 1;
+  }
+
+  .icon-play:focus-visible .ik-tile-cap {
+    transform: translateY(calc(-1 * var(--key-depth)));
+    background-color: var(--tile-cap);
   }
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .icon-play:hover .ik-tile {
-    transform: var(--icon-pose);
+    transform: perspective(4rem) rotateX(28deg);
+  }
+
+  .icon-play:hover .ik-tile::before {
+    opacity: 1;
+  }
+
+  .icon-play:hover .ik-tile-cap {
+    transform: translateY(calc(-1 * var(--key-depth)));
+    background-color: var(--tile-cap);
   }
 }
 
-/* Нажатие ниже наведения по тексту: при равной специфичности побеждает оно. Отпустили — пружиной обратно в позу. */
+/* Нажатие ниже наведения по тексту: при равной специфичности побеждает оно. */
 @media (prefers-reduced-motion: no-preference) {
-  .icon-play:active .ik-tile {
-    transform: translateY(calc(var(--icon-travel) / 2)) scale(0.9);
+  .icon-play:active .ik-tile-cap {
+    transform: translateY(calc(-1 * var(--key-depth) / 4)) scale(0.96);
+    background-color: var(--tile-cap);
     transition-duration: var(--duration-fast);
+  }
+
+  .icon-play:active .ik-tile-cap::after {
+    opacity: 1;
   }
 }
 

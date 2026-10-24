@@ -83,14 +83,16 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
             >
               {({ isActive }) => (
                 <>
-                  {/* Иконка на фирменной плитке: чёрная клавиша с голубым знаком у активного раздела; плитка двигается и нажимается вместе с иконкой (.ik-tile). */}
-                  <span
-                    className={cn(
-                      'ik-tile flex size-7 shrink-0 items-center justify-center rounded-sm transition-control',
-                      isActive ? 'bg-brand-tile text-brand-tile-fg' : 'text-fg-tertiary',
-                    )}
-                  >
-                    <Icon className="size-4" aria-hidden />
+                  {/* Иконка на фирменной плитке: чёрная клавиша с голубым знаком у активного раздела; под курсором плитка встаёт клавишей в объёме и нажимается (.ik-tile). */}
+                  <span className="ik-tile size-7 shrink-0">
+                    <span
+                      className={cn(
+                        'ik-tile-cap flex size-full items-center justify-center rounded-sm',
+                        isActive ? 'bg-brand-tile text-brand-tile-fg' : 'text-fg-tertiary',
+                      )}
+                    >
+                      <Icon className="size-4" aria-hidden />
+                    </span>
                   </span>
                   {label}
                 </>

@@ -38,6 +38,7 @@
   --p-cyan-700: #0b6f94;
 
   --p-navy-500: #182d48;
+  --p-navy-800: #0c1726;
 
   --p-orange-50: #fdeee3;
   --p-orange-300: #f2a066;
@@ -105,6 +106,10 @@
   --brand-key-fg: var(--p-gray-0);
   --brand-tile: var(--p-black);
   --brand-tile-fg: var(--p-cyan-400);
+  /* Клавиша в объёме (плитка навигации под курсором): боковина фирменной плитки, колпачок и боковина обычной. */
+  --brand-tile-wall: var(--p-gray-600);
+  --key-cap: var(--p-gray-0);
+  --key-wall: var(--p-gray-300);
   /* Брендовая панель (вход) одинакова в обеих темах: чёрный фон, светлый текст, голубой акцент. */
   --brand-panel: var(--p-black);
   --brand-panel-fg: var(--p-gray-25);
@@ -128,6 +133,8 @@
 
   --shadow-overlay: 0 0.5rem 1.5rem rgb(0 0 0 / 0.12), 0 0 0 1px rgb(0 0 0 / 0.06);
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.04);
+  /* Тень клавиши в объёме (плитка навигации под курсором). */
+  --shadow-key: 0 2px 4px rgb(0 0 0 / 0.25);
 
   --duration-instant: 0.01ms;
   --duration-fast: 120ms;
@@ -192,6 +199,9 @@
   --brand-key-fg: var(--p-black);
   --brand-tile: var(--p-navy-500);
   --brand-tile-fg: var(--p-cyan-400);
+  --brand-tile-wall: var(--p-navy-800);
+  --key-cap: var(--p-ink-300);
+  --key-wall: var(--p-ink-100);
   --brand-pattern-line: var(--p-ink-900);
 
   --shadow-overlay: 0 0.5rem 1.5rem rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.06);
