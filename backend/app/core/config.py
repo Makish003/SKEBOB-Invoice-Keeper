@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     # --- Telegram ---
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    # Адрес панели для кнопок бота. Пусто — https://DOMAIN (сервер) или http://localhost:WEB_PORT (локально).
+    public_url: str = ""
+    domain: str = ""
+    web_port: int = 8080
 
     # --- Чеки (FR-B8) ---
     uploads_dir: str = "/srv/uploads"
@@ -78,6 +82,12 @@ class Settings(BaseSettings):
     @property
     def telegram_enabled(self) -> bool:
         return bool(self.telegram_bot_token and self.telegram_chat_id)
+
+    @property
+    def site_url(self) -> str:
+        if self.public_url:
+            return self.public_url.rstrip("/")
+        return f"https://{self.domain}" if self.domain else f"http://localhost:{self.web_port}"
 
 
 @lru_cache

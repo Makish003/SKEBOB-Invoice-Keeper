@@ -21,7 +21,8 @@ from app.services.notifiers.console import ConsoleNotifier
 from app.services.notifiers.email import EmailNotifier, recipients_from
 from app.services.notifiers.telegram import TelegramNotifier
 from app.services.notifiers.webhook import WebhookNotifier
-from app.worker.bot import build_dispatcher
+from app.services.telegram_screens import Links
+from app.worker.bot import build_dispatcher, configure
 
 log = logging.getLogger("app.worker")
 
@@ -40,8 +41,10 @@ async def run() -> None:
 
     bot = Bot(settings.telegram_bot_token) if settings.telegram_bot_token else None
     notifiers: dict[Channel, Notifier] = {Channel.console: ConsoleNotifier()}
+    links = Links(settings.site_url)
     if bot and settings.telegram_chat_id:
-        notifiers[Channel.telegram] = TelegramNotifier(bot, settings.telegram_chat_id, settings.secret_key)
+        site_url = links.url("/payments", tab="due") if links.clickable else None
+        notifiers[Channel.telegram] = TelegramNotifier(bot, settings.telegram_chat_id, settings.secret_key, site_url)
         log.info("Reminders → Telegram chat %s", settings.telegram_chat_id)
     elif bot:
         log.warning("TELEGRAM_CHAT_ID пуст: напоминания пишутся в лог. Отправьте боту /chatid в нужном чате")
@@ -88,13 +91,17 @@ async def run() -> None:
     )
 
     polling: asyncio.Task[None] | None = None
+    setup: asyncio.Task[None] | None = None
     dispatcher = build_dispatcher(sessions, clock, settings)
     if bot:
+        setup = asyncio.create_task(configure(bot, settings))  # меню и описание бота; не задерживает старт
         polling = asyncio.create_task(dispatcher.start_polling(bot, handle_signals=False))
 
     await stop.wait()
     log.info("Stopping worker")
     scheduler.shutdown(wait=False)
+    if setup:
+        setup.cancel()
     if polling:
         with contextlib.suppress(Exception):
             await dispatcher.stop_polling()

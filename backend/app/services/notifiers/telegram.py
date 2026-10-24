@@ -16,10 +16,11 @@ SEND_TIMEOUT_SECONDS = 15
 class TelegramNotifier:
     channel = Channel.telegram
 
-    def __init__(self, bot: Bot, chat_id: str, secret: str) -> None:
+    def __init__(self, bot: Bot, chat_id: str, secret: str, site_url: str | None = None) -> None:
         self.bot = bot
         self.chat_id = chat_id
         self.secret = secret
+        self.site_url = site_url  # кнопка «Открыть в панели»; None — адрес не принимается Telegram (localhost)
 
     async def send(self, message: ReminderMessage) -> str | None:
         try:
@@ -27,7 +28,7 @@ class TelegramNotifier:
                 self.chat_id,
                 format_message(message),
                 parse_mode="HTML",
-                reply_markup=InlineKeyboardMarkup.model_validate(pay_keyboard_payload(message.occurrence_id, self.secret)),
+                reply_markup=InlineKeyboardMarkup.model_validate(pay_keyboard_payload(message.occurrence_id, self.secret, self.site_url)),
                 request_timeout=SEND_TIMEOUT_SECONDS,
             )
         except (TelegramAPIError, OSError, TimeoutError) as exc:

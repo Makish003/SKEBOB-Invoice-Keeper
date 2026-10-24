@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.clock import FrozenClock
 from app.core.db import get_sessionmaker
 from app.models import AuditLog, OccurrenceStatus, PaymentOccurrence
-from app.services.telegram_actions import PayResult, handle_pay_callback, pay_callback_data, pay_keyboard_payload
+from app.services.telegram_actions import PayResult, handle_pay_callback, pay_callback_data, pay_keyboard_payload, set_paid
 
 SECRET = "test-secret"
 CHAT = "-100777"
@@ -82,3 +82,24 @@ def test_user_without_username_is_labelled_by_name(client: TestClient, db: Sessi
     occ = occurrence_id(client, admin_headers)
     press(pay_callback_data(occ, SECRET), user="")
     assert db.get(PaymentOccurrence, occ).paid_by_label == "Telegram"  # type: ignore[union-attr]
+
+
+def test_keyboard_is_green_and_links_to_panel() -> None:
+    rows = pay_keyboard_payload(5, SECRET, "https://keeper.example.com/payments?tab=due")["inline_keyboard"]
+    assert rows[0][0]["style"] == "success"
+    assert rows[1][0]["url"] == "https://keeper.example.com/payments?tab=due"
+    assert len(pay_keyboard_payload(5, SECRET)["inline_keyboard"]) == 1
+
+
+def test_unpay_from_card_reverts_and_audits(client: TestClient, db: Session, admin_headers: dict[str, str]) -> None:
+    occ = occurrence_id(client, admin_headers)
+    assert set_paid(get_sessionmaker(), occ, paid=False, username="ivan", today=date(2026, 10, 23)).status == "already_unpaid"
+    press(pay_callback_data(occ, SECRET))
+    result = set_paid(get_sessionmaker(), occ, paid=False, username="ivan", today=date(2026, 10, 23))
+    assert result.status == "unpaid"
+    row = db.get(PaymentOccurrence, occ)
+    assert row is not None and (row.status, row.paid_at, row.paid_by_label) == (OccurrenceStatus.unpaid, None, None)
+    entry = db.scalar(select(AuditLog).where(AuditLog.action == "occurrence.unpaid"))
+    assert entry is not None and entry.actor_label == "Telegram @ivan"
+    assert entry.payload["before"]["status"] == "paid" and entry.payload["after"] == {"status": "unpaid", "paid_at": None}
+    assert set_paid(get_sessionmaker(), 999999, paid=True, username="", today=date(2026, 10, 23)).status == "not_found"
