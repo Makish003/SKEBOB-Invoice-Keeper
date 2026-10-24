@@ -2,8 +2,10 @@ import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
 
 export function Table({ className, ...props }: HTMLAttributes<HTMLTableElement>) {
+  // overflow-x:auto сам делает overflow-y:auto: строки, въезжающие снизу (fadeUp, y: 6), на время анимации
+  // давали вертикальную полосу прокрутки и сдвиг колонок. По вертикали таблица не прокручивается никогда.
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto overflow-y-hidden">
       <table className={cn('w-full border-collapse text-sm', className)} {...props} />
     </div>
   )
