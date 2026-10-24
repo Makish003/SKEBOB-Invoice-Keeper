@@ -1,6 +1,5 @@
 import {
   addDays,
-  addMonths,
   endOfMonth,
   endOfWeek,
   format,
@@ -14,8 +13,6 @@ import { AnimatePresence, motion } from 'motion/react'
 import {
   AlarmClock,
   CalendarDays,
-  ChevronLeft,
-  ChevronRight,
   CircleCheck,
   CircleDashed,
   Clock,
@@ -23,8 +20,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useMemo, useState } from 'react'
+import { MonthSwitcher } from '@/components/MonthSwitcher'
 import { Page, PageHeader } from '@/components/PageHeader'
-import { Button } from '@/components/ui/button'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/states'
@@ -130,11 +127,6 @@ export function CalendarPage() {
   const days: Date[] = []
   for (let d = gridStart; d <= gridEnd; d = addDays(d, 1)) days.push(d)
 
-  const go = (delta: number) => {
-    setDirection(delta)
-    setMonth(startOfMonth(addMonths(current, delta)))
-    setSelected(null)
-  }
   const activeDay = selected ?? (isSameMonth(today, current) ? today : null)
   const dayItems = activeDay ? (byDay.get(toIsoDate(activeDay)) ?? []) : []
 
@@ -144,26 +136,15 @@ export function CalendarPage() {
         title="Календарь оплат"
         description="Сроки всех периодов по дням. Нажмите на день, чтобы увидеть платежи и отметить оплату."
         actions={
-          <div className="flex items-center gap-1">
-            <Button variant="secondary" size="icon-sm" aria-label="Предыдущий месяц" onClick={() => go(-1)}>
-              <ChevronLeft aria-hidden />
-            </Button>
-            <span className="min-w-36 text-center font-medium capitalize" aria-live="polite">
-              {format(current, 'LLLL yyyy', { locale: ru })}
-            </span>
-            <Button variant="secondary" size="icon-sm" aria-label="Следующий месяц" onClick={() => go(1)}>
-              <ChevronRight aria-hidden />
-            </Button>
-            {!isSameMonth(current, today) && (
-              <Button variant="ghost" size="sm" onClick={() => {
-                  setDirection(current > today ? -1 : 1)
-                  setMonth(startOfMonth(today))
-                  setSelected(null)
-                }}>
-                Сегодня
-              </Button>
-            )}
-          </div>
+          <MonthSwitcher
+            month={current}
+            today={today}
+            onChange={(next) => {
+              setDirection(next > current ? 1 : -1)
+              setMonth(startOfMonth(next))
+              setSelected(null)
+            }}
+          />
         }
       />
 
