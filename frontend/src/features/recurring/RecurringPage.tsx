@@ -32,7 +32,8 @@ function PaymentMenu({ payment, onEdit, onDelete }: { payment: RecurringPayment;
           <Ellipsis aria-hidden />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent>
+      {/* Фокус не возвращается на кнопку меню: иначе открытый из меню диалог сразу закрылся бы (фокус «снаружи»). */}
+      <DropdownMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
         <DropdownMenuItem onSelect={onEdit}>
           <Pencil aria-hidden />
           Изменить

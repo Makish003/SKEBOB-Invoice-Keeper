@@ -37,7 +37,7 @@ export function Segmented<T extends string>({ value, onChange, options, label, c
             key={option.value}
             value={option.value}
             className={cn(
-              'relative inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-[0.8125rem] font-medium outline-none sm:px-3',
+              'relative inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium outline-none sm:gap-1.5 sm:px-3 sm:text-[0.8125rem]',
               'transition-control focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring',
               selected ? 'text-fg' : 'text-fg-secondary hover:text-fg',
             )}

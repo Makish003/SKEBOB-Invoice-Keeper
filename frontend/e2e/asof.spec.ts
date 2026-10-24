@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test'
 import { ADMIN, signIn } from './helpers'
 
 test('итоги на дату: таблица по трём валютам и смена даты', async ({ page }) => {
-  await signIn(page, ADMIN)
+  await signIn(page, ADMIN, '/login')
+  await page.goto('/reports')
   const table = page.getByRole('table', { name: /Итоги на/ })
   await expect(table.getByRole('row')).toHaveCount(4)
   await expect(table.getByText('RUB')).toBeVisible()

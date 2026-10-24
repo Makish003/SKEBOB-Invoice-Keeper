@@ -1,5 +1,6 @@
 import {
   CalendarDays,
+  ChartColumn,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -44,6 +45,7 @@ export const navItems: NavItem[] = [
   { to: '/', label: 'Сводка', icon: LayoutDashboard },
   { to: '/payments', label: 'Платежи', icon: ReceiptText },
   { to: '/calendar', label: 'Календарь', icon: CalendarDays },
+  { to: '/reports', label: 'Отчёты', icon: ChartColumn },
   { to: '/recurring', label: 'Регулярные', icon: Repeat, adminOnly: true },
   { to: '/users', label: 'Пользователи', icon: Users, adminOnly: true },
   { to: '/audit', label: 'Журнал', icon: ScrollText, adminOnly: true },

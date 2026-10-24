@@ -1,10 +1,10 @@
-import { addDays, addMonths, endOfMonth, format, isSameMonth, startOfMonth } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { addDays, endOfMonth, isSameMonth, startOfMonth } from 'date-fns'
 import { motion } from 'motion/react'
-import { ArrowRight, CalendarClock, ChevronLeft, ChevronRight, CircleCheck, TriangleAlert } from 'lucide-react'
+import { ArrowRight, CalendarClock, CircleCheck, TriangleAlert } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { AnimatedNumber } from '@/components/AnimatedNumber'
+import { MonthSwitcher } from '@/components/MonthSwitcher'
 import { Page, PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,36 +13,14 @@ import { EmptyState, ErrorState } from '@/components/ui/states'
 import { useAppInfo } from '@/features/app-info'
 import { type Occurrence, useOccurrences } from '@/features/occurrences/api'
 import { OccurrenceActions } from '@/features/occurrences/OccurrenceActions'
-import { overdueText, StatusBadge } from '@/features/occurrences/StatusBadge'
+import { StatusBadge } from '@/features/occurrences/StatusBadge'
+import { type BudgetOverview, useBudgetOverview } from '@/features/reports/api'
 import { cn } from '@/lib/cn'
 import { type Currency, currencyNames, formatDate, formatMoney, pluralize, relativeDue, toIsoDate } from '@/lib/format'
 import { fadeUp, reduced, stagger, useReducedMotion } from '@/lib/motion'
 import { type CurrencySummary, useSummary } from './api'
-import { AsOfCard } from './AsOfCard'
-import { BudgetCard } from './BudgetCard'
 
 const payments = (n: number) => pluralize(n, { one: 'платёж', few: 'платежа', many: 'платежей' })
-
-function MonthSwitcher({ month, onChange, today }: { month: Date; onChange: (d: Date) => void; today: Date }) {
-  return (
-    <div className="flex items-center gap-1">
-      <Button variant="secondary" size="icon-sm" aria-label="Предыдущий месяц" onClick={() => onChange(addMonths(month, -1))}>
-        <ChevronLeft aria-hidden />
-      </Button>
-      <span className="min-w-36 text-center font-medium capitalize" aria-live="polite">
-        {format(month, 'LLLL yyyy', { locale: ru })}
-      </span>
-      <Button variant="secondary" size="icon-sm" aria-label="Следующий месяц" onClick={() => onChange(addMonths(month, 1))}>
-        <ChevronRight aria-hidden />
-      </Button>
-      {!isSameMonth(month, today) && (
-        <Button variant="ghost" size="sm" onClick={() => onChange(startOfMonth(today))}>
-          Текущий
-        </Button>
-      )}
-    </div>
-  )
-}
 
 /** Полоса «оплачено / к оплате / просрочено» по сумме валюты. */
 function ProgressBar({ row }: { row: CurrencySummary }) {
@@ -57,7 +35,22 @@ function ProgressBar({ row }: { row: CurrencySummary }) {
   )
 }
 
-function CurrencyCard({ row }: { row: CurrencySummary }) {
+type BudgetLine = BudgetOverview['currencies'][number]['month']
+
+/** Бюджет месяца одной строкой: подробности и правка в «Отчётах». */
+function BudgetHint({ line, currency }: { line: BudgetLine; currency: Currency }) {
+  if (!line.budget) return null
+  const left = Number(line.budget) - Number(line.planned)
+  return (
+    <p className={cn('text-xs', left < 0 ? 'text-danger' : 'text-fg-tertiary')}>
+      {left < 0
+        ? `Сверх бюджета на ${formatMoney(-left, currency)}`
+        : `Остаток бюджета ${formatMoney(line.budget, currency)}: ${formatMoney(left, currency)}`}
+    </p>
+  )
+}
+
+function CurrencyCard({ row, budget }: { row: CurrencySummary; budget?: BudgetLine }) {
   const currency = row.currency as Currency
   const money = (n: number) => formatMoney(n, currency)
   const empty = row.count_total === 0
@@ -78,6 +71,7 @@ function CurrencyCard({ row }: { row: CurrencySummary }) {
             <span className="text-2xl font-semibold tracking-tight">
               <AnimatedNumber value={Number(row.total)} format={money} />
             </span>
+            {budget && <BudgetHint line={budget} currency={currency} />}
           </div>
           <ProgressBar row={row} />
           <dl className="grid gap-1.5">
@@ -115,14 +109,25 @@ function CurrencyCard({ row }: { row: CurrencySummary }) {
   )
 }
 
-function Hero({ rows, isCurrent }: { rows: CurrencySummary[]; isCurrent: boolean }) {
+function Hero({
+  rows,
+  isCurrent,
+  overdueAllTime,
+  next,
+}: {
+  rows: CurrencySummary[]
+  isCurrent: boolean
+  overdueAllTime: number
+  next?: Occurrence
+}) {
   const count = rows.reduce((sum, r) => sum + r.count_total - r.count_paid, 0)
   const overdue = rows.reduce((sum, r) => sum + r.count_overdue, 0)
   const total = rows.reduce((sum, r) => sum + r.count_total, 0)
   const paid = total - count
-  const unpaid = rows.filter((r) => Number(r.unpaid) > 0)
+  // Список «Все просроченные» считает все месяцы, здесь только выбранный: разницу называем явно.
+  const earlier = isCurrent ? Math.max(overdueAllTime - overdue, 0) : 0
   return (
-    <Card className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] lg:items-end">
+    <Card className="grid gap-6 p-5 sm:p-6 lg:grid-cols-2 lg:items-end">
       <div className="grid gap-2">
         <span className="text-fg-secondary">{isCurrent ? 'Осталось оплатить в этом месяце' : 'Не оплачено в этом месяце'}</span>
         <div className="flex items-baseline gap-3">
@@ -131,10 +136,14 @@ function Hero({ rows, isCurrent }: { rows: CurrencySummary[]; isCurrent: boolean
           </span>
           <span className="text-lg text-fg-secondary">{payments(count)}</span>
         </div>
-        {overdue > 0 ? (
-          <p className="flex items-center gap-1.5 font-medium text-danger">
-            <TriangleAlert className="size-4" aria-hidden />
-            Из них {overdue} {pluralize(overdue, { one: 'просрочен', few: 'просрочены', many: 'просрочены' })}
+        {overdue > 0 || earlier > 0 ? (
+          <p className="flex items-start gap-1.5 font-medium text-danger">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              {overdue > 0 && `Из них ${overdue} ${pluralize(overdue, { one: 'просрочен', few: 'просрочены', many: 'просрочены' })}`}
+              {overdue > 0 && earlier > 0 && ', '}
+              {earlier > 0 && `${overdue > 0 ? 'ещё' : 'Ещё'} ${earlier} ${pluralize(earlier, { one: 'платёж просрочен', few: 'платежа просрочены', many: 'платежей просрочено' })} в прошлых месяцах`}
+            </span>
           </p>
         ) : total > 0 ? (
           <p className="flex items-center gap-1.5 text-success">
@@ -143,30 +152,28 @@ function Hero({ rows, isCurrent }: { rows: CurrencySummary[]; isCurrent: boolean
           </p>
         ) : null}
       </div>
-      <div className="grid gap-3">
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          {unpaid.length === 0 ? (
-            <span className="text-fg-secondary">{total > 0 ? 'Всё оплачено' : 'Платежей в этом месяце нет'}</span>
-          ) : (
-            unpaid.map((r) => (
-              <span key={r.currency} className="grid">
-                <span className="text-xs text-fg-tertiary">К оплате, {r.currency}</span>
-                <span className="text-xl font-semibold">
-                  <AnimatedNumber value={Number(r.unpaid)} format={(n) => formatMoney(n, r.currency as Currency)} />
-                </span>
-              </span>
-            ))
-          )}
-        </div>
-        {total > 0 && (
+      <div className="grid gap-4">
+        {isCurrent && next && (
+          <div className="grid gap-0.5">
+            <span className="text-xs text-fg-tertiary">Ближайший срок</span>
+            <span className="flex flex-wrap items-baseline gap-x-2">
+              <span className="font-medium">{next.recurring_payment.name}</span>
+              <span className="font-semibold tabular">{formatMoney(next.amount, next.currency as Currency)}</span>
+              <span className="text-fg-secondary">{relativeDue(next.days_until_due)}</span>
+            </span>
+          </div>
+        )}
+        {total > 0 ? (
           <div className="grid gap-1.5">
             <div className="flex h-2 overflow-hidden rounded-full bg-sunken" aria-hidden>
               <div className="h-full bg-success transition-[width] duration-500" style={{ width: `${(paid / total) * 100}%` }} />
             </div>
             <span className="text-xs text-fg-tertiary">
-              Оплачено {paid} из {total} {payments(total)}
+              Оплачено {paid} из {total} {payments(total)} месяца
             </span>
           </div>
+        ) : (
+          <span className="text-fg-secondary">Платежей в этом месяце нет</span>
         )}
       </div>
     </Card>
@@ -231,7 +238,7 @@ function OccurrenceMiniList({
                 <div className="grid min-w-0">
                   <span className="truncate font-medium">{occ.recurring_payment.name}</span>
                   <span className="text-xs text-fg-tertiary">
-                    {formatDate(occ.due_date)}, {occ.is_overdue ? `просрочен ${overdueText(occ)}` : relativeDue(occ.days_until_due)}
+                    {formatDate(occ.due_date)}, {relativeDue(occ.days_until_due)}
                   </span>
                 </div>
                 <span className="text-right font-semibold tabular">{formatMoney(occ.amount, occ.currency as Currency)}</span>
@@ -261,6 +268,8 @@ export function DashboardPage() {
     limit: 6,
   })
   const overdue = useOccurrences({ status: 'unpaid', overdue: true, sort: 'due_date', limit: 6 })
+  const budget = useBudgetOverview(current.getFullYear(), current.getMonth() + 1)
+  const budgetFor = (currency: string) => budget.data?.currencies.find((c) => c.currency === currency)?.month
   const reduce = useReducedMotion()
 
   return (
@@ -287,13 +296,18 @@ export function DashboardPage() {
       ) : (
         <motion.div initial="hidden" animate="show" variants={stagger(0.06)} className="grid gap-4">
           <motion.div variants={reduce ? reduced : fadeUp}>
-            <Hero rows={summary.data.currencies} isCurrent={isSameMonth(current, today)} />
+            <Hero
+              rows={summary.data.currencies}
+              isCurrent={isSameMonth(current, today)}
+              overdueAllTime={overdue.data?.total ?? 0}
+              next={upcoming.data?.items[0]}
+            />
           </motion.div>
           <section aria-label="Итоги по валютам" className="grid gap-4 md:grid-cols-3">
             {summary.data.currencies.map((row) => (
-              <motion.div key={row.currency} variants={reduce ? reduced : fadeUp} className="grid">
-                <CurrencyCard row={row} />
-              </motion.div>
+              <motion.section key={row.currency} aria-label={row.currency} variants={reduce ? reduced : fadeUp} className="grid">
+                <CurrencyCard row={row} budget={budgetFor(row.currency)} />
+              </motion.section>
             ))}
           </section>
         </motion.div>
@@ -301,7 +315,7 @@ export function DashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <OccurrenceMiniList
-          title="Просрочено"
+          title="Все просроченные"
           icon={<TriangleAlert aria-hidden />}
           items={overdue.data?.items ?? []}
           total={overdue.data?.total ?? 0}
@@ -324,8 +338,6 @@ export function DashboardPage() {
         />
       </div>
 
-      <BudgetCard year={current.getFullYear()} month={current.getMonth() + 1} />
-      <AsOfCard />
     </Page>
   )
 }

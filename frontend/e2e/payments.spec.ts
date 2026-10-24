@@ -7,14 +7,16 @@ test.describe('Платежи: отметка, отмена, исправлен�
     const token = await apiLogin(request, ADMIN)
     const name = `E2E Хостинг ${Date.now()}`
     await createPayment(request, token, { name, amount: '120.50', currency: 'USD', daysFromToday: -5 })
+    const dueIso = isoFromToday(-5)
+    const dueLabel = dueIso.split('-').reverse().join('.') // строка первого периода — по сроку
 
     await signIn(page, ADMIN, '/login?next=/payments')
     await page.getByRole('searchbox', { name: 'Поиск по названию' }).fill(name)
     await page.getByRole('searchbox', { name: 'Поиск по названию' }).press('Enter')
 
-    const row = page.locator('tr:visible, li:visible').filter({ hasText: name }).filter({ hasText: 'Период 1' }).first()
+    const row = page.locator('tr:visible, li:visible').filter({ hasText: name }).filter({ hasText: dueLabel }).first()
     await expect(row.getByText('Просрочен')).toBeVisible()
-    await expect(row.getByText('на 5 дней')).toBeVisible()
+    await expect(row.getByText('5 дней назад')).toBeVisible()
 
     // Отметить оплату сегодняшним днём (по умолчанию) — оплачен с опозданием.
     await row.getByRole('button', { name: 'Отметить оплату' }).click()
@@ -24,13 +26,12 @@ test.describe('Платежи: отметка, отмена, исправлен�
     await expect(page.getByText(/Оплата отмечена/)).toBeVisible()
 
     await page.getByRole('radio', { name: /Все/ }).click()
-    const paidRow = page.locator('tr:visible, li:visible').filter({ hasText: name }).filter({ hasText: 'Период 1' }).first()
+    const paidRow = page.locator('tr:visible, li:visible').filter({ hasText: name }).filter({ hasText: dueLabel }).first()
     await expect(paidRow.getByText('Оплачен с опозданием')).toBeVisible()
 
     // Исправить фактическую дату на дату срока: просрочка пропадает.
     await paidRow.getByRole('button', { name: /Исправить дату/ }).click()
     const fix = page.getByRole('dialog', { name: 'Исправить дату оплаты' })
-    const dueIso = isoFromToday(-5)
     if (dueIso.slice(0, 7) !== isoFromToday(0).slice(0, 7)) await fix.getByRole('button', { name: /предыдущ|previous/i }).click()
     await fix.locator(`[data-day="${dueIso}"] button`).click()
     await expect(fix.getByText('В срок')).toBeVisible()

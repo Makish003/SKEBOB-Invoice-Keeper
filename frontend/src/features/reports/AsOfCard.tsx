@@ -6,7 +6,7 @@ import { ErrorState } from '@/components/ui/states'
 import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { useAppInfo } from '@/features/app-info'
 import { type Currency, formatDate, formatMoney } from '@/lib/format'
-import { useSummary } from './api'
+import { useSummary } from '@/features/dashboard/api'
 
 /** Итоги на дату (FR-B4): с 1 января до выбранной даты: сколько должно быть оплачено, оплачено и просрочено. */
 export function AsOfCard() {

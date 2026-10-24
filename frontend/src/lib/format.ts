@@ -15,6 +15,18 @@ export function formatMoney(amount: string | number, currency: Currency): string
   return formatter.format(typeof amount === 'string' ? Number(amount) : amount)
 }
 
+const compactFormatters = new Map<string, Intl.NumberFormat>()
+
+/** Короткая сумма для тесных мест (ячейка календаря): «85 тыс. ₽», «1,5 млн ₽», «49,9 $». Точная сумма — рядом. */
+export function formatMoneyCompact(amount: string | number, currency: Currency): string {
+  let formatter = compactFormatters.get(currency)
+  if (!formatter) {
+    formatter = new Intl.NumberFormat('ru-RU', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 })
+    compactFormatters.set(currency, formatter)
+  }
+  return formatter.format(typeof amount === 'string' ? Number(amount) : amount)
+}
+
 export const currencyNames: Record<Currency, string> = {
   RUB: 'Российский рубль',
   USD: 'Доллар США',

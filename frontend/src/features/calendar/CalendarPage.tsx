@@ -11,7 +11,17 @@ import {
 } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { AnimatePresence, motion } from 'motion/react'
-import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  AlarmClock,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  CircleCheck,
+  CircleDashed,
+  Clock,
+  TriangleAlert,
+  type LucideIcon,
+} from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Page, PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -19,20 +29,71 @@ import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/states'
 import { useAppInfo } from '@/features/app-info'
-import { type Occurrence, useOccurrences } from '@/features/occurrences/api'
+import { type Occurrence, useAllOccurrences } from '@/features/occurrences/api'
 import { OccurrenceActions } from '@/features/occurrences/OccurrenceActions'
-import { overdueText, StatusBadge } from '@/features/occurrences/StatusBadge'
+import { lateText, StatusBadge } from '@/features/occurrences/StatusBadge'
 import { cn } from '@/lib/cn'
-import { type Currency, formatMoney, pluralize, toIsoDate } from '@/lib/format'
+import { type Currency, formatMoney, formatMoneyCompact, pluralize, relativeDue, toIsoDate } from '@/lib/format'
 import { useReducedMotion } from '@/lib/motion'
 
-const dotTone: Record<Occurrence['display_status'], string> = {
-  paid: 'bg-success',
-  paid_late: 'bg-warning',
-  upcoming: 'bg-fg-tertiary',
-  due_soon: 'bg-info',
-  due_today: 'bg-warning',
-  overdue: 'bg-danger',
+/** Статус дня в календаре: что требует действия. «Оплачен с опозданием» здесь просто «оплачен» — платить уже нечего,
+ * поэтому жёлтый означает только «срок сегодня». Каждый статус — иконка и цвет, не только цвет. */
+type DayStatus = 'overdue' | 'today' | 'soon' | 'upcoming' | 'paid'
+
+const dayStatus: Record<DayStatus, { label: string; icon: LucideIcon; tone: string }> = {
+  overdue: { label: 'просрочен', icon: TriangleAlert, tone: 'text-danger' },
+  today: { label: 'срок сегодня', icon: AlarmClock, tone: 'text-warning' },
+  soon: { label: 'скоро срок', icon: Clock, tone: 'text-info' },
+  upcoming: { label: 'ожидает', icon: CircleDashed, tone: 'text-fg-tertiary' },
+  paid: { label: 'всё оплачено', icon: CircleCheck, tone: 'text-success' },
+}
+
+const statusOrder: DayStatus[] = ['overdue', 'today', 'soon', 'upcoming', 'paid']
+
+function statusOf(occ: Occurrence): DayStatus {
+  switch (occ.display_status) {
+    case 'overdue':
+      return 'overdue'
+    case 'due_today':
+      return 'today'
+    case 'due_soon':
+      return 'soon'
+    case 'upcoming':
+      return 'upcoming'
+    default:
+      return 'paid'
+  }
+}
+
+/** Самый срочный статус дня. */
+function worstStatus(items: Occurrence[]): DayStatus {
+  return statusOrder.find((status) => items.some((i) => statusOf(i) === status)) ?? 'paid'
+}
+
+function sumsByCurrency(items: Occurrence[]): [Currency, number][] {
+  const sums = new Map<Currency, number>()
+  for (const i of items) sums.set(i.currency as Currency, (sums.get(i.currency as Currency) ?? 0) + Number(i.amount))
+  return [...sums.entries()]
+}
+
+function DayMarker({ items, showSums }: { items: Occurrence[]; showSums: boolean }) {
+  const status = dayStatus[worstStatus(items)]
+  const Icon = status.icon
+  return (
+    <span className="grid gap-0.5" aria-hidden>
+      <span className={cn('flex items-center gap-1 text-xs font-medium tabular', status.tone)}>
+        <Icon className="size-3.5 shrink-0" />
+        {items.length}
+        {showSums && <span className="hidden font-normal text-fg-secondary lg:inline">{pluralize(items.length, { one: 'платёж', few: 'платежа', many: 'платежей' })}</span>}
+      </span>
+      {showSums &&
+        sumsByCurrency(items).map(([currency, sum]) => (
+          <span key={currency} className="truncate text-xs text-fg-secondary tabular">
+            {formatMoneyCompact(sum, currency)}
+          </span>
+        ))}
+    </span>
+  )
 }
 
 const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
@@ -43,6 +104,7 @@ function dayLabel(day: Date, items: Occurrence[]): string {
   const overdue = items.filter((i) => i.display_status === 'overdue').length
   const paid = items.filter((i) => i.status === 'paid').length
   const parts = [`${items.length} ${pluralize(items.length, { one: 'платёж', few: 'платежа', many: 'платежей' })}`]
+  for (const [currency, sum] of sumsByCurrency(items)) parts.push(formatMoney(sum, currency))
   if (paid) parts.push(`оплачено ${paid}`)
   if (overdue) parts.push(`просрочено ${overdue}`)
   return `${base}: ${parts.join(', ')}`
@@ -57,7 +119,7 @@ export function CalendarPage() {
   const current = month ?? startOfMonth(today)
   const gridStart = startOfWeek(current, { weekStartsOn: 1 })
   const gridEnd = endOfWeek(endOfMonth(current), { weekStartsOn: 1 })
-  const list = useOccurrences({ due_from: toIsoDate(gridStart), due_to: toIsoDate(gridEnd), sort: 'due_date', limit: 200 })
+  const list = useAllOccurrences({ due_from: toIsoDate(gridStart), due_to: toIsoDate(gridEnd), sort: 'due_date' })
 
   const byDay = useMemo(() => {
     const map = new Map<string, Occurrence[]>()
@@ -160,24 +222,16 @@ export function CalendarPage() {
                         {list.isPending ? (
                           inMonth && <Skeleton className="hidden h-3 sm:block" />
                         ) : (
-                          <>
-                            <span className="flex flex-wrap gap-1 sm:hidden" aria-hidden>
-                              {items.slice(0, 4).map((i) => (
-                                <span key={i.id} className={cn('size-1.5 rounded-full', dotTone[i.display_status])} />
-                              ))}
-                            </span>
-                            <span className="hidden gap-0.5 sm:grid" aria-hidden>
-                              {items.slice(0, 3).map((i) => (
-                                <span key={i.id} className="flex min-w-0 items-center gap-1 text-xs">
-                                  <span className={cn('size-1.5 shrink-0 rounded-full', dotTone[i.display_status])} />
-                                  <span className={cn('truncate', i.status === 'paid' ? 'text-fg-tertiary line-through' : 'text-fg')}>
-                                    {i.recurring_payment.name}
-                                  </span>
-                                </span>
-                              ))}
-                              {items.length > 3 && <span className="text-xs text-fg-tertiary">ещё {items.length - 3}</span>}
-                            </span>
-                          </>
+                          items.length > 0 && (
+                            <>
+                              <span className="sm:hidden">
+                                <DayMarker items={items} showSums={false} />
+                              </span>
+                              <span className="hidden min-w-0 sm:block">
+                                <DayMarker items={items} showSums />
+                              </span>
+                            </>
+                          )
                         )}
                       </button>
                     )
@@ -185,18 +239,16 @@ export function CalendarPage() {
                 </motion.div>
               </AnimatePresence>
               <ul className="flex flex-wrap gap-x-4 gap-y-1 px-1 pt-3 text-xs text-fg-secondary" aria-label="Обозначения">
-                {[
-                  ['bg-success', 'оплачен'],
-                  ['bg-warning', 'с опозданием или срок сегодня'],
-                  ['bg-info', 'скоро срок'],
-                  ['bg-danger', 'просрочен'],
-                  ['bg-fg-tertiary', 'ожидает'],
-                ].map(([tone, label]) => (
-                  <li key={label} className="flex items-center gap-1.5">
-                    <span className={cn('size-2 rounded-full', tone)} aria-hidden />
-                    {label}
-                  </li>
-                ))}
+                {statusOrder.map((key) => {
+                  const { label, icon: Icon, tone } = dayStatus[key]
+                  return (
+                    <li key={key} className="flex items-center gap-1.5">
+                      <Icon className={cn('size-3.5', tone)} aria-hidden />
+                      {label}
+                    </li>
+                  )
+                })}
+                <li className="text-fg-tertiary">Число в ячейке: платежей за день, значок: самый срочный статус</li>
               </ul>
             </>
           )}
@@ -224,7 +276,10 @@ export function CalendarPage() {
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="flex items-center gap-2">
                         <StatusBadge status={occ.display_status} />
-                        {overdueText(occ) && <span className="text-xs text-fg-tertiary">{overdueText(occ)}</span>}
+                        {occ.status === 'unpaid' && occ.is_overdue && (
+                          <span className="text-xs text-fg-tertiary">{relativeDue(occ.days_until_due)}</span>
+                        )}
+                        {lateText(occ) && <span className="text-xs text-fg-tertiary">{lateText(occ)}</span>}
                       </span>
                       <OccurrenceActions occ={occ} />
                     </div>

@@ -19,6 +19,26 @@ export function useOccurrences(query: OccurrenceQuery) {
   })
 }
 
+const MAX_PAGE = 200
+
+/** Все периоды по фильтру, постранично (API отдаёт не больше 200 за запрос): календарь не теряет платежи. */
+export function useAllOccurrences(query: Omit<OccurrenceQuery, 'limit' | 'offset'>) {
+  return useQuery({
+    queryKey: [...occurrencesKey, 'all', query],
+    queryFn: async (): Promise<OccurrenceList> => {
+      const items: Occurrence[] = []
+      for (let offset = 0; ; offset += MAX_PAGE) {
+        const page = await unwrap(
+          api.GET('/api/v1/payment-occurrences', { params: { query: { ...query, limit: MAX_PAGE, offset } } }),
+        )
+        items.push(...page.items)
+        if (page.items.length === 0 || items.length >= page.total) return { items, total: page.total }
+      }
+    },
+    placeholderData: keepPreviousData,
+  })
+}
+
 export function usePatchOccurrence() {
   const queryClient = useQueryClient()
   const { todayIso, reminderDays } = useAppInfo()

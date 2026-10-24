@@ -1,7 +1,7 @@
 import { addMonths, endOfMonth, startOfMonth } from 'date-fns'
 import { motion } from 'motion/react'
-import { ChevronLeft, ChevronRight, Search, X } from 'lucide-react'
-import { useEffect, useMemo, useRef } from 'react'
+import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { Page, PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,7 @@ import { type Currency, formatDate, formatMoney, relativeDue, toIsoDate } from '
 import { fadeUp, reduced, stagger, useReducedMotion } from '@/lib/motion'
 import { type Occurrence, type OccurrenceQuery, useOccurrences } from './api'
 import { OccurrenceActions } from './OccurrenceActions'
-import { overdueText, StatusBadge } from './StatusBadge'
+import { lateText, StatusBadge } from './StatusBadge'
 
 const PAGE_SIZE = 25
 
@@ -80,11 +80,11 @@ function useFilters() {
 }
 
 function StatusCell({ occ }: { occ: Occurrence }) {
-  const extra = overdueText(occ)
+  const extra = lateText(occ)
   return (
     <div className="grid justify-items-start gap-1">
       <StatusBadge status={occ.display_status} />
-      {extra && <span className={cn('text-xs', occ.status === 'paid' ? 'text-warning' : 'text-danger')}>{extra}</span>}
+      {extra && <span className="text-xs text-warning">{extra}</span>}
     </div>
   )
 }
@@ -97,6 +97,37 @@ function NameCell({ occ }: { occ: Occurrence }) {
         Период {occ.seq + 1}
         {!occ.recurring_payment.is_active && ', платёж прекращён'}
       </span>
+    </div>
+  )
+}
+
+/** Карточка периода на телефоне: название и сумма, срок и статус, действия — три плотные строки. */
+function MobileRow({ occ }: { occ: Occurrence }) {
+  return (
+    <div className="grid gap-2">
+      <div className="flex items-start justify-between gap-3">
+        <span className="min-w-0 font-medium">
+          {occ.recurring_payment.name}
+          {!occ.recurring_payment.is_active && <span className="block text-xs font-normal text-fg-tertiary">Платёж прекращён</span>}
+        </span>
+        <span className="shrink-0 font-semibold tabular">{formatMoney(occ.amount, occ.currency)}</span>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <span className="text-sm text-fg-secondary">
+          <span className="tabular text-fg">{formatDate(occ.due_date)}</span>
+          {occ.status === 'unpaid' ? (
+            <span className="text-fg-tertiary">, {relativeDue(occ.days_until_due)}</span>
+          ) : (
+            occ.paid_at && (
+              <span className="text-fg-tertiary">
+                , оплачен <span className="tabular">{formatDate(occ.paid_at)}</span>
+              </span>
+            )
+          )}
+        </span>
+        <StatusCell occ={occ} />
+      </div>
+      <OccurrenceActions occ={occ} compact />
     </div>
   )
 }
@@ -120,6 +151,7 @@ export function PaymentsPage() {
   const { today } = useAppInfo()
   const reduce = useReducedMotion()
   const searchRef = useRef<HTMLInputElement>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const base = useMemo<OccurrenceQuery>(
     () => ({
@@ -150,6 +182,7 @@ export function PaymentsPage() {
   const total = list.data?.total ?? 0
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
   const filtered = Boolean(currency || q || archived || period !== 'any')
+  const activeFilters = [currency, archived, period !== 'any'].filter(Boolean).length
   const resetFilters = () => update({ currency: null, q: null, archived: null, period: null })
   const variants = reduce ? reduced : fadeUp
 
@@ -170,7 +203,7 @@ export function PaymentsPage() {
           ]}
         />
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-64">
+          <div className="relative min-w-0 flex-1 sm:w-64 sm:flex-none">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-tertiary" aria-hidden />
             <Input
               ref={searchRef}
@@ -191,37 +224,55 @@ export function PaymentsPage() {
               }}
             />
           </div>
-          <Listbox value={currency ?? 'all'} onValueChange={(value) => update({ currency: value === 'all' ? null : value })}>
-            <ListboxTrigger className="w-[calc(50%-0.25rem)] sm:w-40" aria-label="Валюта">
-              <ListboxValue />
-            </ListboxTrigger>
-            <ListboxContent>
-              <ListboxItem value="all">Все валюты</ListboxItem>
-              <ListboxItem value="RUB">RUB</ListboxItem>
-              <ListboxItem value="USD">USD</ListboxItem>
-              <ListboxItem value="EUR">EUR</ListboxItem>
-            </ListboxContent>
-          </Listbox>
-          <Listbox value={period} onValueChange={(value) => update({ period: value === 'any' ? null : value })}>
-            <ListboxTrigger className="w-[calc(50%-0.25rem)] sm:w-44" aria-label="Срок оплаты">
-              <ListboxValue />
-            </ListboxTrigger>
-            <ListboxContent>
-              {(Object.keys(periodLabels) as PeriodFilter[]).map((key) => (
-                <ListboxItem key={key} value={key}>
-                  {periodLabels[key]}
-                </ListboxItem>
-              ))}
-            </ListboxContent>
-          </Listbox>
           <Button
-            variant={archived ? 'secondary' : 'ghost'}
-            size="sm"
-            aria-pressed={archived}
-            onClick={() => update({ archived: archived ? null : '1' })}
+            variant={activeFilters ? 'secondary' : 'ghost'}
+            size="icon"
+            className="relative sm:hidden"
+            aria-label={activeFilters ? `Фильтры, выбрано: ${activeFilters}` : 'Фильтры'}
+            aria-expanded={filtersOpen}
+            aria-controls="payment-filters"
+            onClick={() => setFiltersOpen((open) => !open)}
           >
-            {archived ? 'С прекращёнными' : 'Показать прекращённые'}
+            <SlidersHorizontal aria-hidden />
+            {activeFilters > 0 && (
+              <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-primary text-[0.625rem] font-semibold text-fg-on-action tabular">
+                {activeFilters}
+              </span>
+            )}
           </Button>
+          <div id="payment-filters" className={cn('w-full flex-wrap items-center gap-2 sm:flex sm:w-auto', filtersOpen ? 'flex' : 'hidden')}>
+            <Listbox value={currency ?? 'all'} onValueChange={(value) => update({ currency: value === 'all' ? null : value })}>
+              <ListboxTrigger className="w-[calc(50%-0.25rem)] sm:w-40" aria-label="Валюта">
+                <ListboxValue />
+              </ListboxTrigger>
+              <ListboxContent>
+                <ListboxItem value="all">Все валюты</ListboxItem>
+                <ListboxItem value="RUB">RUB</ListboxItem>
+                <ListboxItem value="USD">USD</ListboxItem>
+                <ListboxItem value="EUR">EUR</ListboxItem>
+              </ListboxContent>
+            </Listbox>
+            <Listbox value={period} onValueChange={(value) => update({ period: value === 'any' ? null : value })}>
+              <ListboxTrigger className="w-[calc(50%-0.25rem)] sm:w-44" aria-label="Срок оплаты">
+                <ListboxValue />
+              </ListboxTrigger>
+              <ListboxContent>
+                {(Object.keys(periodLabels) as PeriodFilter[]).map((key) => (
+                  <ListboxItem key={key} value={key}>
+                    {periodLabels[key]}
+                  </ListboxItem>
+                ))}
+              </ListboxContent>
+            </Listbox>
+            <Button
+              variant={archived ? 'secondary' : 'ghost'}
+              size="sm"
+              aria-pressed={archived}
+              onClick={() => update({ archived: archived ? null : '1' })}
+            >
+              {archived ? 'С прекращёнными' : 'Показать прекращённые'}
+            </Button>
+          </div>
           {filtered && (
             <Button variant="ghost" size="sm" onClick={resetFilters}>
               <X aria-hidden />
@@ -327,27 +378,8 @@ export function PaymentsPage() {
               aria-label="Периоды платежей"
             >
               {items.map((occ) => (
-                <motion.li key={occ.id} variants={variants} className="grid gap-3 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <NameCell occ={occ} />
-                    <span className="shrink-0 font-semibold tabular">{formatMoney(occ.amount, occ.currency)}</span>
-                  </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="text-fg-secondary">
-                      Срок <span className="tabular text-fg">{formatDate(occ.due_date)}</span>
-                      {occ.status === 'unpaid' && <span className="text-fg-tertiary">, {relativeDue(occ.days_until_due)}</span>}
-                    </span>
-                    <StatusCell occ={occ} />
-                  </div>
-                  {occ.paid_at && (
-                    <p className="text-fg-secondary">
-                      Оплачен <span className="tabular text-fg">{formatDate(occ.paid_at)}</span>
-                      {occ.paid_by_label && `, ${occ.paid_by_label}`}
-                    </p>
-                  )}
-                  <div className="flex gap-2">
-                    <OccurrenceActions occ={occ} compact />
-                  </div>
+                <motion.li key={occ.id} variants={variants} className="px-4 py-3">
+                  <MobileRow occ={occ} />
                 </motion.li>
               ))}
             </motion.ul>

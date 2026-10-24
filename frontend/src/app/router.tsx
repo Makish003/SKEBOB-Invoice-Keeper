@@ -7,6 +7,7 @@ import { CalendarPage } from '@/features/calendar/CalendarPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { PaymentsPage } from '@/features/occurrences/PaymentsPage'
 import { RecurringPage } from '@/features/recurring/RecurringPage'
+import { ReportsPage } from '@/features/reports/ReportsPage'
 import { UsersPage } from '@/features/users/UsersPage'
 import { NotFoundPage } from './NotFoundPage'
 import { RouteErrorPage } from './RouteErrorPage'
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
           { index: true, element: <DashboardPage /> },
           { path: 'payments', element: <PaymentsPage /> },
           { path: 'calendar', element: <CalendarPage /> },
+          { path: 'reports', element: <ReportsPage /> },
           {
             element: <RequireAdmin />,
             children: [

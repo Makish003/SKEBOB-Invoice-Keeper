@@ -24,8 +24,8 @@ export function StatusBadge({ status }: { status: Display }) {
   )
 }
 
-/** Пояснение под бейджем просрочки: «на 3 дня», «на 2 дня позже срока». */
-export function overdueText(occ: Pick<Occurrence, 'status' | 'is_overdue' | 'overdue_days'>): string | null {
-  if (!occ.is_overdue) return null
-  return occ.status === 'paid' ? `на ${days(occ.overdue_days)} позже срока` : `на ${days(occ.overdue_days)}`
+/** Пояснение к «Оплачен с опозданием»: «на 2 дня позже срока». У неоплаченной просрочки число дней уже
+ * видно рядом со сроком («41 день назад»), поэтому второй раз его не повторяем. */
+export function lateText(occ: Pick<Occurrence, 'status' | 'is_overdue' | 'overdue_days'>): string | null {
+  return occ.status === 'paid' && occ.is_overdue ? `на ${days(occ.overdue_days)} позже срока` : null
 }

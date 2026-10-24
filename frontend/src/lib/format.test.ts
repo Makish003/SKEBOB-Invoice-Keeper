@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { days, daysBetween, formatDate, formatMoney, pluralize, relativeDue } from './format'
+import { days, daysBetween, formatDate, formatMoney, formatMoneyCompact, pluralize, relativeDue } from './format'
 import { formatAmountInput, parseAmount, sanitizeAmountInput } from './money-input'
 
 const nbsp = (s: string) => s.replace(/[  ]/g, ' ')
@@ -8,6 +8,12 @@ describe('format', () => {
   it('деньги — по-русски, два знака, валюта', () => {
     expect(nbsp(formatMoney('85000.00', 'RUB'))).toBe('85 000,00 ₽')
     expect(nbsp(formatMoney('49.9', 'USD'))).toBe('49,90 $')
+  })
+
+  it('короткая сумма для ячейки календаря', () => {
+    expect(nbsp(formatMoneyCompact('85000.00', 'RUB'))).toBe('85 тыс. ₽')
+    expect(nbsp(formatMoneyCompact('1214550', 'RUB'))).toBe('1,2 млн ₽')
+    expect(nbsp(formatMoneyCompact('49.9', 'USD'))).toBe('49,9 $')
   })
 
   it('склонение', () => {

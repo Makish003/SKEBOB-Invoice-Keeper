@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -14,6 +14,7 @@ import { useCurrentUser } from '@/features/auth/guards'
 import { cn } from '@/lib/cn'
 import { type Currency, formatMoney } from '@/lib/format'
 import { formatAmountInput, parseAmount, sanitizeAmountInput } from '@/lib/money-input'
+import { useBudgetOverview } from './api'
 
 type Overview = Schemas['BudgetOverview']
 type Line = Schemas['BudgetLine']
@@ -151,10 +152,7 @@ function BudgetDialog({ overview, open, onOpenChange }: { overview: Overview; op
 export function BudgetCard({ year, month }: { year: number; month: number }) {
   const user = useCurrentUser()
   const [open, setOpen] = useState(false)
-  const overview = useQuery({
-    queryKey: ['budget', year, month],
-    queryFn: () => unwrap(api.GET('/api/v1/budgets/overview', { params: { query: { year, month } } })),
-  })
+  const overview = useBudgetOverview(year, month)
 
   return (
     <Card>
