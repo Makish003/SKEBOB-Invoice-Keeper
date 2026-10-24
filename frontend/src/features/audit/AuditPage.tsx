@@ -8,10 +8,12 @@ import {
   CircleCheck,
   CirclePlus,
   Database,
+  Link2,
   LogIn,
   LogOut,
   type LucideIcon,
   MessageSquareText,
+  Paperclip,
   Pencil,
   ScrollText,
   Search,
@@ -20,6 +22,7 @@ import {
   UserMinus,
   UserPen,
   UserPlus,
+  Wallet,
 } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useSearchParams } from 'react-router'
@@ -51,6 +54,7 @@ const categories: { value: Category; label: string }[] = [
 ]
 
 const fieldNames: Record<string, string> = { login: 'логин', display_name: 'имя', password: 'пароль' }
+const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь']
 
 /** Иконка события на скруглённой плитке со сплошной заливкой, как в навигации (гайдбук, с. 21). Цвет плитки = тон события. */
 const toneTile: Record<Tone, string> = {
@@ -122,6 +126,20 @@ function describe(entry: Entry): { title: string; detail?: string; tone: Tone; i
       }
     case 'user.deleted':
       return { title: 'Пользователь удалён', tone: 'danger', icon: UserMinus, detail: 'Сессии завершены, история оплат сохранена' }
+    case 'occurrence.receipt_uploaded':
+      return { title: 'Прикреплён чек', tone: 'neutral', icon: Paperclip, detail: p.file_name ? String(p.file_name) : undefined }
+    case 'occurrence.receipt_deleted':
+      return { title: 'Чек удалён', tone: 'warning', icon: Paperclip, detail: p.file_name ? String(p.file_name) : undefined }
+    case 'occurrence.receipt_link_changed':
+      return { title: 'Изменена ссылка на чек', tone: 'neutral', icon: Link2 }
+    case 'budget.set':
+    case 'budget.deleted': {
+      const scope = p.month ? `${monthNames[Number(p.month) - 1]} ${String(p.year)}` : `${String(p.year)} год`
+      const currency = (p.currency as Currency) ?? 'RUB'
+      return entry.action === 'budget.set'
+        ? { title: 'Задан бюджет', tone: 'info', icon: Wallet, detail: `${scope}, ${formatMoney(String(p.amount ?? '0'), currency)}` }
+        : { title: 'Бюджет снят', tone: 'neutral', icon: Wallet, detail: `${scope}, ${currency}` }
+    }
     case 'seed.demo_data':
       return { title: 'Загружены демо-данные', tone: 'neutral', icon: Database, detail: 'Демонстрационные платежи и пользователи' }
     default:
@@ -149,28 +167,30 @@ function dayLabel(day: Date, today: Date): string {
 
 const timeFormat = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' })
 
+/** Телефон: плитка, событие в две-три строки, время справа. Шире: одна плотная строка, читается как запись лога
+ * «время, автор, событие с подробностью», IP в стороне, чтобы широкий экран не превращался в пустые поля. */
 function EntryRow({ entry }: { entry: Entry }) {
   const { title, detail, tone, icon: Icon } = describe(entry)
   const entity = entry.entity_label && !entry.action.startsWith('auth.') ? entry.entity_label : null
+  const actor = entry.actor_label ?? 'Система'
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 px-4 py-3 sm:px-5">
-      <span className={cn('flex size-8 items-center justify-center rounded-md', toneTile[tone])}>
+    <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-x-3 px-4 py-2.5 sm:px-5 md:grid-cols-[2.75rem_8rem_auto_minmax(0,1fr)_7.5rem] md:items-center md:gap-x-4 md:py-2">
+      <time dateTime={entry.at} className="order-last pt-1 text-sm text-fg-tertiary tabular md:order-1 md:pt-0">
+        {timeFormat.format(new Date(entry.at))}
+      </time>
+      <span className={cn('flex size-7 items-center justify-center rounded-sm md:order-3', toneTile[tone])}>
         <Icon className="size-4" aria-hidden />
       </span>
-      <div className="grid min-w-0 gap-0.5">
+      <div className="min-w-0 md:order-4">
         <p className="flex min-w-0 flex-wrap items-baseline gap-x-2">
           <span className="font-medium">{title}</span>
           {entity && <span className="min-w-0 truncate text-fg-secondary">{entity}</span>}
+          {detail && <span className="basis-full text-sm text-fg-tertiary md:basis-auto">{detail}</span>}
         </p>
-        {detail && <p className="text-sm text-fg-secondary">{detail}</p>}
-        <p className="text-xs text-fg-tertiary">
-          {entry.actor_label ?? 'Система'}
-          {entry.ip && <span className="hidden sm:inline">, IP {entry.ip}</span>}
-        </p>
+        <p className="text-xs text-fg-tertiary md:hidden">{actor}</p>
       </div>
-      <time dateTime={entry.at} className="pt-1 text-sm text-fg-tertiary tabular">
-        {timeFormat.format(new Date(entry.at))}
-      </time>
+      <span className="hidden truncate text-sm text-fg-secondary md:order-2 md:block">{actor}</span>
+      <span className="hidden truncate text-right text-xs text-fg-tertiary tabular md:order-5 md:block">{entry.ip}</span>
     </div>
   )
 }
