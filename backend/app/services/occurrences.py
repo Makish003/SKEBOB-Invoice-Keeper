@@ -1,6 +1,6 @@
 """Периоды платежей: материализация (ADR-004), выборка с вычисляемыми полями (ADR-006)."""
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import Select, func, select
@@ -8,10 +8,11 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from app.core.config import Settings
+from app.core.errors import unprocessable
 from app.domain.schedule import planned_occurrences
 from app.domain.status import compute_status
-from app.models import PaymentOccurrence, RecurringPayment, Reminder, ReminderStatus
-from app.schemas.payments import Occurrence, RecurringPaymentRef
+from app.models import OccurrenceStatus, PaymentOccurrence, RecurringPayment, Reminder, ReminderStatus, User
+from app.schemas.payments import Occurrence, OccurrencePatch, RecurringPaymentRef
 
 
 def _planned_rows(payment: RecurringPayment, last_seq: int | None, today: date, horizon_days: int) -> list[dict[str, Any]]:
@@ -125,3 +126,57 @@ def next_occurrences(db: Session, today: date, settings: Settings) -> dict[int, 
         .distinct(PaymentOccurrence.recurring_payment_id)
     ).all()
     return {occ.recurring_payment_id: to_schema(occ, payment, sent, today, settings) for occ, payment, sent in rows}
+
+
+EARLIEST_PAYMENT_BEFORE_DUE = timedelta(days=366)
+
+
+def apply_patch(occ: PaymentOccurrence, body: OccurrencePatch, user: User, today: date) -> tuple[str, dict[str, Any]]:
+    """Отметка/отмена оплаты, исправление даты, заметка, ссылка на чек (FR-10…FR-14).
+
+    Возвращает (действие для аудита, payload «было/стало»). Срок периода не меняется, просрочка пересчитывается.
+    """
+    fields = body.model_fields_set
+    if not fields:
+        raise unprocessable("Нет изменений: передайте status, paid_at, note или receipt_url")
+    if "status" in fields and body.status is None:
+        raise unprocessable("Поле status не может быть пустым: paid или unpaid")
+
+    before = {"status": occ.status.value, "paid_at": occ.paid_at.isoformat() if occ.paid_at else None}
+    new_status = body.status or occ.status
+
+    if "paid_at" in fields:
+        if body.paid_at is None:
+            if new_status == OccurrenceStatus.paid:
+                raise unprocessable("Для оплаченного периода нужна дата оплаты. Чтобы отменить оплату, передайте status=unpaid")
+        elif new_status == OccurrenceStatus.unpaid:
+            if "status" in fields:
+                raise unprocessable("При status=unpaid дату оплаты передавать нельзя: она очищается")
+            raise unprocessable("Период не оплачен: чтобы указать дату оплаты, передайте status=paid")
+        elif body.paid_at > today:
+            raise unprocessable("Дата оплаты не может быть в будущем")
+        elif body.paid_at < occ.due_date - EARLIEST_PAYMENT_BEFORE_DUE:
+            raise unprocessable("Дата оплаты слишком ранняя: больше чем за год до срока")
+
+    if new_status == OccurrenceStatus.paid:
+        if occ.status == OccurrenceStatus.unpaid:
+            occ.paid_by_user_id, occ.paid_by_label = user.id, user.display_name
+        occ.paid_at = body.paid_at if body.paid_at is not None else (occ.paid_at or today)
+    else:
+        occ.paid_at, occ.paid_by_user_id, occ.paid_by_label = None, None, None
+    occ.status = new_status
+    if "note" in fields:
+        occ.note = (body.note or "").strip() or None
+    if "receipt_url" in fields:
+        occ.receipt_url = str(body.receipt_url) if body.receipt_url else None
+
+    after = {"status": occ.status.value, "paid_at": occ.paid_at.isoformat() if occ.paid_at else None}
+    if before["status"] != after["status"]:
+        action = "occurrence.paid" if new_status == OccurrenceStatus.paid else "occurrence.unpaid"
+    elif before["paid_at"] != after["paid_at"]:
+        action = "occurrence.paid_at_changed"
+    elif "receipt_url" in fields:
+        action = "occurrence.receipt_link_changed"
+    else:
+        action = "occurrence.note_changed"
+    return action, {"before": before, "after": after, "due_date": occ.due_date.isoformat()}

@@ -1,6 +1,4 @@
-import uuid
-from datetime import date, timedelta
-from pathlib import Path
+from datetime import date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Query, Request, Response, UploadFile
@@ -12,12 +10,13 @@ from app.api.deps import client_ip, current_user
 from app.core.clock import Clock, get_clock
 from app.core.config import get_settings
 from app.core.db import get_db
-from app.core.errors import AppError, not_found, unprocessable
+from app.core.errors import not_found
 from app.models import Currency, OccurrenceStatus, PaymentOccurrence, RecurringPayment, User
 from app.schemas.common import errors
 from app.schemas.payments import Occurrence, OccurrenceList, OccurrencePatch
-from app.services import audit
-from app.services.occurrences import refresh_periods, get_occurrence, occurrence_query, to_schema
+from app.services import audit, receipts
+from app.services.occurrences import apply_patch, get_occurrence, occurrence_query, refresh_periods, to_schema
+from app.services.receipts import ReceiptStorage
 
 router = APIRouter(prefix="/payment-occurrences", tags=["Периоды оплаты"])
 
@@ -27,9 +26,6 @@ _SORT_COLUMNS = {
     "amount": PaymentOccurrence.amount,
     "name": RecurringPayment.name,
 }
-EARLIEST_PAYMENT_BEFORE_DUE = timedelta(days=366)
-
-
 def overdue_condition(today: date) -> ColumnElement[bool]:
     """FR-9 в SQL: не оплачен и срок прошёл, либо оплачен позже срока."""
     return or_(
@@ -141,61 +137,18 @@ def patch_occurrence(
     clock: Clock = Depends(get_clock),
     user: User = Depends(current_user),
 ) -> Occurrence:
-    fields = body.model_fields_set
-    if not fields:
-        raise unprocessable("Нет изменений: передайте status, paid_at, note или receipt_url")
-    if "status" in fields and body.status is None:
-        raise unprocessable("Поле status не может быть пустым: paid или unpaid")
-
     occ = db.scalar(select(PaymentOccurrence).where(PaymentOccurrence.id == occurrence_id).with_for_update())
     if occ is None:
         raise not_found("Период не найден")
-
     today = clock.today()
-    before = {"status": occ.status.value, "paid_at": occ.paid_at.isoformat() if occ.paid_at else None}
-    new_status = body.status or occ.status
-
-    if "paid_at" in fields:
-        if body.paid_at is None:
-            if new_status == OccurrenceStatus.paid:
-                raise unprocessable("Для оплаченного периода нужна дата оплаты. Чтобы отменить оплату, передайте status=unpaid")
-        elif new_status == OccurrenceStatus.unpaid:
-            if "status" in fields:
-                raise unprocessable("При status=unpaid дату оплаты передавать нельзя: она очищается")
-            raise unprocessable("Период не оплачен: чтобы указать дату оплаты, передайте status=paid")
-        elif body.paid_at > today:
-            raise unprocessable("Дата оплаты не может быть в будущем")
-        elif body.paid_at < occ.due_date - EARLIEST_PAYMENT_BEFORE_DUE:
-            raise unprocessable("Дата оплаты слишком ранняя: больше чем за год до срока")
-
-    if new_status == OccurrenceStatus.paid:
-        if occ.status == OccurrenceStatus.unpaid:
-            occ.paid_by_user_id, occ.paid_by_label = user.id, user.display_name
-        occ.paid_at = body.paid_at if body.paid_at is not None else (occ.paid_at or today)
-    else:
-        occ.paid_at, occ.paid_by_user_id, occ.paid_by_label = None, None, None
-    occ.status = new_status
-    if "note" in fields:
-        occ.note = (body.note or "").strip() or None
-    if "receipt_url" in fields:
-        occ.receipt_url = str(body.receipt_url) if body.receipt_url else None
-
-    after = {"status": occ.status.value, "paid_at": occ.paid_at.isoformat() if occ.paid_at else None}
-    if before["status"] != after["status"]:
-        action = "occurrence.paid" if new_status == OccurrenceStatus.paid else "occurrence.unpaid"
-    elif before["paid_at"] != after["paid_at"]:
-        action = "occurrence.paid_at_changed"
-    elif "receipt_url" in fields:
-        action = "occurrence.receipt_link_changed"
-    else:
-        action = "occurrence.note_changed"
+    action, payload = apply_patch(occ, body, user, today)
     audit.record(
         db,
         action,
         actor=user,
         entity="payment_occurrence",
         entity_id=occ.id,
-        payload={"before": before, "after": after, "due_date": occ.due_date.isoformat()},
+        payload=payload,
         ip=client_ip(request),
     )
     db.commit()
@@ -206,12 +159,10 @@ def patch_occurrence(
 
 # --- Чек к оплате (FR-B8) ---
 
-_SIGNATURES = {
-    "application/pdf": (b"%PDF-", ".pdf"),
-    "image/png": (bytes.fromhex("89504e470d0a1a0a"), ".png"),
-    "image/jpeg": (bytes.fromhex("ffd8ff"), ".jpg"),
-}
-WRONG_FILE = "Прикрепите файл PDF, PNG или JPG"
+
+def _storage() -> ReceiptStorage:
+    settings = get_settings()
+    return ReceiptStorage(settings.uploads_dir, settings.max_upload_mb)
 
 
 def _occurrence_or_404(db: Session, occurrence_id: int) -> PaymentOccurrence:
@@ -219,11 +170,6 @@ def _occurrence_or_404(db: Session, occurrence_id: int) -> PaymentOccurrence:
     if occ is None:
         raise not_found("Период не найден")
     return occ
-
-
-def _remove_file(key: str | None) -> None:
-    if key:
-        (Path(get_settings().uploads_dir) / key).unlink(missing_ok=True)
 
 
 @router.post(
@@ -241,34 +187,11 @@ def upload_receipt(
     clock: Clock = Depends(get_clock),
     user: User = Depends(current_user),
 ) -> Occurrence:
-    settings = get_settings()
+    storage = _storage()
     occ = _occurrence_or_404(db, occurrence_id)
-    limit = settings.max_upload_mb * 1024 * 1024
-    content = file.file.read(limit + 1)
-    if len(content) > limit:
-        raise AppError(413, f"Файл больше {settings.max_upload_mb} МБ", code="payload_too_large")
-    kind = next((ct for ct, (magic, _) in _SIGNATURES.items() if content.startswith(magic)), None)
-    if kind is None:
-        raise unprocessable(WRONG_FILE)
-
-    uploads = Path(settings.uploads_dir)
-    uploads.mkdir(parents=True, exist_ok=True)
-    key = f"{uuid.uuid4().hex}{_SIGNATURES[kind][1]}"
-    (uploads / key).write_bytes(content)
-    _remove_file(occ.receipt_file_key)
-    occ.receipt_file_key, occ.receipt_content_type = key, kind
-    occ.receipt_file_name = Path(file.filename or f"receipt{_SIGNATURES[kind][1]}").name[:255]
-    audit.record(
-        db,
-        "occurrence.receipt_uploaded",
-        actor=user,
-        entity="payment_occurrence",
-        entity_id=occ.id,
-        payload={"file_name": occ.receipt_file_name, "size": len(content), "content_type": kind},
-        ip=client_ip(request),
-    )
-    db.commit()
-    result = get_occurrence(db, occ.id, clock.today(), settings)
+    content = storage.read_limited(file.file)
+    receipts.attach(db, storage, occ, content, file.filename, actor=user, ip=client_ip(request))
+    result = get_occurrence(db, occ.id, clock.today(), get_settings())
     assert result is not None
     return result
 
@@ -285,7 +208,7 @@ def download_receipt(
     user: User = Depends(current_user),
 ) -> FileResponse:
     occ = db.get(PaymentOccurrence, occurrence_id)
-    path = Path(get_settings().uploads_dir) / occ.receipt_file_key if occ and occ.receipt_file_key else None
+    path = _storage().path(occ.receipt_file_key) if occ and occ.receipt_file_key else None
     if occ is None or path is None or not path.is_file():
         raise not_found("Файл чека не прикреплён")
     return FileResponse(
@@ -309,15 +232,5 @@ def delete_receipt(
     db: Session = Depends(get_db),
     user: User = Depends(current_user),
 ) -> Response:
-    occ = _occurrence_or_404(db, occurrence_id)
-    if not occ.receipt_file_key:
-        raise not_found("Файл чека не прикреплён")
-    _remove_file(occ.receipt_file_key)
-    name = occ.receipt_file_name
-    occ.receipt_file_key = occ.receipt_file_name = occ.receipt_content_type = None
-    audit.record(
-        db, "occurrence.receipt_deleted", actor=user, entity="payment_occurrence", entity_id=occ.id,
-        payload={"file_name": name}, ip=client_ip(request),
-    )
-    db.commit()
+    receipts.detach(db, _storage(), _occurrence_or_404(db, occurrence_id), actor=user, ip=client_ip(request))
     return Response(status_code=204)

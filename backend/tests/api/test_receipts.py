@@ -1,11 +1,16 @@
 """X-08: ссылка или файл чека у конкретного периода."""
 
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
+from app.main import app
 from app.models import AuditLog
+from app.services import audit
 
 URL = "/api/v1/payment-occurrences"
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
@@ -88,3 +93,38 @@ def test_receipt_endpoints_require_auth(client: TestClient) -> None:
 def test_missing_occurrence_is_404(client: TestClient, admin_headers: dict[str, str]) -> None:
     response = client.post(f"{URL}/999/receipt", files={"file": ("a.pdf", PDF, "application/pdf")}, headers=admin_headers)
     assert response.status_code == 404
+
+
+def _failing_audit(*args: object, **kwargs: object) -> None:
+    raise RuntimeError("БД недоступна")
+
+
+def test_failed_replace_keeps_previous_file(
+    client: TestClient, admin_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """P-05: если транзакция замены чека не прошла, прежний файл остаётся, а новый не копится сиротой."""
+    occ = occurrence_id(client, admin_headers)
+    files = {"file": ("old.png", PNG, "image/png")}
+    assert client.post(f"{URL}/{occ}/receipt", files=files, headers=admin_headers).status_code == 200
+    uploads = Path(get_settings().uploads_dir)
+    before = set(uploads.iterdir())
+
+    monkeypatch.setattr(audit, "record", _failing_audit)
+    with TestClient(app, raise_server_exceptions=False) as failing:
+        response = failing.post(f"{URL}/{occ}/receipt", files={"file": ("new.pdf", PDF, "application/pdf")}, headers=admin_headers)
+    assert response.status_code == 500
+    monkeypatch.undo()
+
+    assert set(uploads.iterdir()) == before
+    download = client.get(f"{URL}/{occ}/receipt", headers=admin_headers)
+    assert download.status_code == 200 and download.content == PNG
+
+
+def test_failed_delete_keeps_file(client: TestClient, admin_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch) -> None:
+    occ = occurrence_id(client, admin_headers)
+    client.post(f"{URL}/{occ}/receipt", files={"file": ("old.png", PNG, "image/png")}, headers=admin_headers)
+    monkeypatch.setattr(audit, "record", _failing_audit)
+    with TestClient(app, raise_server_exceptions=False) as failing:
+        assert failing.delete(f"{URL}/{occ}/receipt", headers=admin_headers).status_code == 500
+    monkeypatch.undo()
+    assert client.get(f"{URL}/{occ}/receipt", headers=admin_headers).content == PNG
