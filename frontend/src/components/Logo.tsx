@@ -1,10 +1,11 @@
+import { KeySkirt } from '@/components/KeySkirt'
 import { cn } from '@/lib/cn'
 import { keyDownSound, keyUpSound } from '@/lib/key-sound'
 
 /**
  * Знак «Клавиша IK» (brand/README.md, ADR-025): клавиша Aéza, на ней I и K, у которой плечи образуют голубую галочку.
  * Геометрия из brand/svg/ik-symbol-small.svg (версия для 32 px и меньше), цвета через токены: в тёмной теме клавиша светлеет.
- * Знак нажимается, как клавиша механической клавиатуры: встаёт в объём и уходит до упора (index.css, .ik-keycap) и щёлкает (lib/key-sound.ts).
+ * Знак нажимается, как клавиша механической клавиатуры: встаёт кейкапом и уходит до упора (index.css, .ik-keycap) и щёлкает (lib/key-sound.ts).
  */
 export function Logo({ className }: { className?: string }) {
   return (
@@ -17,6 +18,7 @@ export function Logo({ className }: { className?: string }) {
         }}
         onPointerUp={() => keyUpSound()}
       >
+        <KeySkirt />
         <span className="ik-keycap-cap block size-full rounded-[25%]">
           <svg viewBox="8 8 240 240" className="block size-full" aria-hidden focusable="false">
             <rect x="8" y="8" width="240" height="240" rx="60" className="fill-brand-key" />

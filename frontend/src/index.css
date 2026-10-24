@@ -206,12 +206,13 @@
 }
 
 /*
- * Иконка на плитке (раздел навигации) — клавиша (ADR-025). В покое вид сверху: плоская плитка.
- * Под курсором или фокусом клавиша наклоняется верхом от зрителя, колпачок (.ik-tile-cap) поднимается
- * над основанием (::before), и снизу видна боковина — силуэт клавиши, как на клавиатуре под углом.
- * Нажатие опускает колпачок до упора: боковина почти скрыта, поверхность затенена прогибом.
- * Отпустили — пружиной обратно. Иконка своей позы не держит (исключена через .ik-tile * выше).
- * Двигаются только transform и opacity (ADR-013); при prefers-reduced-motion клавиша остаётся плоской.
+ * Иконка на плитке (раздел навигации) — кейкап механической клавиатуры (ADR-025). В покое вид сверху: плоская плитка.
+ * Под курсором или фокусом клавиша наклоняется верхом от зрителя, вокруг колпачка (.ik-tile-cap) появляется
+ * юбка (.ik-skirt, components/KeySkirt.tsx): основание шире площадки, боковины сужаются кверху, передняя стенка
+ * самая высокая. Площадка вогнутая (::before). Нажатие опускает колпачок, юбка проседает к основанию,
+ * площадка уходит в тень прогиба (::after). Отпустили — пружиной обратно. Иконка своей позы не держит
+ * (исключена через .ik-tile * выше). Двигаются только transform и opacity (ADR-013);
+ * при prefers-reduced-motion клавиша остаётся плоской.
  */
 .ik-tile {
   --key-depth: var(--icon-travel);
@@ -227,29 +228,51 @@
   --tile-wall: var(--brand-tile-wall);
 }
 
-/* Основание: на пиксель шире колпачка с боков и снизу, видно, только пока клавиша в объёме. */
-.ik-tile::before,
-.ik-keycap::before {
-  content: '';
+/* Юбка в координатах плитки 28×28: 4 px с боков, 2 px сверху, 6 px снизу (в процентах, чтобы не держать px). */
+.ik-skirt {
   position: absolute;
-  inset: 0 -1px -1px;
-  border-radius: calc(var(--radius-sm) + 1px);
-  background: var(--tile-wall);
-  box-shadow: var(--shadow-key);
+  inset: -7.1429% -14.2857% -21.4286%;
+  width: 128.5714%;
+  height: 128.5714%;
+  overflow: visible;
+  fill: var(--tile-wall);
+  filter: drop-shadow(var(--shadow-key));
   opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-out);
+  transform-origin: 50% 100%;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-play) var(--ease-spring);
+}
+
+/* Передняя стенка в тени: свет сверху, она темнее боковин. */
+.ik-skirt-front {
+  fill: rgb(0 0 0 / 0.22);
 }
 
 .ik-tile-cap,
 .ik-keycap-cap {
   position: relative;
+  isolation: isolate;
   transition:
     transform var(--duration-play) var(--ease-spring),
     color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out);
 }
 
-/* Прогиб: верх колпачка уходит в тень, как вогнутая поверхность под пальцем. */
+/* Вогнутая площадка: тень у дальнего края, блик у ближнего; под иконкой (z-index внутри колпачка). */
+.ik-tile-cap::before,
+.ik-keycap-cap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(to bottom, rgb(0 0 0 / 0.14), transparent 40%, transparent 70%, rgb(255 255 255 / 0.1));
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+/* Прогиб: площадка уходит в тень, как под пальцем. */
 .ik-tile-cap::after,
 .ik-keycap-cap::after {
   content: '';
@@ -263,30 +286,32 @@
 
 @media (prefers-reduced-motion: no-preference) {
   .icon-play:is(:focus-visible, :active) .ik-tile {
-    transform: perspective(4rem) rotateX(28deg);
+    transform: perspective(4rem) rotateX(20deg);
   }
 
-  .icon-play:is(:focus-visible, :active) .ik-tile::before {
+  .icon-play:is(:focus-visible, :active) .ik-skirt,
+  .icon-play:is(:focus-visible, :active) .ik-tile-cap::before {
     opacity: 1;
   }
 
   .icon-play:focus-visible .ik-tile-cap {
-    transform: translateY(calc(-1 * var(--key-depth)));
+    transform: translateY(calc(-1 * var(--key-depth) / 3));
     background-color: var(--tile-cap);
   }
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .icon-play:hover .ik-tile {
-    transform: perspective(4rem) rotateX(28deg);
+    transform: perspective(4rem) rotateX(20deg);
   }
 
-  .icon-play:hover .ik-tile::before {
+  .icon-play:hover .ik-skirt,
+  .icon-play:hover .ik-tile-cap::before {
     opacity: 1;
   }
 
   .icon-play:hover .ik-tile-cap {
-    transform: translateY(calc(-1 * var(--key-depth)));
+    transform: translateY(calc(-1 * var(--key-depth) / 3));
     background-color: var(--tile-cap);
   }
 }
@@ -294,8 +319,13 @@
 /* Нажатие ниже наведения по тексту: при равной специфичности побеждает оно. */
 @media (prefers-reduced-motion: no-preference) {
   .icon-play:active .ik-tile-cap {
-    transform: translateY(calc(-1 * var(--key-depth) / 4)) scale(0.96);
+    transform: translateY(calc(var(--key-depth) * 2 / 3)) scale(0.97);
     background-color: var(--tile-cap);
+    transition-duration: var(--duration-fast);
+  }
+
+  .icon-play:active .ik-tile .ik-skirt {
+    transform: scaleY(0.9);
     transition-duration: var(--duration-fast);
   }
 
@@ -305,9 +335,9 @@
 }
 
 /*
- * Знак-клавиша IK (логотип): под курсором чуть приподнимается, а в объём встаёт только при нажатии —
- * наклоняется, как плитка навигации, колпачок уходит до упора с тенью прогиба (звук — lib/key-sound.ts).
- * Основание, колпачок и тень прогиба общие с плиткой (.ik-tile выше).
+ * Знак-клавиша IK (логотип): под курсором чуть приподнимается, а кейкапом встаёт только при нажатии:
+ * наклоняется, как плитка навигации, показывает юбку, колпачок уходит вниз с тенью прогиба (звук — lib/key-sound.ts).
+ * Юбка, вогнутая площадка и тень прогиба общие с плиткой (.ik-tile выше).
  */
 .ik-keycap {
   --icon-pose: translateY(calc(-1 * var(--icon-travel) / 3));
@@ -315,24 +345,26 @@
   --tile-wall: var(--brand-key-wall);
 }
 
-.ik-keycap::before {
-  border-radius: 26%;
-}
-
 @media (prefers-reduced-motion: no-preference) {
   /* span.ik-keycap специфичнее правила наведения, поэтому нажатие перекрывает позу. */
   .icon-play span.ik-keycap:active:not(.animate-spin) {
-    transform: perspective(4rem) rotateX(28deg);
+    transform: perspective(4rem) rotateX(20deg);
     transition-duration: var(--duration-fast);
   }
 
-  .ik-keycap:active::before,
+  .ik-keycap:active .ik-skirt,
+  .ik-keycap:active .ik-keycap-cap::before,
   .ik-keycap:active .ik-keycap-cap::after {
     opacity: 1;
   }
 
+  .ik-keycap:active .ik-skirt {
+    transform: scaleY(0.9);
+    transition-duration: var(--duration-fast);
+  }
+
   .ik-keycap:active .ik-keycap-cap {
-    transform: translateY(calc(-1 * var(--key-depth) / 4)) scale(0.96);
+    transform: translateY(calc(var(--key-depth) * 2 / 3)) scale(0.97);
     transition-duration: var(--duration-fast);
   }
 }

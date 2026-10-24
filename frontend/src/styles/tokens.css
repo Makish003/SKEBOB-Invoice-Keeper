@@ -25,6 +25,7 @@
   --p-ink-200: #1c1d21;
   --p-ink-250: #25272b;
   --p-ink-300: #303237;
+  --p-ink-400: #45484e;
   --p-ink-500: #6b6e76;
   --p-ink-600: #9ea1a8;
   --p-ink-800: #c9cbd0;
@@ -206,8 +207,8 @@
   --brand-tile-fg: var(--p-cyan-400);
   --brand-tile-wall: var(--p-navy-800);
   --brand-key-wall: var(--p-ink-600);
-  --key-cap: var(--p-ink-300);
-  --key-wall: var(--p-ink-100);
+  --key-cap: var(--p-ink-400);
+  --key-wall: var(--p-ink-300);
   --brand-pattern-line: var(--p-ink-900);
   --brand-plate: var(--p-ink-0);
   --brand-plate-sidebar: var(--p-ink-0);

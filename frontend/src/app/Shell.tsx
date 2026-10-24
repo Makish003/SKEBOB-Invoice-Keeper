@@ -18,6 +18,7 @@ import { Dialog as DialogPrimitive } from 'radix-ui'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router'
 import { toast } from 'sonner'
+import { KeySkirt } from '@/components/KeySkirt'
 import { Logo } from '@/components/Logo'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -83,8 +84,9 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
             >
               {({ isActive }) => (
                 <>
-                  {/* Иконка на фирменной плитке: чёрная клавиша с голубым знаком у активного раздела; под курсором плитка встаёт клавишей в объёме и нажимается (.ik-tile). */}
+                  {/* Иконка на фирменной плитке: чёрная клавиша с голубым знаком у активного раздела; под курсором плитка встаёт кейкапом и нажимается (.ik-tile, юбка KeySkirt). */}
                   <span className="ik-tile size-7 shrink-0">
+                    <KeySkirt />
                     <span
                       className={cn(
                         'ik-tile-cap flex size-full items-center justify-center rounded-sm',
