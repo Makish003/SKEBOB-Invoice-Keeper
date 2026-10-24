@@ -106,8 +106,9 @@
   --brand-key-fg: var(--p-gray-0);
   --brand-tile: var(--p-black);
   --brand-tile-fg: var(--p-cyan-400);
-  /* Клавиша в объёме (плитка навигации под курсором): боковина фирменной плитки, колпачок и боковина обычной. */
+  /* Клавиша в объёме (плитка навигации под курсором, знак IK при нажатии): боковины фирменной плитки и знака, колпачок и боковина обычной плитки. */
   --brand-tile-wall: var(--p-gray-600);
+  --brand-key-wall: var(--p-gray-600);
   --key-cap: var(--p-gray-0);
   --key-wall: var(--p-gray-300);
   /* Брендовая панель (вход) одинакова в обеих темах: чёрный фон, светлый текст, голубой акцент. */
@@ -204,6 +205,7 @@
   --brand-tile: var(--p-navy-500);
   --brand-tile-fg: var(--p-cyan-400);
   --brand-tile-wall: var(--p-navy-800);
+  --brand-key-wall: var(--p-ink-600);
   --key-cap: var(--p-ink-300);
   --key-wall: var(--p-ink-100);
   --brand-pattern-line: var(--p-ink-900);

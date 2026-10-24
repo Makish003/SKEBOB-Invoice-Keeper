@@ -205,16 +205,6 @@
   --icon-pose: translate(calc(-1 * var(--icon-travel) / 3), calc(var(--icon-travel) / 3)) rotate(-12deg);
 }
 
-/* Знак-клавиша: под курсором чуть приподнимается, при нажатии уходит вниз, как настоящая клавиша (звук — lib/key-sound.ts). */
-.ik-keycap {
-  --icon-pose: translateY(calc(-1 * var(--icon-travel) / 3));
-}
-/* Специфичность равна правилу наведения, правило ниже по тексту и побеждает. */
-.icon-play svg.ik-keycap:active:not(.animate-spin) {
-  transform: translateY(calc(var(--icon-travel) / 2)) scale(0.92);
-  transition-duration: var(--duration-fast);
-}
-
 /*
  * Иконка на плитке (раздел навигации) — клавиша (ADR-025). В покое вид сверху: плоская плитка.
  * Под курсором или фокусом клавиша наклоняется верхом от зрителя, колпачок (.ik-tile-cap) поднимается
@@ -238,7 +228,8 @@
 }
 
 /* Основание: на пиксель шире колпачка с боков и снизу, видно, только пока клавиша в объёме. */
-.ik-tile::before {
+.ik-tile::before,
+.ik-keycap::before {
   content: '';
   position: absolute;
   inset: 0 -1px -1px;
@@ -249,7 +240,8 @@
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-.ik-tile-cap {
+.ik-tile-cap,
+.ik-keycap-cap {
   position: relative;
   transition:
     transform var(--duration-play) var(--ease-spring),
@@ -258,7 +250,8 @@
 }
 
 /* Прогиб: верх колпачка уходит в тень, как вогнутая поверхность под пальцем. */
-.ik-tile-cap::after {
+.ik-tile-cap::after,
+.ik-keycap-cap::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -308,6 +301,39 @@
 
   .icon-play:active .ik-tile-cap::after {
     opacity: 1;
+  }
+}
+
+/*
+ * Знак-клавиша IK (логотип): под курсором чуть приподнимается, а в объём встаёт только при нажатии —
+ * наклоняется, как плитка навигации, колпачок уходит до упора с тенью прогиба (звук — lib/key-sound.ts).
+ * Основание, колпачок и тень прогиба общие с плиткой (.ik-tile выше).
+ */
+.ik-keycap {
+  --icon-pose: translateY(calc(-1 * var(--icon-travel) / 3));
+  --key-depth: var(--icon-travel);
+  --tile-wall: var(--brand-key-wall);
+}
+
+.ik-keycap::before {
+  border-radius: 26%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* span.ik-keycap специфичнее правила наведения, поэтому нажатие перекрывает позу. */
+  .icon-play span.ik-keycap:active:not(.animate-spin) {
+    transform: perspective(4rem) rotateX(28deg);
+    transition-duration: var(--duration-fast);
+  }
+
+  .ik-keycap:active::before,
+  .ik-keycap:active .ik-keycap-cap::after {
+    opacity: 1;
+  }
+
+  .ik-keycap:active .ik-keycap-cap {
+    transform: translateY(calc(-1 * var(--key-depth) / 4)) scale(0.96);
+    transition-duration: var(--duration-fast);
   }
 }
 
