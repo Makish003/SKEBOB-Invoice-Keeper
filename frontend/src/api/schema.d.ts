@@ -109,7 +109,11 @@ export interface paths {
         delete: operations["delete_recurring_payment_api_v1_recurring_payments__payment_id__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * Изменение регулярного платежа
+         * @description Название, описание и сумма. Новая сумма применяется к шаблону и к неоплаченным периодам со сроком сегодня или позже; оплаченные и просроченные периоды сохраняют прежнюю сумму. Валюта и график не меняются. Прекращённый платёж изменить нельзя (409).
+         */
+        patch: operations["patch_recurring_payment_api_v1_recurring_payments__payment_id__patch"];
         trace?: never;
     };
     "/api/v1/payment-occurrences": {
@@ -774,6 +778,26 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * RecurringPaymentPatch
+         * @description Изменение регулярного платежа (передаются только меняемые поля).
+         *
+         *     - `amount` — новая сумма шаблона и всех **неоплаченных периодов со сроком сегодня или позже**; оплаченные и уже
+         *       просроченные периоды сохраняют сумму, по которой их выставили;
+         *     - `description: null` — убрать описание;
+         *     - валюта и график не меняются: для другого графика прекратите платёж и создайте новый (история сохранится).
+         */
+        RecurringPaymentPatch: {
+            /** Name */
+            name?: string | null;
+            /**
+             * Amount
+             * @example 90000.00
+             */
+            amount?: number | string | null;
+            /** Description */
+            description?: string | null;
+        };
         /** RecurringPaymentRef */
         RecurringPaymentRef: {
             /** Id */
@@ -1200,6 +1224,77 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_recurring_payment_api_v1_recurring_payments__payment_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                payment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecurringPaymentPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecurringPayment"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Недостаточно прав */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Объект не найден */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Конфликт (например, логин занят) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Ошибка валидации входных данных */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
         };

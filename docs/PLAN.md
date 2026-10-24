@@ -368,7 +368,8 @@ GET/POST/PATCH/DELETE /users  (admin) — User = {id, login, display_name, role,
   ↳ done: P-02 · проверка: red — `test_query_budget` 7→21 / 6→13 / 5→12 / 7→14 запросов при 2→9 платежах и COMMIT на каждом GET; green — 8 passed; `pytest` → 272 passed
 - [x] **P-03** (BACK) N+1 в `GET /recurring-payments`: ближайшие периоды одним запросом (`DISTINCT ON`).
   ↳ done: P-03 · проверка: тот же `test_query_budget` (число запросов списка не зависит от числа платежей) → passed
-- [ ] **P-04** (BACK+FRONT) Редактирование регулярного платежа: `PATCH /recurring-payments/{id}` (название, описание, сумма текущих и будущих неоплаченных периодов), ADR-022.
+- [~] **P-04** (BACK+FRONT) Редактирование регулярного платежа: `PATCH /recurring-payments/{id}` (название, описание, сумма текущих и будущих неоплаченных периодов), ADR-022.
+  ↳ backend: `pytest tests/api/test_recurring_payment_edit.py` → 5 passed (401/403 без изменений, переименование, сумма только у текущих и будущих неоплаченных, новые периоды с новой суммой, аудит «было/стало», 422/404/409); test_ac_02/03 → passed; openapi.yml экспортирован
 - [ ] **P-05** (BACK) Сервисный слой для отметки оплаты и чеков; старый файл чека удаляется только после commit (баг).
 - [ ] **P-06** (BACK) Воркер: обращения к БД при доставке — вне event loop (`asyncio.to_thread`).
 - [ ] **P-07** (FRONT) Vitest; правила статуса и оптимистичного обновления — с порогом из `app-info`, а не «3».

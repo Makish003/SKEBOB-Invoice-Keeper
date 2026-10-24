@@ -124,7 +124,7 @@ docker compose up -d --build
 |---|---|---|
 | POST | `/auth/login` · GET `/auth/me` · POST `/auth/logout` | все / авторизованные |
 | GET · POST | `/recurring-payments` | авторизованные · админ |
-| GET · DELETE | `/recurring-payments/{id}` | авторизованные · админ |
+| GET · PATCH · DELETE | `/recurring-payments/{id}` | авторизованные · админ · админ (PATCH — название, описание, сумма будущих периодов) |
 | GET | `/payment-occurrences?status=&overdue=&currency=&due_from=&due_to=&q=&sort=&limit=&offset=` | авторизованные |
 | GET · PATCH | `/payment-occurrences/{id}` | авторизованные |
 | GET | `/payments/summary?due_from=&due_to=&as_of=` | авторизованные |

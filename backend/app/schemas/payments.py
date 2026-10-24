@@ -101,6 +101,24 @@ class RecurringPaymentCreate(BaseModel):
     description: Annotated[str, StringConstraints(strip_whitespace=True, max_length=1000)] | None = None
 
 
+class RecurringPaymentPatch(BaseModel):
+    """Изменение регулярного платежа (передаются только меняемые поля).
+
+    - `amount` — новая сумма шаблона и всех **неоплаченных периодов со сроком сегодня или позже**; оплаченные и уже
+      просроченные периоды сохраняют сумму, по которой их выставили;
+    - `description: null` — убрать описание;
+    - валюта и график не меняются: для другого графика прекратите платёж и создайте новый (история сохранится).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)] | None = None
+    amount: Annotated[Decimal, Field(gt=0, max_digits=14, decimal_places=2)] | None = Field(
+        default=None, examples=["90000.00"]
+    )
+    description: Annotated[str, StringConstraints(strip_whitespace=True, max_length=1000)] | None = None
+
+
 class SummaryPeriod(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 

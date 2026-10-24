@@ -11,8 +11,15 @@ from app.core.db import get_db
 from app.core.errors import not_found, unprocessable
 from app.models import OccurrenceStatus, PaymentOccurrence, RecurringPayment as PaymentModel, User
 from app.schemas.common import errors
-from app.schemas.payments import Occurrence, RecurringPayment, RecurringPaymentCreate, RecurringPaymentList
+from app.schemas.payments import (
+    Occurrence,
+    RecurringPayment,
+    RecurringPaymentCreate,
+    RecurringPaymentList,
+    RecurringPaymentPatch,
+)
 from app.services import audit
+from app.services.payments import update_payment
 from app.services.occurrences import ensure_for_payment, next_occurrences, occurrence_query, refresh_periods, to_schema
 from app.services.reminders import cancel_open_for_payment, enqueue_due
 
@@ -157,6 +164,42 @@ def create_recurring_payment(
     )
     db.commit()
     return _to_schema(db, payment, today, settings)
+
+
+@router.patch(
+    "/{payment_id}",
+    response_model=RecurringPayment,
+    summary="Изменение регулярного платежа",
+    description=(
+        "Название, описание и сумма. Новая сумма применяется к шаблону и к неоплаченным периодам со сроком сегодня или "
+        "позже; оплаченные и просроченные периоды сохраняют прежнюю сумму. Валюта и график не меняются. "
+        "Прекращённый платёж изменить нельзя (409)."
+    ),
+    responses=errors(401, 403, 404, 409, 422),
+)
+def patch_recurring_payment(
+    payment_id: int,
+    body: RecurringPaymentPatch,
+    request: Request,
+    db: Session = Depends(get_db),
+    clock: Clock = Depends(get_clock),
+    admin: User = Depends(require_admin),
+) -> RecurringPayment:
+    today = clock.today()
+    payment = _get_or_404(db, payment_id, lock=True)
+    result = update_payment(db, payment, body, today)
+    if result["changes"]:
+        audit.record(
+            db,
+            "recurring_payment.updated",
+            actor=admin,
+            entity="recurring_payment",
+            entity_id=payment.id,
+            payload=result,
+            ip=client_ip(request),
+        )
+    db.commit()
+    return _to_schema(db, payment, today, get_settings())
 
 
 @router.delete(

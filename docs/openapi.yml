@@ -234,6 +234,67 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Регулярные платежи
+      summary: Изменение регулярного платежа
+      description: Название, описание и сумма. Новая сумма применяется к шаблону и к неоплаченным периодам со сроком сегодня
+        или позже; оплаченные и просроченные периоды сохраняют прежнюю сумму. Валюта и график не меняются. Прекращённый платёж
+        изменить нельзя (409).
+      operationId: patch_recurring_payment_api_v1_recurring_payments__payment_id__patch
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: payment_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Payment Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecurringPaymentPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecurringPayment'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Конфликт (например, логин занят)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     delete:
       tags:
       - Регулярные платежи
@@ -1875,6 +1936,38 @@ components:
       - items
       - total
       title: RecurringPaymentList
+    RecurringPaymentPatch:
+      properties:
+        name:
+          anyOf:
+          - type: string
+            maxLength: 200
+            minLength: 1
+          - type: 'null'
+          title: Name
+        amount:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*(?:\d{0,12}|(?=[\d.]{1,15}0*$)\d{0,12}\.\d{0,2}0*$)
+          - type: 'null'
+          title: Amount
+          examples:
+          - '90000.00'
+        description:
+          anyOf:
+          - type: string
+            maxLength: 1000
+          - type: 'null'
+          title: Description
+      additionalProperties: false
+      type: object
+      title: RecurringPaymentPatch
+      description: "Изменение регулярного платежа (передаются только меняемые поля).\n\n- `amount` — новая сумма шаблона и\
+        \ всех **неоплаченных периодов со сроком сегодня или позже**; оплаченные и уже\n  просроченные периоды сохраняют сумму,\
+        \ по которой их выставили;\n- `description: null` — убрать описание;\n- валюта и график не меняются: для другого графика\
+        \ прекратите платёж и создайте новый (история сохранится)."
     RecurringPaymentRef:
       properties:
         id:
