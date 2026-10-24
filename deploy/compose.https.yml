@@ -5,6 +5,12 @@ services:
     # Наружу смотрит только Caddy.
     ports: !reset []
 
+  worker:
+    # DNS на VPS отдаёт для api.telegram.org адрес 149.154.166.110, до которого нет даже TCP (бот молчит).
+    # Закрепляем рабочий адрес Telegram; другой — через TELEGRAM_API_IP в .env.
+    extra_hosts:
+      - "api.telegram.org:${TELEGRAM_API_IP:-149.154.167.220}"
+
   caddy:
     image: caddy:2.10-alpine
     restart: unless-stopped
