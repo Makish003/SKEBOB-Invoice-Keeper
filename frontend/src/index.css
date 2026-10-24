@@ -136,25 +136,25 @@
  * поэтому клик сразу после наведения ничего не перезапускает. На сенсорных экранах поза на время касания.
  * Только transform (ADR-013); при prefers-reduced-motion позы нет.
  */
-.icon-play :is(svg.lucide, .ik-keycap):not(.animate-spin) {
+.icon-play :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-tile *) {
   transform-origin: center;
   transition: transform var(--duration-play) var(--ease-spring);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .icon-play:focus-visible :is(svg.lucide, .ik-keycap):not(.animate-spin) {
+  .icon-play:focus-visible :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-tile *) {
     transform: var(--icon-pose);
   }
 }
 
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .icon-play:hover :is(svg.lucide, .ik-keycap):not(.animate-spin) {
+  .icon-play:hover :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-tile *) {
     transform: var(--icon-pose);
   }
 }
 
 @media (hover: none) and (prefers-reduced-motion: no-preference) {
-  .icon-play:active :is(svg.lucide, .ik-keycap):not(.animate-spin) {
+  .icon-play:active :is(svg.lucide, .ik-keycap):not(.animate-spin, .ik-tile *) {
     transform: var(--icon-pose);
   }
 }
@@ -211,6 +211,39 @@
 .icon-play svg.ik-keycap:active:not(.animate-spin) {
   transform: translateY(calc(var(--icon-travel) / 2)) scale(0.92);
   transition-duration: var(--duration-fast);
+}
+
+/*
+ * Иконка на плитке (раздел навигации): двигается вся плитка вместе с иконкой, а при нажатии
+ * продавливается, как клавиша. Иконка внутри своей позы не держит (исключена через .ik-tile * выше).
+ */
+.ik-tile {
+  --icon-pose: translateY(calc(-1 * var(--icon-travel))) rotate(-8deg) scale(1.1);
+  transform-origin: center;
+  transition:
+    transform var(--duration-play) var(--ease-spring),
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .icon-play:focus-visible .ik-tile {
+    transform: var(--icon-pose);
+  }
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .icon-play:hover .ik-tile {
+    transform: var(--icon-pose);
+  }
+}
+
+/* Нажатие ниже наведения по тексту: при равной специфичности побеждает оно. Отпустили — пружиной обратно в позу. */
+@media (prefers-reduced-motion: no-preference) {
+  .icon-play:active .ik-tile {
+    transform: translateY(calc(var(--icon-travel) / 2)) scale(0.9);
+    transition-duration: var(--duration-fast);
+  }
 }
 
 @utility tabular {
