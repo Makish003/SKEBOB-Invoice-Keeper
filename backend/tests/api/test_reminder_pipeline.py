@@ -1,9 +1,11 @@
 """B-11: конвейер напоминаний без сети (фейковый нотифаер): AC-6, AC-7, AC-8, AC-14, EC-6."""
 
 import asyncio
+import threading
 from datetime import date, timedelta
 from decimal import Decimal
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -12,6 +14,7 @@ from app.core.clock import FrozenClock
 from app.core.config import get_settings
 from app.core.db import get_sessionmaker
 from app.models import Channel, Reminder, ReminderStatus
+from app.services import delivery
 from app.services.delivery import deliver_pending, tick
 from app.services.notifiers.base import NotifierError, ReminderMessage, format_message
 
@@ -210,3 +213,29 @@ def test_worker_leaves_channels_it_cannot_send(
     db.expire_all()
     rows = {r.channel.value: r.status.value for r in db.scalars(select(Reminder))}
     assert rows == {"console": "sent", "webhook": "pending"}
+
+
+def test_delivery_keeps_database_off_the_event_loop(
+    client: TestClient, clock: FrozenClock, admin_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """P-06: в воркере тот же event loop обслуживает Telegram-бота; синхронные запросы к БД не должны его блокировать."""
+    create(client, admin_headers, "2026-10-25")
+    run_tick(clock)
+    db_threads: list[int] = []
+    original = delivery._claim
+
+    def spy(*args, **kwargs):  # type: ignore[no-untyped-def]
+        db_threads.append(threading.get_ident())
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(delivery, "_claim", spy)
+    loop_threads: list[int] = []
+
+    class LoopNotifier(FakeNotifier):
+        async def send(self, message: ReminderMessage) -> str | None:
+            loop_threads.append(threading.get_ident())
+            return await super().send(message)
+
+    assert deliver(clock, LoopNotifier()) == 1
+    assert db_threads and loop_threads
+    assert loop_threads[0] not in db_threads

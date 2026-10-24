@@ -4,6 +4,7 @@ tick(): периоды → постановка pending (идемпотентн�
 deliver_pending(): claim одной строки FOR UPDATE SKIP LOCKED → перепроверка → send → sent | failed с backoff.
 """
 
+import asyncio
 import logging
 from collections.abc import Mapping
 from datetime import date, datetime, timedelta
@@ -72,6 +73,50 @@ def _cancel_reason(reminder: Reminder, occ: PaymentOccurrence, payment: Recurrin
     return None
 
 
+def _take(
+    db: Session, today: date, now: datetime, settings: Settings, channels: list[Channel]
+) -> tuple[Reminder | None, ReminderMessage | None]:
+    """Claim + перепроверка. (None, None) — очередь пуста; (reminder, None) — отменено и закоммичено."""
+    reminder = _claim(db, now, settings.reminder_max_attempts, channels)
+    if reminder is None:
+        return None, None
+    occ = reminder.occurrence
+    payment = db.get(RecurringPayment, occ.recurring_payment_id)
+    assert payment is not None
+    reason = _cancel_reason(reminder, occ, payment, today)
+    if reason is not None:
+        reminder.status, reminder.last_error = ReminderStatus.cancelled, reason
+        db.commit()
+        log.info("Reminder #%s cancelled: %s", reminder.id, reason)
+        return reminder, None
+    reminder.attempts += 1
+    return reminder, ReminderMessage(
+        reminder_id=reminder.id,
+        occurrence_id=occ.id,
+        payment_name=payment.name,
+        amount=occ.amount,
+        currency=occ.currency.value,
+        due_date=occ.due_date,
+        days_until_due=(occ.due_date - today).days,
+        kind=reminder.kind.value,
+    )
+
+
+def _mark_failed(db: Session, reminder: Reminder, exc: Exception, now: datetime) -> None:
+    reminder.status = ReminderStatus.failed
+    reminder.last_error = str(exc)[:1000]
+    reminder.next_attempt_at = now + backoff(reminder.attempts)
+    db.commit()
+    log.warning("Reminder #%s failed (attempt %s): %s", reminder.id, reminder.attempts, exc)
+
+
+def _mark_sent(db: Session, reminder: Reminder, external_id: str | None, now: datetime) -> None:
+    reminder.status, reminder.sent_at, reminder.last_error = ReminderStatus.sent, now, None
+    reminder.external_id = external_id
+    db.commit()
+    log.info("Reminder #%s sent via %s", reminder.id, reminder.channel.value)
+
+
 async def deliver_pending(
     session_factory: sessionmaker[Session],
     today: date,
@@ -80,46 +125,28 @@ async def deliver_pending(
     *,
     now: datetime,
 ) -> int:
-    """Шаги 3–4. Возвращает число отправленных. Каждое напоминание — в своей транзакции."""
+    """Шаги 3–4. Возвращает число отправленных. Каждое напоминание — в своей транзакции.
+
+    Синхронные обращения к БД идут в пуле потоков (asyncio.to_thread): в воркере этот же event loop обслуживает
+    Telegram-бота, и медленный запрос не должен его останавливать. Сессия используется потоками строго по очереди.
+    """
     sent = 0
+    channels = list(notifiers)
     for _ in range(MAX_PER_RUN):
-        with session_factory() as db:
-            reminder = _claim(db, now, settings.reminder_max_attempts, list(notifiers))
+        db = session_factory()
+        try:
+            reminder, message = await asyncio.to_thread(_take, db, today, now, settings, channels)
             if reminder is None:
                 return sent
-            occ = reminder.occurrence
-            payment = db.get(RecurringPayment, occ.recurring_payment_id)
-            assert payment is not None
-            reason = _cancel_reason(reminder, occ, payment, today)
-            notifier = notifiers[reminder.channel]
-            if reason is not None:
-                reminder.status, reminder.last_error = ReminderStatus.cancelled, reason
-                db.commit()
-                log.info("Reminder #%s cancelled: %s", reminder.id, reason)
+            if message is None:
                 continue
-
-            message = ReminderMessage(
-                reminder_id=reminder.id,
-                occurrence_id=occ.id,
-                payment_name=payment.name,
-                amount=occ.amount,
-                currency=occ.currency.value,
-                due_date=occ.due_date,
-                days_until_due=(occ.due_date - today).days,
-                kind=reminder.kind.value,
-            )
-            reminder.attempts += 1
             try:
-                reminder.external_id = await notifier.send(message)
+                external_id = await notifiers[reminder.channel].send(message)
             except Exception as exc:  # любая ошибка канала — ретрай, а не падение воркера
-                reminder.status = ReminderStatus.failed
-                reminder.last_error = str(exc)[:1000]
-                reminder.next_attempt_at = now + backoff(reminder.attempts)
-                db.commit()
-                log.warning("Reminder #%s failed (attempt %s): %s", reminder.id, reminder.attempts, exc)
+                await asyncio.to_thread(_mark_failed, db, reminder, exc, now)
                 continue
-            reminder.status, reminder.sent_at, reminder.last_error = ReminderStatus.sent, now, None
-            db.commit()
+            await asyncio.to_thread(_mark_sent, db, reminder, external_id, now)
             sent += 1
-            log.info("Reminder #%s sent via %s", reminder.id, reminder.channel.value)
+        finally:
+            await asyncio.to_thread(db.close)
     return sent
