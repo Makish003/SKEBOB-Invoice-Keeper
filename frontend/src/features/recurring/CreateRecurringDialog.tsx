@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { addDays } from 'date-fns'
-import { BellRing } from 'lucide-react'
+import { BellRing, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { Controller, useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -90,7 +90,10 @@ export function CreateRecurringDialog() {
       }}
     >
       <DialogTrigger asChild>
-        <Button variant="primary">Добавить платёж</Button>
+        <Button variant="primary">
+          <Plus aria-hidden />
+          Добавить платёж
+        </Button>
       </DialogTrigger>
       <DialogContent title="Новый регулярный платёж" description="Периоды и напоминания создадутся автоматически.">
         <form onSubmit={onSubmit} noValidate className="grid gap-4">
