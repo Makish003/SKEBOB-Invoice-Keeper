@@ -1131,7 +1131,8 @@ paths:
       tags:
       - Заявки
       summary: Список заявок
-      description: Администратор видит все заявки, пользователь — только свои. Сначала новые.
+      description: Администратор видит все заявки, пользователь — только свои. Сначала заявки с самым свежим сообщением. `unread=true`
+        — только с непрочитанными сообщениями другой стороны (счётчик в меню).
       operationId: list_tickets_api_v1_support_tickets_get
       security:
       - cookieAuth: []
@@ -1147,6 +1148,16 @@ paths:
           description: Статус заявки
           title: Status
         description: Статус заявки
+      - name: unread
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          description: true — только с непрочитанными, false — без них
+          title: Unread
+        description: true — только с непрочитанными, false — без них
       - name: limit
         in: query
         required: false
@@ -1188,7 +1199,7 @@ paths:
       tags:
       - Заявки
       summary: Заявка по id
-      description: Своя заявка или любая для администратора; чужая — 404.
+      description: Своя заявка или любая для администратора, с перепиской; чужая — 404. Не отмечает прочитанным.
       operationId: get_ticket_api_v1_support_tickets__ticket_id__get
       security:
       - cookieAuth: []
@@ -1228,8 +1239,8 @@ paths:
     patch:
       tags:
       - Заявки
-      summary: Обработать заявку
-      description: 'Только администратор: статус (`open`, `in_progress`, `resolved`) и ответ пользователю.'
+      summary: Сменить статус заявки
+      description: 'Только администратор: `open`, `in_progress`, `resolved`. Ответ пишется сообщением в чат.'
       operationId: patch_ticket_api_v1_support_tickets__ticket_id__patch
       security:
       - cookieAuth: []
@@ -1278,6 +1289,95 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/support-tickets/{ticket_id}/messages:
+    post:
+      tags:
+      - Заявки
+      summary: Написать в чат заявки
+      description: 'multipart/form-data: текст (`body`, до 4000 символов) и/или до 5 файлов PDF, PNG или JPG до 5 МБ (`files`).
+        Пишут автор и администратор. Ответ администратора переводит новую заявку в работу, сообщение автора в решённой заявке
+        открывает её снова.'
+      operationId: post_message_api_v1_support_tickets__ticket_id__messages_post
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Ticket Id
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_post_message_api_v1_support_tickets__ticket_id__messages_post'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Файл больше 5 МБ
+  /api/v1/support-tickets/{ticket_id}/read:
+    post:
+      tags:
+      - Заявки
+      summary: Отметить чат прочитанным
+      description: 'Веб-панель вызывает, когда чат открыт: сообщения другой стороны перестают считаться новыми.'
+      operationId: mark_read_api_v1_support_tickets__ticket_id__read_post
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Ticket Id
+      responses:
+        '204':
+          description: Successful Response
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/support-tickets/{ticket_id}/attachments/{attachment_id}:
     get:
       tags:
@@ -1610,6 +1710,23 @@ components:
       - topic
       - description
       title: Body_create_ticket_api_v1_support_tickets_post
+    Body_post_message_api_v1_support_tickets__ticket_id__messages_post:
+      properties:
+        body:
+          type: string
+          title: Body
+          description: Текст сообщения
+          default: ''
+        files:
+          items:
+            type: string
+            contentMediaType: application/octet-stream
+          type: array
+          title: Files
+          description: Скриншоты или документы
+          default: []
+      type: object
+      title: Body_post_message_api_v1_support_tickets__ticket_id__messages_post
     Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post:
       properties:
         file:
@@ -2308,12 +2425,7 @@ components:
         description:
           type: string
           title: Description
-        admin_reply:
-          anyOf:
-          - type: string
-          - type: 'null'
-          title: Admin Reply
-          description: Ответ администратора
+          description: Текст первого сообщения
         author:
           $ref: '#/components/schemas/TicketAuthor'
         attachments:
@@ -2321,12 +2433,22 @@ components:
             $ref: '#/components/schemas/TicketAttachment'
           type: array
           title: Attachments
-          description: 'Файлы; скачать: GET /support-tickets/{id}/attachments/{attachment_id}'
+          description: 'Файлы первого сообщения; скачать любой файл заявки: GET /support-tickets/{id}/attachments/{attachment_id}'
         payments:
           items:
             $ref: '#/components/schemas/TicketPayment'
           type: array
           title: Payments
+        messages:
+          items:
+            $ref: '#/components/schemas/TicketMessage'
+          type: array
+          title: Messages
+          description: Переписка после первого сообщения, по времени
+        unread:
+          type: boolean
+          title: Unread
+          description: Есть сообщения другой стороны, которые текущий пользователь ещё не открыл
         created_at:
           type: string
           format: date-time
@@ -2335,19 +2457,26 @@ components:
           type: string
           format: date-time
           title: Updated At
+        last_message_at:
+          type: string
+          format: date-time
+          title: Last Message At
       type: object
       required:
       - id
       - topic
       - status
       - description
-      - admin_reply
       - author
       - attachments
       - payments
+      - messages
+      - unread
       - created_at
       - updated_at
+      - last_message_at
       title: Ticket
+      description: 'Заявка-чат: первое сообщение — описание, файлы и периоды платежей; дальше — переписка.'
     TicketAttachment:
       properties:
         id:
@@ -2381,11 +2510,14 @@ components:
         display_name:
           type: string
           title: Display Name
+        role:
+          $ref: '#/components/schemas/Role'
       type: object
       required:
       - id
       - login
       - display_name
+      - role
       title: TicketAuthor
     TicketList:
       properties:
@@ -2402,22 +2534,44 @@ components:
       - items
       - total
       title: TicketList
+    TicketMessage:
+      properties:
+        id:
+          type: integer
+          title: Id
+        author:
+          $ref: '#/components/schemas/TicketAuthor'
+        body:
+          type: string
+          title: Body
+          description: Текст; пустой, если в сообщении только файлы
+        attachments:
+          items:
+            $ref: '#/components/schemas/TicketAttachment'
+          type: array
+          title: Attachments
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - author
+      - body
+      - attachments
+      - created_at
+      title: TicketMessage
     TicketPatch:
       properties:
         status:
-          anyOf:
-          - $ref: '#/components/schemas/TicketStatus'
-          - type: 'null'
-        admin_reply:
-          anyOf:
-          - type: string
-            maxLength: 4000
-          - type: 'null'
-          title: Admin Reply
+          $ref: '#/components/schemas/TicketStatus'
       additionalProperties: false
       type: object
+      required:
+      - status
       title: TicketPatch
-      description: 'Обработка заявки администратором: статус и/или ответ (пустая строка или null убирает ответ).'
+      description: Статус заявки меняет администратор; ответ пишется сообщением в чат.
     TicketPayment:
       properties:
         occurrence_id:

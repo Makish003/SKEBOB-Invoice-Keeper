@@ -1,4 +1,4 @@
-"""Заявки администратору (ADR-029): создание с файлами и платежами, видимость, обработка, права."""
+"""Заявки администратору (ADR-029, ADR-030): создание с файлами и платежами, видимость, чат, непрочитанное, права."""
 
 from pathlib import Path
 
@@ -45,7 +45,7 @@ def test_user_creates_ticket_with_files_and_payments(
     )
     assert response.status_code == 201, response.text
     body = response.json()
-    assert body["topic"] == "payment" and body["status"] == "open" and body["admin_reply"] is None
+    assert body["topic"] == "payment" and body["status"] == "open" and body["messages"] == [] and body["unread"] is False
     assert body["description"] == "Сумма в периоде не совпадает со счётом"
     assert body["author"]["login"] == "user"
     assert [a["file_name"] for a in body["attachments"]] == ["счёт.pdf", "screen.png"]
@@ -129,32 +129,100 @@ def test_user_sees_only_own_tickets_admin_sees_all(
     assert db.scalar(select(TicketAttachment.id)) is not None
 
 
-def test_admin_processes_ticket(
+def say(client: TestClient, headers: dict[str, str], ticket_id: int, body: str = "", files: list | None = None):  # type: ignore[no-untyped-def,type-arg]
+    return client.post(f"{URL}/{ticket_id}/messages", data={"body": body}, files=files, headers=headers)
+
+
+def unread_total(client: TestClient, headers: dict[str, str]) -> int:
+    return client.get(URL, params={"unread": True}, headers=headers).json()["total"]
+
+
+def test_chat_between_author_and_admin(
     client: TestClient, db: Session, admin_headers: dict[str, str], user_headers: dict[str, str]
 ) -> None:
     ticket = create(client, user_headers).json()
-    url = f"{URL}/{ticket['id']}"
+    tid, url = ticket["id"], f"{URL}/{ticket['id']}"
 
-    body = client.patch(url, json={"status": "in_progress"}, headers=admin_headers).json()
-    assert body["status"] == "in_progress" and body["admin_reply"] is None
-    body = client.patch(url, json={"status": "resolved", "admin_reply": " Исправили, проверьте "}, headers=admin_headers).json()
-    assert body["status"] == "resolved" and body["admin_reply"] == "Исправили, проверьте"
+    # Новая заявка непрочитана у администратора; GET не отмечает прочитанным, POST /read — отмечает.
+    assert client.get(url, headers=admin_headers).json()["unread"] is True
+    assert unread_total(client, admin_headers) == 1 and unread_total(client, user_headers) == 0
+    assert client.post(f"{url}/read", headers=admin_headers).status_code == 204
+    assert unread_total(client, admin_headers) == 0
 
-    seen = client.get(url, headers=user_headers).json()
-    assert seen["status"] == "resolved" and seen["admin_reply"] == "Исправили, проверьте"
-    assert client.get(URL, params={"status": "resolved"}, headers=user_headers).json()["total"] == 1
-    assert client.get(URL, params={"status": "open"}, headers=admin_headers).json()["total"] == 0
+    # Ответ администратора с файлом: заявка уходит в работу, у автора появляется непрочитанное.
+    reply = say(client, admin_headers, tid, " Проверяем, пришлите выписку ", [("files", ("инструкция.pdf", PDF, "application/pdf"))])
+    assert reply.status_code == 201, reply.text
+    body = reply.json()
+    assert body["status"] == "in_progress" and body["unread"] is False
+    message = body["messages"][0]
+    assert message["body"] == "Проверяем, пришлите выписку" and message["author"]["role"] == "admin"
+    assert [a["file_name"] for a in message["attachments"]] == ["инструкция.pdf"] and body["attachments"] == []
+    assert unread_total(client, user_headers) == 1
+    download = client.get(f"{url}/attachments/{message['attachments'][0]['id']}", headers=user_headers)
+    assert download.status_code == 200 and download.content == PDF
 
-    assert client.patch(url, json={"admin_reply": ""}, headers=admin_headers).json()["admin_reply"] is None
-    payloads = db.scalars(select(AuditLog.payload).where(AuditLog.action == "ticket.updated").order_by(AuditLog.id)).all()
-    assert payloads == [
-        {"status": {"from": "open", "to": "in_progress"}},
-        {"status": {"from": "in_progress", "to": "resolved"}, "admin_reply": {"from": None, "to": "Исправили, проверьте"}},
-        {"admin_reply": {"from": "Исправили, проверьте", "to": None}},
+    # Автор читает и отвечает только файлом.
+    client.post(f"{url}/read", headers=user_headers)
+    assert unread_total(client, user_headers) == 0
+    answer = say(client, user_headers, tid, files=[("files", ("выписка.png", PNG, "image/png"))]).json()
+    assert answer["messages"][1]["body"] == "" and answer["messages"][1]["author"]["login"] == "user"
+    assert unread_total(client, admin_headers) == 1
+
+    # Решённая заявка снова открывается, если автор пишет в неё.
+    assert client.patch(url, json={"status": "resolved"}, headers=admin_headers).json()["status"] == "resolved"
+    assert say(client, user_headers, tid, "Опять не работает").json()["status"] == "open"
+
+    seen = client.get(url, headers=admin_headers).json()
+    assert [m["body"] for m in seen["messages"]] == ["Проверяем, пришлите выписку", "", "Опять не работает"]
+    actions = db.scalars(
+        select(AuditLog.payload).where(AuditLog.action.in_(["ticket.message", "ticket.updated"])).order_by(AuditLog.id)
+    ).all()
+    assert [p.get("status") for p in actions] == [
+        {"from": "open", "to": "in_progress"},
+        None,
+        {"from": "in_progress", "to": "resolved"},
+        {"from": "resolved", "to": "open"},
     ]
 
 
-@pytest.mark.parametrize("body", [{}, {"status": None}, {"status": "closed"}, {"admin_reply": "x" * 4001}, {"extra": 1}])
+def test_list_orders_by_last_message(client: TestClient, admin_headers: dict[str, str], user_headers: dict[str, str]) -> None:
+    older = create(client, user_headers, description="Первая").json()
+    newer = create(client, user_headers, description="Вторая").json()
+    assert [t["id"] for t in client.get(URL, headers=user_headers).json()["items"]] == [newer["id"], older["id"]]
+    say(client, admin_headers, older["id"], "Ответ")
+    assert [t["id"] for t in client.get(URL, headers=user_headers).json()["items"]] == [older["id"], newer["id"]]
+    unread = client.get(URL, params={"unread": True}, headers=user_headers).json()
+    assert [t["id"] for t in unread["items"]] == [older["id"]]
+
+
+@pytest.mark.parametrize(
+    ("body", "files"),
+    [
+        ("   ", None),
+        ("x" * 4001, None),
+        ("", [("files", (f"{i}.png", PNG, "image/png")) for i in range(6)]),
+        ("Вот", [("files", ("ok.png", PNG, "image/png")), ("files", ("fake.pdf", b"<html>", "application/pdf"))]),
+    ],
+)
+def test_message_validation(client: TestClient, user_headers: dict[str, str], body: str, files: list | None) -> None:  # type: ignore[type-arg]
+    ticket = create(client, user_headers).json()
+    uploads = Path(get_settings().uploads_dir)
+    before = set(uploads.iterdir()) if uploads.exists() else set()
+    assert say(client, user_headers, ticket["id"], body, files).status_code == 422
+    assert client.get(f"{URL}/{ticket['id']}", headers=user_headers).json()["messages"] == []
+    assert (set(uploads.iterdir()) if uploads.exists() else set()) == before
+
+
+def test_stranger_cannot_write_or_read(client: TestClient, db: Session, user_headers: dict[str, str]) -> None:
+    ticket = create(client, user_headers).json()
+    create_user(db, login="petr", name="Пётр")
+    petr = login(client, "petr", USER_PASSWORD)
+    assert say(client, petr, ticket["id"], "Чужой чат").status_code == 404
+    assert client.post(f"{URL}/{ticket['id']}/read", headers=petr).status_code == 404
+    assert client.get(f"{URL}/{ticket['id']}", headers=user_headers).json()["messages"] == []
+
+
+@pytest.mark.parametrize("body", [{}, {"status": None}, {"status": "closed"}, {"admin_reply": "x"}, {"status": "open", "extra": 1}])
 def test_patch_validation(client: TestClient, admin_headers: dict[str, str], user_headers: dict[str, str], body: dict[str, object]) -> None:
     ticket = create(client, user_headers).json()
     assert client.patch(f"{URL}/{ticket['id']}", json=body, headers=admin_headers).status_code == 422
@@ -172,3 +240,5 @@ def test_requires_session(client: TestClient) -> None:
     assert client.post(URL, data={"topic": "bug", "description": "x"}).status_code == 401
     assert client.get(URL).status_code == 401
     assert client.get(f"{URL}/1/attachments/1").status_code == 401
+    assert client.post(f"{URL}/1/messages", data={"body": "x"}).status_code == 401
+    assert client.post(f"{URL}/1/read").status_code == 401

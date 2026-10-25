@@ -266,10 +266,14 @@ support_ticket_payments = Table(
 
 
 class SupportTicket(Base):
-    """Заявка пользователя администратору: вопрос или неполадка, с файлами и периодами платежей (ADR-029)."""
+    """Заявка пользователя администратору — отдельный чат: первое сообщение (описание, файлы, периоды платежей)
+    и переписка автора с администратором (ADR-029, ADR-030)."""
 
     __tablename__ = "support_tickets"
-    __table_args__ = (Index("ix_support_tickets_status_created_at", "status", "created_at"),)
+    __table_args__ = (
+        Index("ix_support_tickets_status_created_at", "status", "created_at"),
+        Index("ix_support_tickets_last_message_at", "last_message_at"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
@@ -278,9 +282,14 @@ class SupportTicket(Base):
     status: Mapped[TicketStatus] = mapped_column(
         _enum(TicketStatus, "ticket_status"), nullable=False, default=TicketStatus.open, server_default="open"
     )
-    admin_reply: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = _created_at()
     updated_at: Mapped[datetime] = _updated_at()
+    # Время последних сообщений сторон и отметки «прочитано»: непрочитанное = у другой стороны сообщение новее отметки.
+    last_message_at: Mapped[datetime] = _created_at()
+    last_author_message_at: Mapped[datetime] = _created_at()
+    last_admin_message_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    author_read_at: Mapped[datetime] = _created_at()
+    admin_read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     author: Mapped[User] = relationship()
     attachments: Mapped[list["TicketAttachment"]] = relationship(
@@ -289,15 +298,39 @@ class SupportTicket(Base):
     occurrences: Mapped[list[PaymentOccurrence]] = relationship(
         secondary=support_ticket_payments, order_by=PaymentOccurrence.due_date
     )
+    messages: Mapped[list["TicketMessage"]] = relationship(
+        back_populates="ticket", cascade="all, delete-orphan", order_by="TicketMessage.id"
+    )
+
+
+class TicketMessage(Base):
+    __tablename__ = "ticket_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(
+        ForeignKey("support_tickets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)  # пустой, если в сообщении только файлы
+    created_at: Mapped[datetime] = _created_at()
+
+    ticket: Mapped[SupportTicket] = relationship(back_populates="messages")
+    author: Mapped[User] = relationship()
+    attachments: Mapped[list["TicketAttachment"]] = relationship(
+        back_populates="message", order_by="TicketAttachment.id"
+    )
 
 
 class TicketAttachment(Base):
+    """Файл заявки: message_id NULL — файл первого сообщения (при создании), иначе — сообщения переписки."""
+
     __tablename__ = "ticket_attachments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ticket_id: Mapped[int] = mapped_column(
         ForeignKey("support_tickets.id", ondelete="CASCADE"), nullable=False, index=True
     )
+    message_id: Mapped[int | None] = mapped_column(ForeignKey("ticket_messages.id", ondelete="CASCADE"), index=True)
     file_name: Mapped[str] = mapped_column(String(255), nullable=False)  # имя для пользователя
     file_key: Mapped[str] = mapped_column(String(64), nullable=False)  # имя файла в томе uploads
     content_type: Mapped[str] = mapped_column(String(64), nullable=False)
@@ -305,6 +338,7 @@ class TicketAttachment(Base):
     created_at: Mapped[datetime] = _created_at()
 
     ticket: Mapped[SupportTicket] = relationship(back_populates="attachments")
+    message: Mapped["TicketMessage | None"] = relationship(back_populates="attachments")
 
 
 class Budget(Base):

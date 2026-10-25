@@ -1,11 +1,10 @@
-"""Схемы заявок администратору (ADR-029)."""
+"""Схемы заявок администратору: каждая заявка — чат автора с администратором (ADR-029, ADR-030)."""
 
 from datetime import date, datetime
-from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from app.models import Currency, OccurrenceStatus, TicketStatus, TicketTopic
+from app.models import Currency, OccurrenceStatus, Role, TicketStatus, TicketTopic
 from app.schemas.common import Money
 
 
@@ -13,6 +12,7 @@ class TicketAuthor(BaseModel):
     id: int
     login: str
     display_name: str
+    role: Role
 
 
 class TicketAttachment(BaseModel):
@@ -34,19 +34,31 @@ class TicketPayment(BaseModel):
     status: OccurrenceStatus
 
 
+class TicketMessage(BaseModel):
+    id: int
+    author: TicketAuthor
+    body: str = Field(description="Текст; пустой, если в сообщении только файлы")
+    attachments: list[TicketAttachment]
+    created_at: datetime
+
+
 class Ticket(BaseModel):
+    """Заявка-чат: первое сообщение — описание, файлы и периоды платежей; дальше — переписка."""
+
     id: int
     topic: TicketTopic
     status: TicketStatus
-    description: str
-    admin_reply: str | None = Field(description="Ответ администратора")
+    description: str = Field(description="Текст первого сообщения")
     author: TicketAuthor
     attachments: list[TicketAttachment] = Field(
-        description="Файлы; скачать: GET /support-tickets/{id}/attachments/{attachment_id}"
+        description="Файлы первого сообщения; скачать любой файл заявки: GET /support-tickets/{id}/attachments/{attachment_id}"
     )
     payments: list[TicketPayment]
+    messages: list[TicketMessage] = Field(description="Переписка после первого сообщения, по времени")
+    unread: bool = Field(description="Есть сообщения другой стороны, которые текущий пользователь ещё не открыл")
     created_at: datetime
     updated_at: datetime
+    last_message_at: datetime
 
 
 class TicketList(BaseModel):
@@ -55,17 +67,8 @@ class TicketList(BaseModel):
 
 
 class TicketPatch(BaseModel):
-    """Обработка заявки администратором: статус и/или ответ (пустая строка или null убирает ответ)."""
+    """Статус заявки меняет администратор; ответ пишется сообщением в чат."""
 
     model_config = ConfigDict(extra="forbid")
 
-    status: TicketStatus | None = None
-    admin_reply: Annotated[str, StringConstraints(strip_whitespace=True, max_length=4000)] | None = None
-
-    @model_validator(mode="after")
-    def _not_empty(self) -> "TicketPatch":
-        if not self.model_fields_set:
-            raise ValueError("Передайте status или admin_reply")
-        if self.status is None and "status" in self.model_fields_set:
-            raise ValueError("status не может быть null")
-        return self
+    status: TicketStatus
