@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import { ru } from 'date-fns/locale'
+import { ItemCard, Tile } from '@/components/CardGrid'
 import { cn } from '@/lib/cn'
 import { formatDate, formatMoney, relativeDue } from '@/lib/format'
 import type { Occurrence } from './api'
@@ -18,17 +19,14 @@ const tileTone: Record<Display, string> = {
   paid_late: 'bg-sunken text-fg-tertiary',
 }
 
-/** Срок на сплошной скруглённой плитке (стр. 21 гайдбука): число и месяц. Полная дата есть текстом, плитка скрыта от чтеца. */
-function DueTile({ occ }: { occ: Occurrence }) {
-  const date = parseISO(occ.due_date)
+/** Срок на плитке: число и месяц. Полная дата есть текстом рядом. */
+export function DueTile({ due, status }: { due: string; status: Display }) {
+  const date = parseISO(due)
   return (
-    <div
-      aria-hidden
-      className={cn('grid size-14 shrink-0 content-center justify-items-center rounded-lg', tileTone[occ.display_status])}
-    >
+    <Tile className={tileTone[status]}>
       <span className="font-display text-xl leading-none font-bold tabular">{format(date, 'd')}</span>
       <span className="text-[0.6875rem] leading-4 font-medium">{format(date, 'LLL', { locale: ru }).replace('.', '')}</span>
-    </div>
+    </Tile>
   )
 }
 
@@ -37,15 +35,12 @@ export function PaymentCard({ occ }: { occ: Occurrence }) {
   const extra = lateText(occ)
   const unpaid = occ.status === 'unpaid'
   return (
-    <article
+    <ItemCard
       aria-label={`${occ.recurring_payment.name}, период ${occ.seq + 1}`}
-      className={cn(
-        'flex h-full flex-col gap-4 rounded-xl border border-subtle bg-raised p-4 shadow-raised',
-        occ.display_status === 'overdue' && 'border-danger/30',
-      )}
+      className={cn(occ.display_status === 'overdue' && 'border-danger/30')}
     >
       <header className="flex items-start gap-3">
-        <DueTile occ={occ} />
+        <DueTile due={occ.due_date} status={occ.display_status} />
         <div className="grid min-w-0 gap-0.5 pt-1">
           <h3 className="font-display leading-snug font-bold break-words text-fg">{occ.recurring_payment.name}</h3>
           <span className="text-xs text-fg-tertiary">
@@ -78,6 +73,6 @@ export function PaymentCard({ occ }: { occ: Occurrence }) {
         )}
         <OccurrenceActions occ={occ} fill={unpaid} />
       </footer>
-    </article>
+    </ItemCard>
   )
 }

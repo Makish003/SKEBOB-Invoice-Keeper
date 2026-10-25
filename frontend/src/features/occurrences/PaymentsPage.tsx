@@ -1,8 +1,8 @@
 import { addMonths, endOfMonth, startOfMonth } from 'date-fns'
-import { AnimatePresence, motion } from 'motion/react'
 import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
+import { CardGrid, cardGridClass } from '@/components/CardGrid'
 import { Page, PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -14,13 +14,10 @@ import { Segmented } from '@/components/ui/tabs'
 import { useAppInfo } from '@/features/app-info'
 import { cn } from '@/lib/cn'
 import { type Currency, toIsoDate } from '@/lib/format'
-import { fadeUp, reduced, stagger, useReducedMotion } from '@/lib/motion'
 import { type OccurrenceQuery, useOccurrences } from './api'
 import { PaymentCard } from './PaymentCard'
 
 const PAGE_SIZE = 24
-
-const cardGrid = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3'
 
 type Tab = 'due' | 'overdue' | 'paid' | 'all'
 type PeriodFilter = 'any' | 'this' | 'next' | 'prev'
@@ -83,7 +80,7 @@ function useFilters() {
 
 function LoadingCards() {
   return (
-    <div className={cardGrid} aria-busy="true" aria-label="Загрузка платежей">
+    <div className={cardGridClass} aria-busy="true" aria-label="Загрузка платежей">
       {Array.from({ length: 6 }, (_, i) => (
         <Skeleton key={i} className="h-56 rounded-xl" />
       ))}
@@ -94,7 +91,6 @@ function LoadingCards() {
 export function PaymentsPage() {
   const { tab, currency, period, q, page, archived, focus, update } = useFilters()
   const { today } = useAppInfo()
-  const reduce = useReducedMotion()
   const searchRef = useRef<HTMLInputElement>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
@@ -130,7 +126,6 @@ export function PaymentsPage() {
   const filtered = Boolean(currency || q || archived || period !== 'any')
   const activeFilters = [currency, archived, period !== 'any'].filter(Boolean).length
   const resetFilters = () => update({ currency: null, q: null, archived: null, period: null })
-  const variants = reduce ? reduced : fadeUp
 
   return (
     <Page>
@@ -253,31 +248,9 @@ export function PaymentsPage() {
         </Card>
       ) : (
         <>
-          <motion.ul
-            key={`${tab}-${page}-${focus}`}
-            initial="hidden"
-            animate="show"
-            variants={stagger(0.03)}
-            className={cardGrid}
-            aria-label="Периоды платежей"
-          >
-            {/* Оплаченный период уходит с вкладки «К оплате»: карточка гаснет, соседние сдвигаются на её место.
-                Без initial={false}: список пересоздаётся ключом при смене вкладки, и вход карточек должен играть каждый раз. */}
-            <AnimatePresence mode="popLayout">
-              {items.map((occ) => (
-                <motion.li
-                  key={occ.id}
-                  layout={!reduce}
-                  variants={variants}
-                  exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
-                  aria-current={occ.id === focus ? 'true' : undefined}
-                  className="rounded-xl aria-[current=true]:ring-2 aria-[current=true]:ring-danger/50"
-                >
-                  <PaymentCard occ={occ} />
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </motion.ul>
+          <CardGrid items={items} label="Периоды платежей" listKey={`${tab}-${page}-${focus}`} current={(occ) => occ.id === focus}>
+            {(occ) => <PaymentCard occ={occ} />}
+          </CardGrid>
 
           {total > PAGE_SIZE && (
             <nav aria-label="Страницы" className="flex items-center justify-between gap-3">

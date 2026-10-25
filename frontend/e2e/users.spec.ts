@@ -7,7 +7,7 @@ test('админ создаёт пользователя; пользовател
 
   await signIn(page, ADMIN)
   await page.goto('/users')
-  await expect(page.locator('tr').filter({ hasText: 'admin' }).getByText('Из .env')).toBeVisible()
+  await expect(page.getByRole('article').filter({ hasText: 'admin' }).getByText('Из .env')).toBeVisible()
 
   await page.getByRole('button', { name: 'Добавить пользователя' }).first().click()
   const dialog = page.getByRole('dialog', { name: 'Новый пользователь' })
@@ -31,7 +31,7 @@ test('админ создаёт пользователя; пользовател
 
   await signIn(page, ADMIN)
   await page.goto('/users')
-  await page.locator('tr').filter({ hasText: login }).getByRole('button', { name: /Удалить/ }).click()
+  await page.getByRole('article').filter({ hasText: login }).getByRole('button', { name: /Удалить/ }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: 'Удалить пользователя' }).click()
   await expect(page.getByText('Пользователь удалён')).toBeVisible()
   await signOut(page)

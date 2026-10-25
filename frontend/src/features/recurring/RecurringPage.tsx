@@ -1,9 +1,9 @@
-import { motion } from 'motion/react'
 import { Archive, Ellipsis, Pencil, Repeat, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
+import { CardGrid, cardGridClass, ItemCard, Tile } from '@/components/CardGrid'
 import { Page, PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,17 +13,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Segmented } from '@/components/ui/tabs'
-import { Table, TD, TH, THead } from '@/components/ui/table'
+import { DueTile } from '@/features/occurrences/PaymentCard'
 import { StatusBadge } from '@/features/occurrences/StatusBadge'
 import { formatDate, formatDateTime, formatMoney, relativeDue } from '@/lib/format'
-import { fadeUp, reduced, stagger, useReducedMotion } from '@/lib/motion'
 import { periodLabels, type RecurringPayment, useDeleteRecurring, useRecurringPayments } from './api'
 import { CreateRecurringDialog } from './CreateRecurringDialog'
 import { EditRecurringDialog } from './EditRecurringDialog'
 
 type View = 'active' | 'archived'
 
-/** Действия над платежом в меню: опасное «Прекратить» не соседствует с каждой строкой таблицы. */
+/** Действия над платежом в меню: опасное «Прекратить» не стоит открыто на каждой карточке. */
 function PaymentMenu({ payment, onEdit, onDelete }: { payment: RecurringPayment; onEdit: () => void; onDelete: () => void }) {
   return (
     <DropdownMenu>
@@ -48,20 +47,68 @@ function PaymentMenu({ payment, onEdit, onDelete }: { payment: RecurringPayment;
   )
 }
 
+/** Низ карточки: ближайший срок со статусом; у прекращённого платежа дата прекращения. */
 function NextDue({ payment }: { payment: RecurringPayment }) {
   if (!payment.is_active) {
-    return <span className="text-fg-tertiary">Прекращён {payment.deleted_at ? formatDateTime(payment.deleted_at) : ''}</span>
+    return (
+      <span className="text-sm text-fg-tertiary">
+        Прекращён <span className="tabular">{payment.deleted_at ? formatDateTime(payment.deleted_at) : ''}</span>
+      </span>
+    )
   }
   const next = payment.next_occurrence
-  if (!next) return <span className="text-fg-tertiary">Нет</span>
+  if (!next) return <span className="text-sm text-fg-tertiary">Ближайшего срока нет</span>
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span className="grid">
-        <span className="tabular">{formatDate(next.due_date)}</span>
-        <span className="text-xs text-fg-tertiary">{relativeDue(next.days_until_due)}</span>
+    <>
+      <span className="text-sm text-fg-secondary">
+        Ближайший срок <span className="text-fg tabular">{formatDate(next.due_date)}</span>
+        <span className="text-fg-tertiary">, {relativeDue(next.days_until_due)}</span>
       </span>
       <StatusBadge status={next.display_status} />
-    </div>
+    </>
+  )
+}
+
+interface RecurringCardProps {
+  payment: RecurringPayment
+  onEdit: () => void
+  onDelete: () => void
+}
+
+/** Регулярный платёж карточкой: плитка ближайшего срока, название ведёт к его периодам, сумма и периодичность. */
+function RecurringCard({ payment, onEdit, onDelete }: RecurringCardProps) {
+  const next = payment.is_active ? payment.next_occurrence : null
+  return (
+    <ItemCard aria-label={payment.name}>
+      <header className="flex items-start gap-3">
+        {next ? (
+          <DueTile due={next.due_date} status={next.display_status} />
+        ) : (
+          <Tile className="bg-sunken text-fg-tertiary">{payment.is_active ? <Repeat /> : <Archive />}</Tile>
+        )}
+        <div className="grid min-w-0 flex-1 gap-0.5 pt-1">
+          <h3 className="font-display leading-snug font-bold break-words">
+            <Link
+              to={`/payments?tab=all&q=${encodeURIComponent(payment.name)}${payment.is_active ? '' : '&archived=1'}`}
+              className="rounded-sm text-fg underline-offset-2 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              {payment.name}
+            </Link>
+          </h3>
+          {payment.description && <span className="text-xs break-words text-fg-tertiary">{payment.description}</span>}
+        </div>
+        {payment.is_active && <PaymentMenu payment={payment} onEdit={onEdit} onDelete={onDelete} />}
+      </header>
+
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
+        <span className="font-display text-2xl font-bold tracking-tight tabular">{formatMoney(payment.amount, payment.currency)}</span>
+        <Badge tone="outline">{periodLabels[payment.period]}</Badge>
+      </div>
+
+      <footer className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-subtle pt-3">
+        <NextDue payment={payment} />
+      </footer>
+    </ItemCard>
   )
 }
 
@@ -71,8 +118,6 @@ export function RecurringPage() {
   const [toEdit, setToEdit] = useState<RecurringPayment | null>(null)
   const list = useRecurringPayments()
   const remove = useDeleteRecurring()
-  const reduce = useReducedMotion()
-  const variants = reduce ? reduced : fadeUp
 
   const all = list.data?.items ?? []
   const active = all.filter((p) => p.is_active)
@@ -112,17 +157,19 @@ export function RecurringPage() {
         ]}
       />
 
-      <Card className="overflow-hidden">
-        {list.isPending ? (
-          <div className="grid gap-3 p-4" aria-busy="true" aria-label="Загрузка">
-            {Array.from({ length: 4 }, (_, i) => (
-              <Skeleton key={i} className="h-10 w-full" />
-            ))}
-          </div>
-        ) : list.isError ? (
+      {list.isPending ? (
+        <div className={cardGridClass} aria-busy="true" aria-label="Загрузка">
+          {Array.from({ length: 6 }, (_, i) => (
+            <Skeleton key={i} className="h-52 rounded-xl" />
+          ))}
+        </div>
+      ) : list.isError ? (
+        <Card>
           <ErrorState error={list.error} onRetry={() => list.refetch()} />
-        ) : items.length === 0 ? (
-          view === 'active' ? (
+        </Card>
+      ) : items.length === 0 ? (
+        <Card>
+          {view === 'active' ? (
             <EmptyState
               icon={<Repeat aria-hidden />}
               title="Регулярных платежей пока нет"
@@ -135,76 +182,13 @@ export function RecurringPage() {
               title="Прекращённых платежей нет"
               description="Здесь появятся платежи, которые больше не повторяются. Их история оплат сохраняется."
             />
-          )
-        ) : (
-          <>
-            <div className="hidden md:block">
-              <Table aria-label={view === 'active' ? 'Активные платежи' : 'Прекращённые платежи'}>
-                <THead>
-                  <tr>
-                    <TH className="pl-4">Название</TH>
-                    <TH className="text-right">Сумма</TH>
-                    <TH>Периодичность</TH>
-                    <TH>{view === 'active' ? 'Ближайший срок' : 'Статус'}</TH>
-                    <TH className="pr-4 text-right">
-                      <span className="sr-only">Действия</span>
-                    </TH>
-                  </tr>
-                </THead>
-                <motion.tbody key={view} initial="hidden" animate="show" variants={stagger(0.03)} className="[&>tr:last-child]:border-0">
-                  {items.map((payment) => (
-                    <motion.tr key={payment.id} variants={variants} className="border-b border-subtle transition-control hover:bg-page">
-                      <TD className="max-w-72 pl-4">
-                        <div className="grid min-w-0">
-                          <Link
-                            to={`/payments?tab=all&q=${encodeURIComponent(payment.name)}${payment.is_active ? '' : '&archived=1'}`}
-                            className="truncate font-medium text-fg underline-offset-2 hover:underline"
-                          >
-                            {payment.name}
-                          </Link>
-                          {payment.description && <span className="truncate text-xs text-fg-tertiary">{payment.description}</span>}
-                        </div>
-                      </TD>
-                      <TD className="text-right font-medium whitespace-nowrap tabular">
-                        {formatMoney(payment.amount, payment.currency)}
-                      </TD>
-                      <TD>
-                        <Badge tone="outline">{periodLabels[payment.period]}</Badge>
-                      </TD>
-                      <TD>
-                        <NextDue payment={payment} />
-                      </TD>
-                      <TD className="pr-4 text-right">
-                        {payment.is_active && (
-                          <PaymentMenu payment={payment} onEdit={() => setToEdit(payment)} onDelete={() => setToDelete(payment)} />
-                        )}
-                      </TD>
-                    </motion.tr>
-                  ))}
-                </motion.tbody>
-              </Table>
-            </div>
-            <motion.ul key={`m-${view}`} initial="hidden" animate="show" variants={stagger(0.03)} className="divide-y divide-subtle md:hidden">
-              {items.map((payment) => (
-                <motion.li key={payment.id} variants={variants} className="grid gap-3 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="grid min-w-0">
-                      <span className="truncate font-medium">{payment.name}</span>
-                      <span className="text-xs text-fg-tertiary">
-                        {periodLabels[payment.period]}, {formatMoney(payment.amount, payment.currency)}
-                      </span>
-                    </div>
-                    {payment.is_active && (
-                      <PaymentMenu payment={payment} onEdit={() => setToEdit(payment)} onDelete={() => setToDelete(payment)} />
-                    )}
-                  </div>
-                  <NextDue payment={payment} />
-                </motion.li>
-              ))}
-            </motion.ul>
-          </>
-        )}
-      </Card>
+          )}
+        </Card>
+      ) : (
+        <CardGrid items={items} label={view === 'active' ? 'Активные платежи' : 'Прекращённые платежи'} listKey={view}>
+          {(payment) => <RecurringCard payment={payment} onEdit={() => setToEdit(payment)} onDelete={() => setToDelete(payment)} />}
+        </CardGrid>
+      )}
 
       <EditRecurringDialog payment={toEdit} onClose={() => setToEdit(null)} />
 

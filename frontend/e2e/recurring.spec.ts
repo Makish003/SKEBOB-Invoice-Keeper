@@ -31,7 +31,7 @@ test('администратор добавляет платёж со сроко
   await expect(page.getByText('Платёж добавлен')).toBeVisible()
   await expect(dialog).toBeHidden()
 
-  const row = page.locator('tr:visible, li:visible').filter({ hasText: name })
+  const row = page.getByRole('article', { name })
   await expect(row).toContainText('1 500,50 $')
   await expect(row.getByText('Скоро срок')).toBeVisible()
 
@@ -50,8 +50,8 @@ test('администратор добавляет платёж со сроко
   await expect(confirm).toContainText('сохранятся в истории')
   await confirm.getByRole('button', { name: 'Прекратить платёж' }).click()
   await expect(page.getByText('Платёж прекращён')).toBeVisible()
-  await expect(page.locator('tr:visible, li:visible').filter({ hasText: name })).toHaveCount(0)
+  await expect(page.getByRole('article', { name })).toHaveCount(0)
 
   await page.getByRole('radio', { name: /Прекращённые/ }).click()
-  await expect(page.locator('tr:visible, li:visible').filter({ hasText: name })).toBeVisible()
+  await expect(page.getByRole('article', { name })).toBeVisible()
 })

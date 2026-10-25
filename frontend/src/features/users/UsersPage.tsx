@@ -2,6 +2,7 @@ import { Lock, Pencil, Trash2, UserPlus, Users } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
+import { CardGrid, cardGridClass, ItemCard, Tile } from '@/components/CardGrid'
 import { Page, PageHeader } from '@/components/PageHeader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -9,8 +10,8 @@ import { Card } from '@/components/ui/card'
 import { ConfirmDialog } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/states'
-import { Table, TBody, TD, TH, THead, TR } from '@/components/ui/table'
 import { Tooltip } from '@/components/ui/tooltip'
+import { cn } from '@/lib/cn'
 import { formatDate } from '@/lib/format'
 import { type ManagedUser, useDeleteUser, useUsers } from './api'
 import { UserFormDialog } from './UserFormDialog'
@@ -30,7 +31,7 @@ function Actions({ user, onEdit, onDelete }: { user: ManagedUser; onEdit: () => 
   if (user.is_system) {
     return (
       <Tooltip content="Администратор задаётся в .env и не меняется через панель">
-        <span tabIndex={0} className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-fg-tertiary outline-none focus-visible:outline-2 focus-visible:outline-ring">
+        <span tabIndex={0} className="inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-xs text-fg-tertiary outline-none focus-visible:outline-2 focus-visible:outline-ring">
           <Lock className="size-3.5" aria-hidden />
           Из .env
         </span>
@@ -39,15 +40,55 @@ function Actions({ user, onEdit, onDelete }: { user: ManagedUser; onEdit: () => 
   }
   return (
     <div className="flex justify-end gap-1">
-      <Button variant="ghost" size="sm" onClick={onEdit} aria-label={`Изменить ${user.display_name}`}>
-        <Pencil aria-hidden />
-        <span className="hidden sm:inline">Изменить</span>
-      </Button>
-      <Button variant="destructive-ghost" size="sm" onClick={onDelete} aria-label={`Удалить ${user.display_name}`}>
-        <Trash2 aria-hidden />
-        <span className="hidden sm:inline">Удалить</span>
-      </Button>
+      <Tooltip content="Изменить">
+        <Button variant="ghost" size="icon-sm" onClick={onEdit} aria-label={`Изменить ${user.display_name}`}>
+          <Pencil aria-hidden />
+        </Button>
+      </Tooltip>
+      <Tooltip content="Удалить">
+        <Button variant="destructive-ghost" size="icon-sm" onClick={onDelete} aria-label={`Удалить ${user.display_name}`}>
+          <Trash2 aria-hidden />
+        </Button>
+      </Tooltip>
     </div>
+  )
+}
+
+/** Инициалы: первые буквы двух первых слов имени («Анна Смирнова» → «АС»). */
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0].toUpperCase())
+    .join('')
+}
+
+/** Пользователь карточкой: инициалы на плитке (у администратора фирменная), имя, логин, роль, дата создания и действия. */
+function UserCard({ user, onEdit, onDelete }: { user: ManagedUser; onEdit: () => void; onDelete: () => void }) {
+  return (
+    <ItemCard aria-label={user.display_name}>
+      <header className="flex items-start gap-3">
+        <Tile className={cn('font-display text-xl font-bold', user.role === 'admin' ? 'bg-brand-tile text-brand-tile-fg' : 'bg-sunken text-fg')}>
+          {initials(user.display_name)}
+        </Tile>
+        <div className="grid min-w-0 gap-0.5 pt-1">
+          <h3 className="font-display leading-snug font-bold break-words text-fg">{user.display_name}</h3>
+          <span className="truncate font-mono text-xs text-fg-tertiary">{user.login}</span>
+        </div>
+      </header>
+
+      <div>
+        <RoleBadge user={user} />
+      </div>
+
+      <footer className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-subtle pt-3">
+        <span className="text-sm text-fg-secondary">
+          Создан <span className="text-fg tabular">{formatDate(user.created_at.slice(0, 10))}</span>
+        </span>
+        <Actions user={user} onEdit={onEdit} onDelete={onDelete} />
+      </footer>
+    </ItemCard>
   )
 }
 
@@ -78,54 +119,33 @@ export function UsersPage() {
         }
       />
 
-      <Card className="overflow-hidden">
-        {users.isPending ? (
-          <div className="grid gap-3 p-4" aria-busy="true" aria-label="Загрузка">
-            <Skeleton className="h-10" />
-            <Skeleton className="h-10" />
-          </div>
-        ) : users.isError ? (
+      {users.isPending ? (
+        <div className={cardGridClass} aria-busy="true" aria-label="Загрузка">
+          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+          <Skeleton className="h-48 rounded-xl" />
+        </div>
+      ) : users.isError ? (
+        <Card>
           <ErrorState error={users.error} onRetry={() => users.refetch()} />
-        ) : (
-          <>
-            <Table aria-label="Пользователи">
-              <THead>
-                <tr>
-                  <TH className="pl-4">Имя</TH>
-                  <TH>Логин</TH>
-                  <TH className="hidden sm:table-cell">Роль</TH>
-                  <TH className="hidden md:table-cell">Создан</TH>
-                  <TH className="pr-4 text-right">
-                    <span className="sr-only">Действия</span>
-                  </TH>
-                </tr>
-              </THead>
-              <TBody>
-                {items.map((user) => (
-                  <TR key={user.id}>
-                    <TD className="pl-4 font-medium">{user.display_name}</TD>
-                    <TD className="font-mono text-[0.8125rem] text-fg-secondary">{user.login}</TD>
-                    <TD className="hidden sm:table-cell">
-                      <RoleBadge user={user} />
-                    </TD>
-                    <TD className="hidden text-fg-secondary tabular md:table-cell">{formatDate(user.created_at.slice(0, 10))}</TD>
-                    <TD className="pr-4 text-right">
-                      <Actions
-                        user={user}
-                        onEdit={() => {
-                          setEditing(user)
-                          setFormOpen(true)
-                        }}
-                        onDelete={() => setToDelete(user)}
-                      />
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-            {regular.length === 0 && (
+        </Card>
+      ) : (
+        <>
+          <CardGrid items={items} label="Пользователи">
+            {(user) => (
+              <UserCard
+                user={user}
+                onEdit={() => {
+                  setEditing(user)
+                  setFormOpen(true)
+                }}
+                onDelete={() => setToDelete(user)}
+              />
+            )}
+          </CardGrid>
+          {regular.length === 0 && (
+            <Card>
               <EmptyState
-                className="border-t border-subtle"
                 icon={<Users aria-hidden />}
                 title="Обычных пользователей пока нет"
                 description="Добавьте коллег, чтобы они могли отмечать оплату."
@@ -135,10 +155,10 @@ export function UsersPage() {
                   </Button>
                 }
               />
-            )}
-          </>
-        )}
-      </Card>
+            </Card>
+          )}
+        </>
+      )}
 
       <UserFormDialog open={formOpen} onOpenChange={setFormOpen} user={editing} />
       <ConfirmDialog
