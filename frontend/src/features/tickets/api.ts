@@ -6,6 +6,7 @@ export type Ticket = Schemas['Ticket']
 export type TicketTopic = Ticket['topic']
 export type TicketStatus = Ticket['status']
 export type TicketPatch = Schemas['TicketPatch']
+export type TicketMessage = Schemas['TicketMessage']
 
 export const ticketsKey = ['tickets'] as const
 
@@ -31,23 +32,27 @@ export const statusMeta: Record<TicketStatus, { label: string; tone: 'info' | 'w
 export const attachmentUrl = (ticketId: number, attachmentId: number) =>
   `/api/v1/support-tickets/${ticketId}/attachments/${attachmentId}`
 
+/** Чаты обновляются опросом (ADR-030): список реже, открытый чат чаще. */
+const LIST_POLL = 20_000
+const CHAT_POLL = 10_000
+
 export function useTickets(status: TicketStatus | null, page: { limit: number; offset: number }) {
   const query = { ...(status ? { status } : {}), ...page }
   return useQuery({
     queryKey: [...ticketsKey, query],
     queryFn: () => unwrap(api.GET('/api/v1/support-tickets', { params: { query } })),
     placeholderData: keepPreviousData,
+    refetchInterval: LIST_POLL,
   })
 }
 
-/** Сколько заявок в статусе: `total` при `limit=1` (счётчики на вкладках и в навигации). */
-export function useTicketCount(status: TicketStatus, enabled = true) {
+/** Сколько заявок по фильтру: `total` при `limit=1` (счётчики в шапке и в навигации). */
+export function useTicketCount(filter: { status?: TicketStatus; unread?: boolean }) {
   return useQuery({
-    queryKey: [...ticketsKey, 'count', status],
-    queryFn: () => unwrap(api.GET('/api/v1/support-tickets', { params: { query: { status, limit: 1 } } })),
+    queryKey: [...ticketsKey, 'count', filter],
+    queryFn: () => unwrap(api.GET('/api/v1/support-tickets', { params: { query: { ...filter, limit: 1 } } })),
     select: (data) => data.total,
-    enabled,
-    refetchInterval: 60_000,
+    refetchInterval: LIST_POLL,
   })
 }
 
@@ -58,22 +63,26 @@ export interface TicketDraft {
   files: File[]
 }
 
-/** Заявка уходит одним multipart-запросом: файлы и платежи сохраняются вместе с ней или не сохраняются вовсе. */
-async function createTicket(draft: TicketDraft): Promise<Ticket> {
-  const body = new FormData()
-  body.append('topic', draft.topic)
-  body.append('description', draft.description)
-  draft.occurrenceIds.forEach((id) => body.append('occurrence_ids', String(id)))
-  draft.files.forEach((file) => body.append('files', file))
+/** multipart-запрос: файлы сохраняются вместе с заявкой или сообщением или не сохраняются вовсе. */
+async function postForm(url: string, body: FormData): Promise<Ticket> {
   let response: Response
   try {
-    response = await fetch('/api/v1/support-tickets', { method: 'POST', body, credentials: 'include' })
+    response = await fetch(url, { method: 'POST', body, credentials: 'include' })
   } catch {
     throw new ApiError(0, undefined)
   }
   const data = await response.json().catch(() => undefined)
   if (!response.ok) throw new ApiError(response.status, data?.error)
   return data as Ticket
+}
+
+function createTicket(draft: TicketDraft): Promise<Ticket> {
+  const body = new FormData()
+  body.append('topic', draft.topic)
+  body.append('description', draft.description)
+  draft.occurrenceIds.forEach((id) => body.append('occurrence_ids', String(id)))
+  draft.files.forEach((file) => body.append('files', file))
+  return postForm('/api/v1/support-tickets', body)
 }
 
 export function useCreateTicket() {
@@ -98,5 +107,32 @@ export function useTicket(id: number | null) {
     queryKey: [...ticketsKey, 'one', id],
     queryFn: () => unwrap(api.GET('/api/v1/support-tickets/{ticket_id}', { params: { path: { ticket_id: id! } } })),
     enabled: id !== null,
+    refetchInterval: CHAT_POLL,
+  })
+}
+
+export function useSendMessage(ticketId: number) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ text, files }: { text: string; files: File[] }) => {
+      const body = new FormData()
+      body.append('body', text)
+      files.forEach((file) => body.append('files', file))
+      return postForm(`/api/v1/support-tickets/${ticketId}/messages`, body)
+    },
+    onSuccess: (ticket) => {
+      queryClient.setQueryData([...ticketsKey, 'one', ticketId], ticket)
+      void queryClient.invalidateQueries({ queryKey: ticketsKey })
+    },
+  })
+}
+
+/** Открытый чат с непрочитанным отмечается прочитанным; список и счётчики пересчитываются. */
+export function useMarkRead() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) =>
+      unwrap(api.POST('/api/v1/support-tickets/{ticket_id}/read', { params: { path: { ticket_id: id } } })),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ticketsKey }),
   })
 }

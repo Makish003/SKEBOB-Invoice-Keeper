@@ -147,10 +147,14 @@ function describe(entry: Entry): { title: string; detail?: string; tone: Tone; i
     }
     case 'ticket.created':
       return { title: 'Создана заявка', tone: 'info', icon: LifeBuoy, detail: ticketTopics[String(p.topic)] }
-    case 'ticket.updated': {
+    case 'ticket.updated':
+    case 'ticket.message': {
       const status = p.status as { to?: string } | undefined
-      const parts = [status?.to ? `статус «${ticketStatuses[status.to] ?? status.to}»` : '', p.admin_reply ? 'ответ' : '']
-      return { title: 'Заявка обработана', tone: 'neutral', icon: MessageSquareText, detail: `Изменено: ${parts.filter(Boolean).join(', ')}` }
+      const statusText = status?.to ? `Статус «${ticketStatuses[status.to] ?? status.to}»` : undefined
+      if (entry.action === 'ticket.updated') return { title: 'Изменён статус заявки', tone: 'neutral', icon: LifeBuoy, detail: statusText }
+      const files = Number(p.files ?? 0)
+      const detail = [files ? `файлов: ${files}` : '', statusText ?? ''].filter(Boolean).join(', ')
+      return { title: 'Сообщение в заявке', tone: 'neutral', icon: MessageSquareText, detail: detail || undefined }
     }
     case 'seed.demo_data':
       return { title: 'Загружены демо-данные', tone: 'neutral', icon: Database, detail: 'Демонстрационные платежи и пользователи' }

@@ -303,7 +303,7 @@ export interface paths {
         };
         /**
          * Список заявок
-         * @description Администратор видит все заявки, пользователь — только свои. Сначала новые.
+         * @description Администратор видит все заявки, пользователь — только свои. Сначала заявки с самым свежим сообщением. `unread=true` — только с непрочитанными сообщениями другой стороны (счётчик в меню).
          */
         get: operations["list_tickets_api_v1_support_tickets_get"];
         put?: never;
@@ -327,7 +327,7 @@ export interface paths {
         };
         /**
          * Заявка по id
-         * @description Своя заявка или любая для администратора; чужая — 404.
+         * @description Своя заявка или любая для администратора, с перепиской; чужая — 404. Не отмечает прочитанным.
          */
         get: operations["get_ticket_api_v1_support_tickets__ticket_id__get"];
         put?: never;
@@ -336,10 +336,50 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Обработать заявку
-         * @description Только администратор: статус (`open`, `in_progress`, `resolved`) и ответ пользователю.
+         * Сменить статус заявки
+         * @description Только администратор: `open`, `in_progress`, `resolved`. Ответ пишется сообщением в чат.
          */
         patch: operations["patch_ticket_api_v1_support_tickets__ticket_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/support-tickets/{ticket_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Написать в чат заявки
+         * @description multipart/form-data: текст (`body`, до 4000 символов) и/или до 5 файлов PDF, PNG или JPG до 5 МБ (`files`). Пишут автор и администратор. Ответ администратора переводит новую заявку в работу, сообщение автора в решённой заявке открывает её снова.
+         */
+        post: operations["post_message_api_v1_support_tickets__ticket_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support-tickets/{ticket_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Отметить чат прочитанным
+         * @description Веб-панель вызывает, когда чат открыт: сообщения другой стороны перестают считаться новыми.
+         */
+        post: operations["mark_read_api_v1_support_tickets__ticket_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/support-tickets/{ticket_id}/attachments/{attachment_id}": {
@@ -493,6 +533,21 @@ export interface components {
              * @default []
              */
             occurrence_ids: number[];
+            /**
+             * Files
+             * @description Скриншоты или документы
+             * @default []
+             */
+            files: string[];
+        };
+        /** Body_post_message_api_v1_support_tickets__ticket_id__messages_post */
+        Body_post_message_api_v1_support_tickets__ticket_id__messages_post: {
+            /**
+             * Body
+             * @description Текст сообщения
+             * @default
+             */
+            body: string;
             /**
              * Files
              * @description Скриншоты или документы
@@ -927,27 +982,38 @@ export interface components {
              */
             to: string;
         };
-        /** Ticket */
+        /**
+         * Ticket
+         * @description Заявка-чат: первое сообщение — описание, файлы и периоды платежей; дальше — переписка.
+         */
         Ticket: {
             /** Id */
             id: number;
             topic: components["schemas"]["TicketTopic"];
             status: components["schemas"]["TicketStatus"];
-            /** Description */
-            description: string;
             /**
-             * Admin Reply
-             * @description Ответ администратора
+             * Description
+             * @description Текст первого сообщения
              */
-            admin_reply: string | null;
+            description: string;
             author: components["schemas"]["TicketAuthor"];
             /**
              * Attachments
-             * @description Файлы; скачать: GET /support-tickets/{id}/attachments/{attachment_id}
+             * @description Файлы первого сообщения; скачать любой файл заявки: GET /support-tickets/{id}/attachments/{attachment_id}
              */
             attachments: components["schemas"]["TicketAttachment"][];
             /** Payments */
             payments: components["schemas"]["TicketPayment"][];
+            /**
+             * Messages
+             * @description Переписка после первого сообщения, по времени
+             */
+            messages: components["schemas"]["TicketMessage"][];
+            /**
+             * Unread
+             * @description Есть сообщения другой стороны, которые текущий пользователь ещё не открыл
+             */
+            unread: boolean;
             /**
              * Created At
              * Format: date-time
@@ -958,6 +1024,11 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+            /**
+             * Last Message At
+             * Format: date-time
+             */
+            last_message_at: string;
         };
         /** TicketAttachment */
         TicketAttachment: {
@@ -981,6 +1052,7 @@ export interface components {
             login: string;
             /** Display Name */
             display_name: string;
+            role: components["schemas"]["Role"];
         };
         /** TicketList */
         TicketList: {
@@ -989,14 +1061,30 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** TicketMessage */
+        TicketMessage: {
+            /** Id */
+            id: number;
+            author: components["schemas"]["TicketAuthor"];
+            /**
+             * Body
+             * @description Текст; пустой, если в сообщении только файлы
+             */
+            body: string;
+            /** Attachments */
+            attachments: components["schemas"]["TicketAttachment"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+        };
         /**
          * TicketPatch
-         * @description Обработка заявки администратором: статус и/или ответ (пустая строка или null убирает ответ).
+         * @description Статус заявки меняет администратор; ответ пишется сообщением в чат.
          */
         TicketPatch: {
-            status?: components["schemas"]["TicketStatus"] | null;
-            /** Admin Reply */
-            admin_reply?: string | null;
+            status: components["schemas"]["TicketStatus"];
         };
         /**
          * TicketPayment
@@ -2234,6 +2322,8 @@ export interface operations {
             query?: {
                 /** @description Статус заявки */
                 status?: components["schemas"]["TicketStatus"] | null;
+                /** @description true — только с непрочитанными, false — без них */
+                unread?: boolean | null;
                 limit?: number;
                 offset?: number;
             };
@@ -2428,6 +2518,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    post_message_api_v1_support_tickets__ticket_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_post_message_api_v1_support_tickets__ticket_id__messages_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Объект не найден */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Файл больше 5 МБ */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ошибка валидации входных данных */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    mark_read_api_v1_support_tickets__ticket_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Объект не найден */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

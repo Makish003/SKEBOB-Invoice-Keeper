@@ -62,8 +62,8 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const user = useCurrentUser()
   const items = navItems.filter((item) => !item.adminOnly || user.role === 'admin')
   const reduce = useReducedMotion()
-  // Администратору: сколько новых заявок ждут ответа.
-  const newTickets = useTicketCount('open', user.role === 'admin')
+  // Сколько чатов заявок с непрочитанными сообщениями: у администратора от пользователей, у пользователя от администратора.
+  const unreadTickets = useTicketCount({ unread: true })
   // LayoutGroup: когда под «Платежами» раскрывается просрочка, пункты ниже съезжают анимацией transform.
   return (
     <LayoutGroup>
@@ -98,10 +98,10 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                     <Icon className="size-4" aria-hidden />
                   </span>
                   {label}
-                  {to === '/tickets' && Boolean(newTickets.data) && (
+                  {to === '/tickets' && Boolean(unreadTickets.data) && (
                     <span className="ml-auto rounded-full bg-info-bg px-1.5 text-xs leading-5 font-medium text-info tabular">
-                      <span className="sr-only">новых: </span>
-                      {newTickets.data}
+                      <span className="sr-only">непрочитанных: </span>
+                      {unreadTickets.data}
                     </span>
                   )}
                 </>

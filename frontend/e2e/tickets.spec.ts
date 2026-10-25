@@ -38,30 +38,45 @@ test('заявка администратору: пользователь пиш
 
   await expect(page).toHaveURL(/\/tickets\?ticket=\d+/)
   const ticketId = new URL(page.url()).searchParams.get('ticket')
-  const view = page.getByRole('dialog', { name: `№${ticketId}. Ошибка в платеже` })
-  await expect(view.getByText(description)).toBeVisible()
-  await expect(view.getByText('Новая')).toBeVisible()
-  await expect(view.getByRole('link', { name: /скриншот\.png/ })).toBeVisible()
-  await expect(view.getByText('Пока нет ответа')).toBeVisible()
-  await view.getByRole('button', { name: 'Закрыть' }).click()
+  const chat = page.getByRole('region', { name: `Заявка №${ticketId}` })
+  const thread = chat.getByRole('list', { name: 'Сообщения' })
+  await expect(thread.getByText(description)).toBeVisible()
+  await expect(chat.getByText('Новая')).toBeVisible()
+  await expect(thread.getByRole('link', { name: /скриншот\.png/ })).toBeVisible()
   await signOut(page)
 
+  // Администратор: непрочитанная заявка в меню, отвечает в чат, ответ берёт заявку в работу.
   await signIn(page, ADMIN, '/login?next=/tickets')
-  await expect(page.getByRole('link', { name: /Заявки.*новых/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Заявки.*непрочитанных/ })).toBeVisible()
   await page.getByRole('list', { name: 'Заявки' }).getByRole('button').filter({ hasText: `№${ticketId}` }).click()
-  const admin = page.getByRole('dialog', { name: `№${ticketId}. Ошибка в платеже` })
-  await expect(admin.getByRole('list').filter({ hasText: name })).toBeVisible()
-  await admin.getByRole('radio', { name: 'Решена' }).click()
-  await admin.getByLabel('Ответ пользователю').fill('Оплату нашли и отметили')
-  await admin.getByRole('button', { name: 'Сохранить' }).click()
-  await expect(page.getByText(`Заявка №${ticketId}: решена`)).toBeVisible()
-  await admin.getByRole('button', { name: 'Закрыть' }).click()
+  await expect(thread.getByRole('list', { name: 'Платежи' })).toContainText(name)
+  await chat.getByLabel('Сообщение', { exact: true }).fill('Пришлите выписку из банка')
+  await chat.getByLabel('Сообщение', { exact: true }).press('Enter')
+  await expect(thread.getByText('Пришлите выписку из банка')).toBeVisible()
+  await expect(chat.getByRole('combobox', { name: 'Статус заявки' })).toHaveText('В работе')
+  await expect(page.getByRole('link', { name: /Заявки.*непрочитанных/ })).toHaveCount(0)
   await signOut(page)
 
-  await signIn(page, USER, `/login?next=/tickets`)
+  // Пользователь видит ответ, отвечает файлом.
+  await signIn(page, USER, '/login?next=/tickets')
   const row = page.getByRole('list', { name: 'Заявки' }).getByRole('button').filter({ hasText: `№${ticketId}` })
-  await expect(row).toContainText('Решена')
-  await expect(row).toContainText('Есть ответ')
+  await expect(row).toContainText('Пришлите выписку из банка')
+  await expect(row).toContainText('Есть непрочитанные')
   await row.click()
-  await expect(page.getByRole('dialog').getByText('Оплату нашли и отметили')).toBeVisible()
+  await expect(thread.getByText('Пришлите выписку из банка')).toBeVisible()
+  await chat.getByLabel('Выбрать файлы для сообщения').setInputFiles({
+    name: 'выписка.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.7\n% statement\n'),
+  })
+  await chat.getByRole('button', { name: 'Отправить' }).click()
+  await expect(thread.getByRole('link', { name: /выписка\.pdf/ })).toBeVisible()
+  await signOut(page)
+
+  // Администратор закрывает заявку статусом.
+  await signIn(page, ADMIN, `/login?next=${encodeURIComponent(`/tickets?ticket=${ticketId}`)}`)
+  await expect(thread.getByRole('link', { name: /выписка\.pdf/ })).toBeVisible()
+  await chat.getByRole('combobox', { name: 'Статус заявки' }).click()
+  await page.getByRole('option', { name: 'Решена' }).click()
+  await expect(page.getByText(`Заявка №${ticketId}: решена`)).toBeVisible()
 })

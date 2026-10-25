@@ -28,18 +28,20 @@ export interface PaymentSummary {
   paid: boolean
 }
 
-/** Платёж, приложенный к заявке: название, срок и сумма одной строкой на плитке. */
+/** Платёж, приложенный к заявке: название и сумма, под ними срок; в узкой колонке сумма уходит под название. */
 export function PaymentRow({ payment, action }: { payment: PaymentSummary; action?: ReactNode }) {
   return (
     <li className="flex items-center gap-3 rounded-lg border border-subtle bg-raised py-2 pr-1.5 pl-3">
-      <div className="grid min-w-0 flex-1">
-        <span className="truncate text-sm font-medium">{payment.name}</span>
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <span className="max-w-full min-w-0 truncate text-sm font-medium">{payment.name}</span>
+          <span className="font-display text-sm font-bold whitespace-nowrap tabular">{formatMoney(payment.amount, payment.currency)}</span>
+        </span>
         <span className="text-xs text-fg-tertiary">
           Срок <span className="tabular">{formatDate(payment.due_date)}</span>
           {payment.paid ? ', оплачен' : ', не оплачен'}
         </span>
       </div>
-      <span className="shrink-0 font-display text-sm font-bold tabular">{formatMoney(payment.amount, payment.currency)}</span>
       {action}
     </li>
   )
