@@ -246,8 +246,14 @@
   --kc-front: var(--key-danger-front);
 }
 
+/* relative в слое components: утилита absolute (крестик диалога) сильнее, правило вне слоя её перебивало. */
+@layer components {
+  .ik-key {
+    position: relative;
+  }
+}
+
 .ik-key {
-  position: relative;
   border-style: solid;
   border-width: var(--key-wall-back) var(--key-wall-side) var(--key-wall-front);
   border-color: transparent;
