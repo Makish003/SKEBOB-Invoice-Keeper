@@ -1,5 +1,5 @@
 import { addMonths, endOfMonth, startOfMonth } from 'date-fns'
-import { motion } from 'motion/react'
+import { AnimatePresence, motion } from 'motion/react'
 import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router'
@@ -11,16 +11,16 @@ import { Listbox, ListboxContent, ListboxItem, ListboxTrigger, ListboxValue } fr
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Segmented } from '@/components/ui/tabs'
-import { Table, TD, TH, THead } from '@/components/ui/table'
 import { useAppInfo } from '@/features/app-info'
 import { cn } from '@/lib/cn'
-import { type Currency, formatDate, formatMoney, relativeDue, toIsoDate } from '@/lib/format'
+import { type Currency, toIsoDate } from '@/lib/format'
 import { fadeUp, reduced, stagger, useReducedMotion } from '@/lib/motion'
-import { type Occurrence, type OccurrenceQuery, useOccurrences } from './api'
-import { OccurrenceActions } from './OccurrenceActions'
-import { lateText, StatusBadge } from './StatusBadge'
+import { type OccurrenceQuery, useOccurrences } from './api'
+import { PaymentCard } from './PaymentCard'
 
-const PAGE_SIZE = 25
+const PAGE_SIZE = 24
+
+const cardGrid = 'grid gap-3 sm:grid-cols-2 xl:grid-cols-3'
 
 type Tab = 'due' | 'overdue' | 'paid' | 'all'
 type PeriodFilter = 'any' | 'this' | 'next' | 'prev'
@@ -81,68 +81,11 @@ function useFilters() {
   return { tab, currency, period, q, page, archived, focus, update }
 }
 
-function StatusCell({ occ }: { occ: Occurrence }) {
-  const extra = lateText(occ)
+function LoadingCards() {
   return (
-    <div className="grid justify-items-start gap-1">
-      <StatusBadge status={occ.display_status} />
-      {extra && <span className="text-xs text-warning">{extra}</span>}
-    </div>
-  )
-}
-
-function NameCell({ occ }: { occ: Occurrence }) {
-  return (
-    <div className="grid min-w-0">
-      <span className="truncate font-medium text-fg">{occ.recurring_payment.name}</span>
-      <span className="text-xs text-fg-tertiary">
-        Период {occ.seq + 1}
-        {!occ.recurring_payment.is_active && ', платёж прекращён'}
-      </span>
-    </div>
-  )
-}
-
-/** Карточка периода на телефоне: название и сумма, срок и статус, действия — три плотные строки. */
-function MobileRow({ occ }: { occ: Occurrence }) {
-  return (
-    <div className="grid gap-2">
-      <div className="flex items-start justify-between gap-3">
-        <span className="min-w-0 font-medium">
-          {occ.recurring_payment.name}
-          {!occ.recurring_payment.is_active && <span className="block text-xs font-normal text-fg-tertiary">Платёж прекращён</span>}
-        </span>
-        <span className="shrink-0 font-semibold tabular">{formatMoney(occ.amount, occ.currency)}</span>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <span className="text-sm text-fg-secondary">
-          <span className="tabular text-fg">{formatDate(occ.due_date)}</span>
-          {occ.status === 'unpaid' ? (
-            <span className="text-fg-tertiary">, {relativeDue(occ.days_until_due)}</span>
-          ) : (
-            occ.paid_at && (
-              <span className="text-fg-tertiary">
-                , оплачен <span className="tabular">{formatDate(occ.paid_at)}</span>
-              </span>
-            )
-          )}
-        </span>
-        <StatusCell occ={occ} />
-      </div>
-      <OccurrenceActions occ={occ} compact />
-    </div>
-  )
-}
-
-function LoadingRows() {
-  return (
-    <div className="grid gap-px" aria-busy="true" aria-label="Загрузка платежей">
+    <div className={cardGrid} aria-busy="true" aria-label="Загрузка платежей">
       {Array.from({ length: 6 }, (_, i) => (
-        <div key={i} className="flex items-center gap-4 px-4 py-4">
-          <Skeleton className="h-4 flex-1" />
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="hidden h-6 w-28 rounded-full sm:block" />
-        </div>
+        <Skeleton key={i} className="h-56 rounded-xl" />
       ))}
     </div>
   )
@@ -285,13 +228,15 @@ export function PaymentsPage() {
         </div>
       </div>
 
-      <Card className="overflow-hidden">
-        {list.isPending ? (
-          <LoadingRows />
-        ) : list.isError ? (
+      {list.isPending ? (
+        <LoadingCards />
+      ) : list.isError ? (
+        <Card>
           <ErrorState error={list.error} onRetry={() => list.refetch()} />
-        ) : items.length === 0 ? (
-          filtered ? (
+        </Card>
+      ) : items.length === 0 ? (
+        <Card>
+          {filtered ? (
             <EmptyState
               icon={<Search aria-hidden />}
               title="Ничего не найдено"
@@ -304,125 +249,64 @@ export function PaymentsPage() {
             />
           ) : (
             <EmptyState title={emptyText[tab].title} description={emptyText[tab].description} />
-          )
-        ) : (
-          <>
-            <div className="hidden md:block">
-              <Table aria-label="Периоды платежей">
-                <THead>
-                  <tr>
-                    <TH className="pl-4">Платёж</TH>
-                    <TH>Срок</TH>
-                    <TH className="text-right">Сумма</TH>
-                    <TH>Статус</TH>
-                    <TH>Оплачен</TH>
-                    <TH className="pr-4 text-right">
-                      <span className="sr-only">Действия</span>
-                    </TH>
-                  </tr>
-                </THead>
-                <motion.tbody
-                  key={`${tab}-${page}-${focus}`}
-                  initial="hidden"
-                  animate="show"
-                  variants={stagger(0.025)}
-                  className="[&>tr:last-child]:border-0"
-                >
-                  {items.map((occ) => (
-                    <motion.tr
-                      key={occ.id}
-                      variants={variants}
-                      aria-current={occ.id === focus ? 'true' : undefined}
-                      className="border-b border-subtle transition-control hover:bg-page aria-[current=true]:bg-danger-bg"
-                    >
-                      <TD className="max-w-64 pl-4">
-                        <NameCell occ={occ} />
-                      </TD>
-                      <TD>
-                        <div className="grid">
-                          <span className="tabular">{formatDate(occ.due_date)}</span>
-                          {occ.status === 'unpaid' && (
-                            <span className="text-xs text-fg-tertiary">{relativeDue(occ.days_until_due)}</span>
-                          )}
-                        </div>
-                      </TD>
-                      <TD className="text-right font-medium whitespace-nowrap tabular">
-                        {formatMoney(occ.amount, occ.currency)}
-                      </TD>
-                      <TD>
-                        <StatusCell occ={occ} />
-                      </TD>
-                      <TD className="max-w-40">
-                        {occ.paid_at ? (
-                          <div className="grid">
-                            <span className="tabular">{formatDate(occ.paid_at)}</span>
-                            {occ.paid_by_label && (
-                              <span className="truncate text-xs text-fg-tertiary">{occ.paid_by_label}</span>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-fg-tertiary">Нет</span>
-                        )}
-                      </TD>
-                      <TD className="pr-4 text-right">
-                        <OccurrenceActions occ={occ} />
-                      </TD>
-                    </motion.tr>
-                  ))}
-                </motion.tbody>
-              </Table>
-            </div>
-
-            <motion.ul
-              key={`m-${tab}-${page}-${focus}`}
-              initial="hidden"
-              animate="show"
-              variants={stagger(0.03)}
-              className="divide-y divide-subtle md:hidden"
-              aria-label="Периоды платежей"
-            >
+          )}
+        </Card>
+      ) : (
+        <>
+          <motion.ul
+            key={`${tab}-${page}-${focus}`}
+            initial="hidden"
+            animate="show"
+            variants={stagger(0.03)}
+            className={cardGrid}
+            aria-label="Периоды платежей"
+          >
+            {/* Оплаченный период уходит с вкладки «К оплате»: карточка гаснет, соседние сдвигаются на её место. */}
+            <AnimatePresence mode="popLayout" initial={false}>
               {items.map((occ) => (
                 <motion.li
                   key={occ.id}
+                  layout={!reduce}
                   variants={variants}
+                  exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.96 }}
                   aria-current={occ.id === focus ? 'true' : undefined}
-                  className="px-4 py-3 aria-[current=true]:bg-danger-bg"
+                  className="rounded-xl aria-[current=true]:ring-2 aria-[current=true]:ring-danger/50"
                 >
-                  <MobileRow occ={occ} />
+                  <PaymentCard occ={occ} />
                 </motion.li>
               ))}
-            </motion.ul>
+            </AnimatePresence>
+          </motion.ul>
 
-            {total > PAGE_SIZE && (
-              <nav aria-label="Страницы" className="flex items-center justify-between gap-3 border-t border-subtle px-4 py-3">
-                <p className="text-fg-tertiary tabular">
-                  {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, total)} из {total}
-                </p>
-                <div className="flex gap-1">
-                  <Button
-                    variant="secondary"
-                    size="icon-sm"
-                    aria-label="Предыдущая страница"
-                    disabled={page <= 1}
-                    onClick={() => update({ page: String(page - 1) }, false)}
-                  >
-                    <ChevronLeft aria-hidden />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="icon-sm"
-                    aria-label="Следующая страница"
-                    disabled={page >= pages}
-                    onClick={() => update({ page: String(page + 1) }, false)}
-                  >
-                    <ChevronRight aria-hidden />
-                  </Button>
-                </div>
-              </nav>
-            )}
-          </>
-        )}
-      </Card>
+          {total > PAGE_SIZE && (
+            <nav aria-label="Страницы" className="flex items-center justify-between gap-3">
+              <p className="text-fg-tertiary tabular">
+                {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, total)} из {total}
+              </p>
+              <div className="flex gap-1">
+                <Button
+                  variant="secondary"
+                  size="icon-sm"
+                  aria-label="Предыдущая страница"
+                  disabled={page <= 1}
+                  onClick={() => update({ page: String(page - 1) }, false)}
+                >
+                  <ChevronLeft aria-hidden />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon-sm"
+                  aria-label="Следующая страница"
+                  disabled={page >= pages}
+                  onClick={() => update({ page: String(page + 1) }, false)}
+                >
+                  <ChevronRight aria-hidden />
+                </Button>
+              </div>
+            </nav>
+          )}
+        </>
+      )}
     </Page>
   )
 }

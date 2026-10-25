@@ -29,7 +29,7 @@ async function uploadReceipt(id: number, file: File): Promise<Occurrence> {
 }
 
 /** Чек к конкретной оплате (FR-B8): ссылка или файл PDF/PNG/JPG до 5 МБ. */
-export function ReceiptPopover({ occ, compact = false }: { occ: Occurrence; compact?: boolean }) {
+export function ReceiptPopover({ occ }: { occ: Occurrence }) {
   const queryClient = useQueryClient()
   const fileInput = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
@@ -89,21 +89,14 @@ export function ReceiptPopover({ occ, compact = false }: { occ: Occurrence; comp
       }}
     >
       <PopoverTrigger asChild>
-        {compact ? (
-          <Button variant="secondary" size="sm" className="flex-1">
-            <Paperclip aria-hidden />
-            Чек
-          </Button>
-        ) : (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={hasReceipt ? `${label} (прикреплён)` : label}
-            className={cn(hasReceipt && 'text-link')}
-          >
-            <Paperclip aria-hidden />
-          </Button>
-        )}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={hasReceipt ? `${label} (прикреплён)` : label}
+          className={cn(hasReceipt && 'text-link')}
+        >
+          <Paperclip aria-hidden />
+        </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80" aria-label={label}>
         <div className="grid gap-4">

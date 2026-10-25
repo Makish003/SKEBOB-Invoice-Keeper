@@ -9,7 +9,7 @@ test('чек к оплате: ссылка и файл PDF', async ({ page, requ
   await signIn(page, ADMIN, '/login?next=/payments')
   await page.getByRole('searchbox', { name: 'Поиск по названию' }).fill(name)
   await page.getByRole('searchbox', { name: 'Поиск по названию' }).press('Enter')
-  const row = page.locator('tr:visible').filter({ hasText: name }).filter({ hasText: 'Период 1' })
+  const row = page.getByRole('list', { name: 'Периоды платежей' }).getByRole('listitem').filter({ hasText: name }).filter({ hasText: 'Период 1' })
 
   await row.getByRole('button', { name: /^Чек:/ }).click()
   const pop = page.getByRole('dialog', { name: /^Чек:/ })

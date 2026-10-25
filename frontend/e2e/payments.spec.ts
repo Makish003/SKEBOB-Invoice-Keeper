@@ -14,7 +14,7 @@ test.describe('Платежи: отметка, отмена, исправлен�
     await page.getByRole('searchbox', { name: 'Поиск по названию' }).fill(name)
     await page.getByRole('searchbox', { name: 'Поиск по названию' }).press('Enter')
 
-    const row = page.locator('tr:visible, li:visible').filter({ hasText: name }).filter({ hasText: dueLabel }).first()
+    const row = page.getByRole('list', { name: 'Периоды платежей' }).getByRole('listitem').filter({ hasText: name }).filter({ hasText: dueLabel }).first()
     await expect(row.getByText('Просрочен')).toBeVisible()
     await expect(row.getByText('5 дней назад')).toBeVisible()
 
@@ -26,7 +26,7 @@ test.describe('Платежи: отметка, отмена, исправлен�
     await expect(page.getByText(/Оплата отмечена/)).toBeVisible()
 
     await page.getByRole('radio', { name: /Все/ }).click()
-    const paidRow = page.locator('tr:visible, li:visible').filter({ hasText: name }).filter({ hasText: dueLabel }).first()
+    const paidRow = page.getByRole('list', { name: 'Периоды платежей' }).getByRole('listitem').filter({ hasText: name }).filter({ hasText: dueLabel }).first()
     await expect(paidRow.getByText('Оплачен с опозданием')).toBeVisible()
 
     // Исправить фактическую дату на дату срока: просрочка пропадает.

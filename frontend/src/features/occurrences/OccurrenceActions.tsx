@@ -110,12 +110,13 @@ export function useOccurrenceMutations() {
   }
 }
 
-export function OccurrenceActions({ occ, compact = false }: { occ: Occurrence; compact?: boolean }) {
+/** `fill`: кнопка «Отметить оплату» занимает всю ширину (низ карточки платежа). */
+export function OccurrenceActions({ occ, fill = false }: { occ: Occurrence; fill?: boolean }) {
   const actions = useOccurrenceMutations()
 
   if (occ.status === 'unpaid') {
     return (
-      <div className={compact ? 'flex w-full gap-2' : 'flex items-center justify-end gap-1'}>
+      <div className={fill ? 'flex w-full items-center gap-1' : 'flex items-center justify-end gap-1'}>
         <PaymentDatePopover
           occ={occ}
           title="Отметить оплату"
@@ -123,19 +124,19 @@ export function OccurrenceActions({ occ, compact = false }: { occ: Occurrence; c
           initial={actions.todayIso}
           onConfirm={(iso) => actions.markPaid(occ, iso)}
         >
-          <Button variant="secondary" size="sm" className={compact ? 'flex-[2]' : undefined}>
+          <Button variant="secondary" size="sm" className={fill ? 'flex-1' : undefined}>
             <Check aria-hidden />
             Отметить оплату
           </Button>
         </PaymentDatePopover>
-        <ReceiptPopover occ={occ} compact={compact} />
+        <ReceiptPopover occ={occ} />
       </div>
     )
   }
 
   return (
-    <div className={compact ? 'flex w-full flex-wrap gap-2' : 'flex items-center justify-end gap-1'}>
-      <ReceiptPopover occ={occ} compact={compact} />
+    <div className="flex items-center justify-end gap-1">
+      <ReceiptPopover occ={occ} />
       <PaymentDatePopover
         occ={occ}
         title="Исправить дату оплаты"
@@ -143,34 +144,20 @@ export function OccurrenceActions({ occ, compact = false }: { occ: Occurrence; c
         initial={occ.paid_at ?? actions.todayIso}
         onConfirm={(iso) => actions.fixDate(occ, iso)}
       >
-        {compact ? (
-          <Button variant="secondary" size="sm" className="flex-1">
-            <Pencil aria-hidden />
-            Исправить дату
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon-sm" aria-label={`Исправить дату оплаты: ${occ.recurring_payment.name}`}>
-            <Pencil aria-hidden />
-          </Button>
-        )}
-      </PaymentDatePopover>
-      {compact ? (
-        <Button variant="secondary" size="sm" className="flex-1" onClick={() => actions.markUnpaid(occ)}>
-          <Undo2 aria-hidden />
-          Снять оплату
+        <Button variant="ghost" size="icon-sm" aria-label={`Исправить дату оплаты: ${occ.recurring_payment.name}`}>
+          <Pencil aria-hidden />
         </Button>
-      ) : (
-        <Tooltip content="Снять отметку об оплате">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Снять отметку об оплате: ${occ.recurring_payment.name}`}
-            onClick={() => actions.markUnpaid(occ)}
-          >
-            <Undo2 aria-hidden />
-          </Button>
-        </Tooltip>
-      )}
+      </PaymentDatePopover>
+      <Tooltip content="Снять отметку об оплате">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Снять отметку об оплате: ${occ.recurring_payment.name}`}
+          onClick={() => actions.markUnpaid(occ)}
+        >
+          <Undo2 aria-hidden />
+        </Button>
+      </Tooltip>
     </div>
   )
 }
