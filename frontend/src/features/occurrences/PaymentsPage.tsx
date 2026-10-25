@@ -261,8 +261,9 @@ export function PaymentsPage() {
             className={cardGrid}
             aria-label="Периоды платежей"
           >
-            {/* Оплаченный период уходит с вкладки «К оплате»: карточка гаснет, соседние сдвигаются на её место. */}
-            <AnimatePresence mode="popLayout" initial={false}>
+            {/* Оплаченный период уходит с вкладки «К оплате»: карточка гаснет, соседние сдвигаются на её место.
+                Без initial={false}: список пересоздаётся ключом при смене вкладки, и вход карточек должен играть каждый раз. */}
+            <AnimatePresence mode="popLayout">
               {items.map((occ) => (
                 <motion.li
                   key={occ.id}
