@@ -8,6 +8,7 @@ import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { PaymentsPage } from '@/features/occurrences/PaymentsPage'
 import { RecurringPage } from '@/features/recurring/RecurringPage'
 import { ReportsPage } from '@/features/reports/ReportsPage'
+import { TicketsPage } from '@/features/tickets/TicketsPage'
 import { UsersPage } from '@/features/users/UsersPage'
 import { NotFoundPage } from './NotFoundPage'
 import { RouteErrorPage } from './RouteErrorPage'
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
           { path: 'payments', element: <PaymentsPage /> },
           { path: 'calendar', element: <CalendarPage /> },
           { path: 'reports', element: <ReportsPage /> },
+          { path: 'tickets', element: <TicketsPage /> },
           {
             element: <RequireAdmin />,
             children: [

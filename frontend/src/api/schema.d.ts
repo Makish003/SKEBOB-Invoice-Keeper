@@ -294,6 +294,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/support-tickets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Список заявок
+         * @description Администратор видит все заявки, пользователь — только свои. Сначала новые.
+         */
+        get: operations["list_tickets_api_v1_support_tickets_get"];
+        put?: never;
+        /**
+         * Создать заявку
+         * @description multipart/form-data: тема, описание, до 10 периодов платежей (`occurrence_ids`, поле повторяется) и до 5 файлов PDF, PNG или JPG до 5 МБ каждый (`files`, тип проверяется по содержимому). Доступно всем авторизованным.
+         */
+        post: operations["create_ticket_api_v1_support_tickets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/support-tickets/{ticket_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Заявка по id
+         * @description Своя заявка или любая для администратора; чужая — 404.
+         */
+        get: operations["get_ticket_api_v1_support_tickets__ticket_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Обработать заявку
+         * @description Только администратор: статус (`open`, `in_progress`, `resolved`) и ответ пользователю.
+         */
+        patch: operations["patch_ticket_api_v1_support_tickets__ticket_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/support-tickets/{ticket_id}/attachments/{attachment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Скачать файл заявки */
+        get: operations["download_attachment_api_v1_support_tickets__ticket_id__attachments__attachment_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-log": {
         parameters: {
             query?: never;
@@ -303,7 +368,7 @@ export interface paths {
         };
         /**
          * Журнал действий
-         * @description Входы и выходы (в т.ч. неудачные), создание и прекращение платежей, отметки и отмены оплат, исправления дат, изменения пользователей. Новые записи первыми.
+         * @description Входы и выходы (в т.ч. неудачные), создание и прекращение платежей, отметки и отмены оплат, исправления дат, изменения пользователей, заявки администратору. Новые записи первыми.
          */
         get: operations["list_audit_log_api_v1_audit_log_get"];
         put?: never;
@@ -412,6 +477,28 @@ export interface components {
             items: components["schemas"]["AuditEntry"][];
             /** Total */
             total: number;
+        };
+        /** Body_create_ticket_api_v1_support_tickets_post */
+        Body_create_ticket_api_v1_support_tickets_post: {
+            /** @description Тема заявки */
+            topic: components["schemas"]["TicketTopic"];
+            /**
+             * Description
+             * @description Описание вопроса или неполадки
+             */
+            description: string;
+            /**
+             * Occurrence Ids
+             * @description Периоды платежей, к которым относится заявка
+             * @default []
+             */
+            occurrence_ids: number[];
+            /**
+             * Files
+             * @description Скриншоты или документы
+             * @default []
+             */
+            files: string[];
         };
         /** Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post */
         Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post: {
@@ -840,6 +927,111 @@ export interface components {
              */
             to: string;
         };
+        /** Ticket */
+        Ticket: {
+            /** Id */
+            id: number;
+            topic: components["schemas"]["TicketTopic"];
+            status: components["schemas"]["TicketStatus"];
+            /** Description */
+            description: string;
+            /**
+             * Admin Reply
+             * @description Ответ администратора
+             */
+            admin_reply: string | null;
+            author: components["schemas"]["TicketAuthor"];
+            /**
+             * Attachments
+             * @description Файлы; скачать: GET /support-tickets/{id}/attachments/{attachment_id}
+             */
+            attachments: components["schemas"]["TicketAttachment"][];
+            /** Payments */
+            payments: components["schemas"]["TicketPayment"][];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** TicketAttachment */
+        TicketAttachment: {
+            /** Id */
+            id: number;
+            /** File Name */
+            file_name: string;
+            /** Content Type */
+            content_type: string;
+            /**
+             * Size
+             * @description Размер в байтах
+             */
+            size: number;
+        };
+        /** TicketAuthor */
+        TicketAuthor: {
+            /** Id */
+            id: number;
+            /** Login */
+            login: string;
+            /** Display Name */
+            display_name: string;
+        };
+        /** TicketList */
+        TicketList: {
+            /** Items */
+            items: components["schemas"]["Ticket"][];
+            /** Total */
+            total: number;
+        };
+        /**
+         * TicketPatch
+         * @description Обработка заявки администратором: статус и/или ответ (пустая строка или null убирает ответ).
+         */
+        TicketPatch: {
+            status?: components["schemas"]["TicketStatus"] | null;
+            /** Admin Reply */
+            admin_reply?: string | null;
+        };
+        /**
+         * TicketPayment
+         * @description Период платежа, приложенный к заявке (снимок на момент чтения).
+         */
+        TicketPayment: {
+            /** Occurrence Id */
+            occurrence_id: number;
+            /** Recurring Payment Id */
+            recurring_payment_id: number;
+            /** Name */
+            name: string;
+            /**
+             * Due Date
+             * Format: date
+             */
+            due_date: string;
+            /**
+             * Amount
+             * @example 85000.00
+             */
+            amount: string;
+            currency: components["schemas"]["Currency"];
+            status: components["schemas"]["OccurrenceStatus"];
+        };
+        /**
+         * TicketStatus
+         * @enum {string}
+         */
+        TicketStatus: "open" | "in_progress" | "resolved";
+        /**
+         * TicketTopic
+         * @enum {string}
+         */
+        TicketTopic: "question" | "bug" | "payment" | "access" | "other";
         /** UserCreate */
         UserCreate: {
             /**
@@ -2037,11 +2229,266 @@ export interface operations {
             };
         };
     };
+    list_tickets_api_v1_support_tickets_get: {
+        parameters: {
+            query?: {
+                /** @description Статус заявки */
+                status?: components["schemas"]["TicketStatus"] | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketList"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Ошибка валидации входных данных */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    create_ticket_api_v1_support_tickets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_create_ticket_api_v1_support_tickets_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Файл больше 5 МБ */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Ошибка валидации входных данных */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    get_ticket_api_v1_support_tickets__ticket_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Объект не найден */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_ticket_api_v1_support_tickets__ticket_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Ticket"];
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Недостаточно прав */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Объект не найден */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Ошибка валидации входных данных */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    download_attachment_api_v1_support_tickets__ticket_id__attachments__attachment_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket_id: number;
+                attachment_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "image/png": unknown;
+                    "image/jpeg": unknown;
+                };
+            };
+            /** @description Не выполнен вход или сессия истекла */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Объект не найден */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_audit_log_api_v1_audit_log_get: {
         parameters: {
             query?: {
-                /** @description auth | payments | occurrences | users */
-                category?: ("auth" | "payments" | "occurrences" | "users") | null;
+                /** @description auth | payments | occurrences | users | tickets */
+                category?: ("auth" | "payments" | "occurrences" | "users" | "tickets") | null;
                 /** @description Точное действие, например auth.login.failed */
                 action?: string | null;
                 /** @description Поиск по автору */

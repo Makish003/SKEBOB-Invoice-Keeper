@@ -7,6 +7,7 @@ import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Tooltip } from '@/components/ui/tooltip'
 import { useAppInfo } from '@/features/app-info'
+import { ReportProblemButton } from '@/features/tickets/ReportProblemButton'
 import { formatDate, fromIsoDate, toIsoDate } from '@/lib/format'
 import { type Occurrence, type OccurrencePatch, usePatchOccurrence } from './api'
 import { ReceiptPopover } from './ReceiptPopover'
@@ -130,12 +131,14 @@ export function OccurrenceActions({ occ, fill = false }: { occ: Occurrence; fill
           </Button>
         </PaymentDatePopover>
         <ReceiptPopover occ={occ} />
+        <ReportProblemButton occ={occ} />
       </div>
     )
   }
 
   return (
     <div className="flex items-center justify-end gap-1">
+      <ReportProblemButton occ={occ} />
       <ReceiptPopover occ={occ} />
       <PaymentDatePopover
         occ={occ}

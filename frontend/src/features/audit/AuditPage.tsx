@@ -8,6 +8,7 @@ import {
   CircleCheck,
   CirclePlus,
   Database,
+  LifeBuoy,
   Link2,
   LogIn,
   LogOut,
@@ -36,12 +37,13 @@ import { EmptyState, ErrorState } from '@/components/ui/states'
 import { Segmented } from '@/components/ui/tabs'
 import { useAppInfo } from '@/features/app-info'
 import { periodLabels, type Period } from '@/features/recurring/api'
+import { statusMeta, topicLabels } from '@/features/tickets/api'
 import { cn } from '@/lib/cn'
 import { type Currency, formatDate, formatDateLong, formatMoney, toIsoDate } from '@/lib/format'
 import { fadeUp, reduced, stagger, useReducedMotion } from '@/lib/motion'
 
 type Entry = Schemas['AuditEntry']
-type Category = 'all' | 'auth' | 'payments' | 'occurrences' | 'users'
+type Category = 'all' | 'auth' | 'payments' | 'occurrences' | 'users' | 'tickets'
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info'
 const PAGE_SIZE = 50
 
@@ -51,8 +53,11 @@ const categories: { value: Category; label: string }[] = [
   { value: 'payments', label: 'Платежи' },
   { value: 'occurrences', label: 'Оплаты' },
   { value: 'users', label: 'Пользователи' },
+  { value: 'tickets', label: 'Заявки' },
 ]
 
+const ticketTopics: Record<string, string> = topicLabels
+const ticketStatuses: Record<string, string> = Object.fromEntries(Object.entries(statusMeta).map(([k, v]) => [k, v.label]))
 const fieldNames: Record<string, string> = { login: 'логин', display_name: 'имя', password: 'пароль' }
 const monthNames = ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь']
 
@@ -139,6 +144,13 @@ function describe(entry: Entry): { title: string; detail?: string; tone: Tone; i
       return entry.action === 'budget.set'
         ? { title: 'Задан бюджет', tone: 'info', icon: Wallet, detail: `${scope}, ${formatMoney(String(p.amount ?? '0'), currency)}` }
         : { title: 'Бюджет снят', tone: 'neutral', icon: Wallet, detail: `${scope}, ${currency}` }
+    }
+    case 'ticket.created':
+      return { title: 'Создана заявка', tone: 'info', icon: LifeBuoy, detail: ticketTopics[String(p.topic)] }
+    case 'ticket.updated': {
+      const status = p.status as { to?: string } | undefined
+      const parts = [status?.to ? `статус «${ticketStatuses[status.to] ?? status.to}»` : '', p.admin_reply ? 'ответ' : '']
+      return { title: 'Заявка обработана', tone: 'neutral', icon: MessageSquareText, detail: `Изменено: ${parts.filter(Boolean).join(', ')}` }
     }
     case 'seed.demo_data':
       return { title: 'Загружены демо-данные', tone: 'neutral', icon: Database, detail: 'Демонстрационные платежи и пользователи' }

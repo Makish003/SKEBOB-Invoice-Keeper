@@ -2,6 +2,7 @@ import {
   CalendarDays,
   ChartColumn,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Menu,
   Monitor,
@@ -34,6 +35,7 @@ import { useLogout } from '@/features/auth/api'
 import { useCurrentUser } from '@/features/auth/guards'
 import { MonthPlate } from '@/features/dashboard/MonthPlate'
 import { OverdueNav } from '@/features/occurrences/OverdueNav'
+import { useTicketCount } from '@/features/tickets/api'
 import { cn } from '@/lib/cn'
 import { pageEnter, spring, useReducedMotion } from '@/lib/motion'
 import { type ThemePreference, useTheme } from '@/lib/theme'
@@ -50,6 +52,7 @@ export const navItems: NavItem[] = [
   { to: '/payments', label: 'Платежи', icon: ReceiptText },
   { to: '/calendar', label: 'Календарь', icon: CalendarDays },
   { to: '/reports', label: 'Отчёты', icon: ChartColumn },
+  { to: '/tickets', label: 'Заявки', icon: LifeBuoy },
   { to: '/recurring', label: 'Регулярные', icon: Repeat, adminOnly: true },
   { to: '/users', label: 'Пользователи', icon: Users, adminOnly: true },
   { to: '/audit', label: 'Журнал', icon: ScrollText, adminOnly: true },
@@ -59,6 +62,8 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
   const user = useCurrentUser()
   const items = navItems.filter((item) => !item.adminOnly || user.role === 'admin')
   const reduce = useReducedMotion()
+  // Администратору: сколько новых заявок ждут ответа.
+  const newTickets = useTicketCount('open', user.role === 'admin')
   // LayoutGroup: когда под «Платежами» раскрывается просрочка, пункты ниже съезжают анимацией transform.
   return (
     <LayoutGroup>
@@ -93,6 +98,12 @@ function Navigation({ onNavigate }: { onNavigate?: () => void }) {
                     <Icon className="size-4" aria-hidden />
                   </span>
                   {label}
+                  {to === '/tickets' && Boolean(newTickets.data) && (
+                    <span className="ml-auto rounded-full bg-info-bg px-1.5 text-xs leading-5 font-medium text-info tabular">
+                      <span className="sr-only">новых: </span>
+                      {newTickets.data}
+                    </span>
+                  )}
                 </>
               )}
             </NavLink>
