@@ -9,6 +9,7 @@ from sqlalchemy import (
     BigInteger,
     Boolean,
     CheckConstraint,
+    Column,
     Date,
     DateTime,
     Enum,
@@ -19,6 +20,7 @@ from sqlalchemy import (
     Numeric,
     SmallInteger,
     String,
+    Table,
     Text,
     UniqueConstraint,
     func,
@@ -239,6 +241,70 @@ class AuditLog(Base):
     entity_id: Mapped[int | None] = mapped_column(BigInteger)
     payload: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     ip: Mapped[str | None] = mapped_column(String(64))
+
+
+class TicketTopic(enum.StrEnum):
+    question = "question"
+    bug = "bug"
+    payment = "payment"
+    access = "access"
+    other = "other"
+
+
+class TicketStatus(enum.StrEnum):
+    open = "open"
+    in_progress = "in_progress"
+    resolved = "resolved"
+
+
+support_ticket_payments = Table(
+    "support_ticket_payments",
+    Base.metadata,
+    Column("ticket_id", ForeignKey("support_tickets.id", ondelete="CASCADE"), primary_key=True),
+    Column("occurrence_id", ForeignKey("payment_occurrences.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class SupportTicket(Base):
+    """Заявка пользователя администратору: вопрос или неполадка, с файлами и периодами платежей (ADR-029)."""
+
+    __tablename__ = "support_tickets"
+    __table_args__ = (Index("ix_support_tickets_status_created_at", "status", "created_at"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    author_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    topic: Mapped[TicketTopic] = mapped_column(_enum(TicketTopic, "ticket_topic"), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[TicketStatus] = mapped_column(
+        _enum(TicketStatus, "ticket_status"), nullable=False, default=TicketStatus.open, server_default="open"
+    )
+    admin_reply: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = _created_at()
+    updated_at: Mapped[datetime] = _updated_at()
+
+    author: Mapped[User] = relationship()
+    attachments: Mapped[list["TicketAttachment"]] = relationship(
+        back_populates="ticket", cascade="all, delete-orphan", order_by="TicketAttachment.id"
+    )
+    occurrences: Mapped[list[PaymentOccurrence]] = relationship(
+        secondary=support_ticket_payments, order_by=PaymentOccurrence.due_date
+    )
+
+
+class TicketAttachment(Base):
+    __tablename__ = "ticket_attachments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticket_id: Mapped[int] = mapped_column(
+        ForeignKey("support_tickets.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    file_name: Mapped[str] = mapped_column(String(255), nullable=False)  # имя для пользователя
+    file_key: Mapped[str] = mapped_column(String(64), nullable=False)  # имя файла в томе uploads
+    content_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    size: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = _created_at()
+
+    ticket: Mapped[SupportTicket] = relationship(back_populates="attachments")
 
 
 class Budget(Base):

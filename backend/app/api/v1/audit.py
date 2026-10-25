@@ -16,8 +16,8 @@ from app.schemas.common import errors
 
 router = APIRouter(prefix="/audit-log", tags=["Журнал"])
 
-Category = Literal["auth", "payments", "occurrences", "users"]
-_CATEGORY_PREFIX = {"auth": "auth.", "payments": "recurring_payment.", "occurrences": "occurrence.", "users": "user."}
+Category = Literal["auth", "payments", "occurrences", "users", "tickets"]
+_CATEGORY_PREFIX = {"auth": "auth.", "payments": "recurring_payment.", "occurrences": "occurrence.", "users": "user.", "tickets": "ticket."}
 
 
 class AuditEntry(BaseModel):
@@ -58,6 +58,8 @@ def _entity_labels(db: Session, rows: list[AuditLog]) -> dict[tuple[str, int], s
     if ids.get("user"):
         for uid, login, display in db.execute(select(User.id, User.login, User.display_name).where(User.id.in_(ids["user"]))):
             labels[("user", uid)] = f"{display} ({login})"
+    for tid in ids.get("support_ticket", ()):
+        labels[("support_ticket", tid)] = f"Заявка №{tid}"
     return labels
 
 
@@ -67,12 +69,12 @@ def _entity_labels(db: Session, rows: list[AuditLog]) -> dict[tuple[str, int], s
     summary="Журнал действий",
     description=(
         "Входы и выходы (в т.ч. неудачные), создание и прекращение платежей, отметки и отмены оплат, исправления дат, "
-        "изменения пользователей. Новые записи первыми."
+        "изменения пользователей, заявки администратору. Новые записи первыми."
     ),
     responses=errors(401, 403, 422),
 )
 def list_audit_log(
-    category: Category | None = Query(None, description="auth | payments | occurrences | users"),
+    category: Category | None = Query(None, description="auth | payments | occurrences | users | tickets"),
     action: str | None = Query(None, max_length=64, description="Точное действие, например auth.login.failed"),
     q: str | None = Query(None, max_length=100, description="Поиск по автору"),
     date_from: date | None = Query(None),

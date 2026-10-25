@@ -1089,13 +1089,249 @@ paths:
       security:
       - cookieAuth: []
       - bearerAuth: []
+  /api/v1/support-tickets:
+    post:
+      tags:
+      - Заявки
+      summary: Создать заявку
+      description: 'multipart/form-data: тема, описание, до 10 периодов платежей (`occurrence_ids`, поле повторяется) и до
+        5 файлов PDF, PNG или JPG до 5 МБ каждый (`files`, тип проверяется по содержимому). Доступно всем авторизованным.'
+      operationId: create_ticket_api_v1_support_tickets_post
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_create_ticket_api_v1_support_tickets_post'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: Файл больше 5 МБ
+    get:
+      tags:
+      - Заявки
+      summary: Список заявок
+      description: Администратор видит все заявки, пользователь — только свои. Сначала новые.
+      operationId: list_tickets_api_v1_support_tickets_get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/TicketStatus'
+          - type: 'null'
+          description: Статус заявки
+          title: Status
+        description: Статус заявки
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketList'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/support-tickets/{ticket_id}:
+    get:
+      tags:
+      - Заявки
+      summary: Заявка по id
+      description: Своя заявка или любая для администратора; чужая — 404.
+      operationId: get_ticket_api_v1_support_tickets__ticket_id__get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Ticket Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Заявки
+      summary: Обработать заявку
+      description: 'Только администратор: статус (`open`, `in_progress`, `resolved`) и ответ пользователю.'
+      operationId: patch_ticket_api_v1_support_tickets__ticket_id__patch
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Ticket Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketPatch'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Ошибка валидации входных данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/support-tickets/{ticket_id}/attachments/{attachment_id}:
+    get:
+      tags:
+      - Заявки
+      summary: Скачать файл заявки
+      operationId: download_attachment_api_v1_support_tickets__ticket_id__attachments__attachment_id__get
+      security:
+      - cookieAuth: []
+      - bearerAuth: []
+      parameters:
+      - name: ticket_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Ticket Id
+      - name: attachment_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Attachment Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/pdf: {}
+            image/png: {}
+            image/jpeg: {}
+        '401':
+          description: Не выполнен вход или сессия истекла
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Объект не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /api/v1/audit-log:
     get:
       tags:
       - Журнал
       summary: Журнал действий
       description: Входы и выходы (в т.ч. неудачные), создание и прекращение платежей, отметки и отмены оплат, исправления
-        дат, изменения пользователей. Новые записи первыми.
+        дат, изменения пользователей, заявки администратору. Новые записи первыми.
       operationId: list_audit_log_api_v1_audit_log_get
       security:
       - cookieAuth: []
@@ -1111,11 +1347,12 @@ paths:
             - payments
             - occurrences
             - users
+            - tickets
             type: string
           - type: 'null'
-          description: auth | payments | occurrences | users
+          description: auth | payments | occurrences | users | tickets
           title: Category
-        description: auth | payments | occurrences | users
+        description: auth | payments | occurrences | users | tickets
       - name: action
         in: query
         required: false
@@ -1343,6 +1580,36 @@ components:
       - items
       - total
       title: AuditList
+    Body_create_ticket_api_v1_support_tickets_post:
+      properties:
+        topic:
+          $ref: '#/components/schemas/TicketTopic'
+          description: Тема заявки
+        description:
+          type: string
+          maxLength: 4000
+          title: Description
+          description: Описание вопроса или неполадки
+        occurrence_ids:
+          items:
+            type: integer
+          type: array
+          title: Occurrence Ids
+          description: Периоды платежей, к которым относится заявка
+          default: []
+        files:
+          items:
+            type: string
+            contentMediaType: application/octet-stream
+          type: array
+          title: Files
+          description: Скриншоты или документы
+          default: []
+      type: object
+      required:
+      - topic
+      - description
+      title: Body_create_ticket_api_v1_support_tickets_post
     Body_upload_receipt_api_v1_payment_occurrences__occurrence_id__receipt_post:
       properties:
         file:
@@ -2029,6 +2296,179 @@ components:
       - from
       - to
       title: SummaryPeriod
+    Ticket:
+      properties:
+        id:
+          type: integer
+          title: Id
+        topic:
+          $ref: '#/components/schemas/TicketTopic'
+        status:
+          $ref: '#/components/schemas/TicketStatus'
+        description:
+          type: string
+          title: Description
+        admin_reply:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Admin Reply
+          description: Ответ администратора
+        author:
+          $ref: '#/components/schemas/TicketAuthor'
+        attachments:
+          items:
+            $ref: '#/components/schemas/TicketAttachment'
+          type: array
+          title: Attachments
+          description: 'Файлы; скачать: GET /support-tickets/{id}/attachments/{attachment_id}'
+        payments:
+          items:
+            $ref: '#/components/schemas/TicketPayment'
+          type: array
+          title: Payments
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - topic
+      - status
+      - description
+      - admin_reply
+      - author
+      - attachments
+      - payments
+      - created_at
+      - updated_at
+      title: Ticket
+    TicketAttachment:
+      properties:
+        id:
+          type: integer
+          title: Id
+        file_name:
+          type: string
+          title: File Name
+        content_type:
+          type: string
+          title: Content Type
+        size:
+          type: integer
+          title: Size
+          description: Размер в байтах
+      type: object
+      required:
+      - id
+      - file_name
+      - content_type
+      - size
+      title: TicketAttachment
+    TicketAuthor:
+      properties:
+        id:
+          type: integer
+          title: Id
+        login:
+          type: string
+          title: Login
+        display_name:
+          type: string
+          title: Display Name
+      type: object
+      required:
+      - id
+      - login
+      - display_name
+      title: TicketAuthor
+    TicketList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/Ticket'
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - items
+      - total
+      title: TicketList
+    TicketPatch:
+      properties:
+        status:
+          anyOf:
+          - $ref: '#/components/schemas/TicketStatus'
+          - type: 'null'
+        admin_reply:
+          anyOf:
+          - type: string
+            maxLength: 4000
+          - type: 'null'
+          title: Admin Reply
+      additionalProperties: false
+      type: object
+      title: TicketPatch
+      description: 'Обработка заявки администратором: статус и/или ответ (пустая строка или null убирает ответ).'
+    TicketPayment:
+      properties:
+        occurrence_id:
+          type: integer
+          title: Occurrence Id
+        recurring_payment_id:
+          type: integer
+          title: Recurring Payment Id
+        name:
+          type: string
+          title: Name
+        due_date:
+          type: string
+          format: date
+          title: Due Date
+        amount:
+          type: string
+          title: Amount
+          examples:
+          - '85000.00'
+        currency:
+          $ref: '#/components/schemas/Currency'
+        status:
+          $ref: '#/components/schemas/OccurrenceStatus'
+      type: object
+      required:
+      - occurrence_id
+      - recurring_payment_id
+      - name
+      - due_date
+      - amount
+      - currency
+      - status
+      title: TicketPayment
+      description: Период платежа, приложенный к заявке (снимок на момент чтения).
+    TicketStatus:
+      type: string
+      enum:
+      - open
+      - in_progress
+      - resolved
+      title: TicketStatus
+    TicketTopic:
+      type: string
+      enum:
+      - question
+      - bug
+      - payment
+      - access
+      - other
+      title: TicketTopic
     UserCreate:
       properties:
         login:

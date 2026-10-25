@@ -53,7 +53,7 @@ from app.services.users import sync_system_admin  # noqa: E402
 TODAY = date(2026, 10, 23)
 ADMIN_PASSWORD = "admin12345"
 USER_PASSWORD = "user12345"
-TABLES = "budgets, audit_log, reminders, payment_occurrences, recurring_payments, sessions, users"
+TABLES = "support_ticket_payments, ticket_attachments, support_tickets, budgets, audit_log, reminders, payment_occurrences, recurring_payments, sessions, users"
 
 
 def _create_test_database() -> None:

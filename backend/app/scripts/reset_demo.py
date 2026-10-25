@@ -1,4 +1,4 @@
-"""Сброс к демо-данным: удаляет все платежи, пользователей, журнал и файлы чеков, затем заново создаёт
+"""Сброс к демо-данным: удаляет все платежи, пользователей, заявки, журнал и файлы, затем заново создаёт
 админа из .env и демо-набор. Для стенда демонстрации, а не для рабочей базы.
 
 docker compose run --rm backend python -m app.scripts.reset_demo            # APP_ENV != production
@@ -23,7 +23,7 @@ from app.services.users import sync_system_admin
 
 log = logging.getLogger("app.reset_demo")
 
-TABLES = "budgets, audit_log, reminders, payment_occurrences, recurring_payments, sessions, users"
+TABLES = "support_ticket_payments, ticket_attachments, support_tickets, budgets, audit_log, reminders, payment_occurrences, recurring_payments, sessions, users"
 
 
 def reset_demo(db: Session, clock: Clock, settings: Settings) -> None:
